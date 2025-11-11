@@ -21,7 +21,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <nav className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="text-2xl font-bold text-primary">
-              Idol Shop
+              🍮 Purin Order
             </Link>
 
             {/* Desktop Menu */}
@@ -79,7 +79,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       <footer className="border-t bg-card mt-auto">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-sm text-muted-foreground">
-            © 2024 Idol Shop. All rights reserved.
+            © 2024 Purin Order. All rights reserved.
           </div>
         </div>
       </footer>

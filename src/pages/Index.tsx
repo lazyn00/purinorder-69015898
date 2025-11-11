@@ -8,23 +8,23 @@ const Index = () => {
   const features = [
     {
       icon: <Star className="w-8 h-8" />,
-      title: "Hàng chính hãng",
-      description: "100% sản phẩm chính hãng từ các nhà phân phối uy tín"
+      title: "Đa dạng sàn TQ",
+      description: "Order từ Taobao, 1688, PDD, Douyin, XHS - nguồn hàng phong phú"
     },
     {
       icon: <Package className="w-8 h-8" />,
-      title: "Pre-order nhanh chóng",
-      description: "Đặt trước sản phẩm yêu thích, nhận hàng sớm nhất"
+      title: "Giá cạnh tranh",
+      description: "Phí order hợp lý, tỷ giá tốt, ship về Việt Nam nhanh chóng"
     },
     {
       icon: <Shield className="w-8 h-8" />,
-      title: "Bảo hành đổi trả",
-      description: "Chính sách bảo hành rõ ràng, hỗ trợ đổi trả tận tình"
+      title: "Kiểm hàng kỹ",
+      description: "Kiểm tra chất lượng sản phẩm trước khi ship về Việt Nam"
     },
     {
       icon: <Headphones className="w-8 h-8" />,
-      title: "Hỗ trợ 24/7",
-      description: "Đội ngũ tư vấn nhiệt tình, sẵn sàng hỗ trợ mọi lúc"
+      title: "Tư vấn tận tâm",
+      description: "Hỗ trợ tìm kiếm sản phẩm, tư vấn size và chọn shop uy tín"
     }
   ];
 
@@ -34,11 +34,11 @@ const Index = () => {
       <section className="bg-gradient-hero py-20 md:py-32">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Idol Shop - Nơi yêu thích của fan
+            🍮 Purin Order - Order Trung Quốc Uy Tín
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Chuyên cung cấp các sản phẩm idol chính hãng, hàng pre-order uy tín.
-            Album, lightstick, photocard và nhiều merchandise độc đáo khác.
+            Chuyên nhận order các sản phẩm K-pop, C-pop, Anime từ Taobao, 1688, PDD, Douyin, XHS.
+            Hàng chính hãng từ Trung Quốc với giá tốt nhất.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/products">
@@ -89,14 +89,14 @@ const Index = () => {
               Về chúng tôi
             </h2>
             <p className="text-lg text-muted-foreground mb-6">
-              Idol Shop được thành lập với mục tiêu mang đến cho các fan Việt Nam những sản phẩm
-              idol chất lượng cao với giá cả hợp lý. Chúng tôi tự hào là đối tác tin cậy của
-              nhiều nhà phân phối chính hãng tại Hàn Quốc, Nhật Bản và các quốc gia khác.
+              Purin Order chuyên nhận order các sản phẩm K-pop, C-pop, Anime từ các sàn thương mại điện tử
+              lớn của Trung Quốc như Taobao, 1688, PDD, Douyin, XHS. Chúng tôi giúp bạn tiếp cận được
+              những sản phẩm độc quyền, phiên bản giới hạn với giá tốt nhất.
             </p>
             <p className="text-lg text-muted-foreground mb-8">
-              Với hệ thống pre-order chuyên nghiệp, chúng tôi cam kết mang đến trải nghiệm
-              mua sắm tốt nhất cho cộng đồng fan Việt Nam. Mọi sản phẩm đều được kiểm tra
-              kỹ lưỡng trước khi giao đến tay khách hàng.
+              Với kinh nghiệm order từ Trung Quốc, chúng tôi cam kết kiểm tra kỹ hàng, đóng gói cẩn thận
+              và ship về Việt Nam nhanh chóng. Đội ngũ của chúng tôi luôn sẵn sàng hỗ trợ tìm kiếm sản phẩm
+              và tư vấn cho bạn.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <div className="text-center">
@@ -125,7 +125,7 @@ const Index = () => {
                 Sẵn sàng đặt hàng?
               </h2>
               <p className="text-lg mb-8 opacity-90">
-                Khám phá ngay bộ sưu tập sản phẩm idol đa dạng của chúng tôi
+                Khám phá các sản phẩm K-pop, C-pop, Anime hot nhất từ Trung Quốc
               </p>
               <Link to="/products">
                 <Button size="lg" variant="secondary" className="text-lg px-8">
