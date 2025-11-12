@@ -51,7 +51,7 @@ export const productsData = [
     },
     feesIncluded: true,
     master: "脆脆小饼干 (xhs)"
-  }
+  },
   {
     id: 3,
     name: "Keychain điện thoại",
