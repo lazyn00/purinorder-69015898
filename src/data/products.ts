@@ -4,8 +4,10 @@ export const productsData = [
     name: "Sticker lấp la lấp lánh",
     price: 83000,
     priceDisplay: "83,000đ",
-    description: "Set 20 cái sticker (mỗi mẫu 2 cái)",
-    <p> Giá đã bao gồm cân và ship nội địa dự kiến",
+    description: [
+  "Set 20 cái sticker (mỗi mẫu 2 cái)",
+  "Giá đã bao gồm cân và ship nội địa dự kiến"
+]
     images: [
       "https://i.imgur.com/TILP0up.jpeg",
       "https://i.imgur.com/RSuiM56.jpeg",
