@@ -74,7 +74,6 @@ export default function ProductDetail() {
     );
   }
 
-  // === (QUAN TRỌNG) SỬA LỖI GIÁ TIỀN TRONG GIỎ HÀNG ===
   const handleAddToCart = () => {
     if (product.variants && product.variants.length > 0 && !selectedVariant) {
       toast({
@@ -85,23 +84,15 @@ export default function ProductDetail() {
       return;
     }
 
-    // 1. Tìm giá đúng (từ state currentPrice đã cập nhật)
     const selectedVariantObj = product.variants.find(v => v.name === selectedVariant);
-    
-    // 2. Xác định giá chính xác để thêm vào giỏ
-    // Nếu tìm thấy variant đã chọn, dùng giá của nó
-    // Nếu không (ví dụ sản phẩm không có variant), dùng giá mặc định (currentPrice)
     const correctPrice = selectedVariantObj ? selectedVariantObj.price : currentPrice;
 
-    // 3. Tạo một bản sao "product" để gửi vào giỏ hàng
-    // Ghi đè giá mặc định bằng giá của variant đã chọn
     const productToAdd = {
       ...product,
-      price: correctPrice, // <- Ghi đè giá (số)
-      priceDisplay: `${correctPrice.toLocaleString('vi-VN')}đ` // <- Ghi đè giá (chuỗi)
+      price: correctPrice,
+      priceDisplay: `${correctPrice.toLocaleString('vi-VN')}đ`
     };
     
-    // 4. Gửi object "productToAdd" đã chỉnh sửa, thay vì "product" gốc
     addToCart(productToAdd, quantity, selectedVariant);
 
     toast({
@@ -109,7 +100,6 @@ export default function ProductDetail() {
       description: `${product.name}${selectedVariant ? ` (${selectedVariant})` : ''} x${quantity}`,
     });
   };
-  // === KẾT THÚC SỬA LỖI ===
 
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
@@ -220,21 +210,26 @@ export default function ProductDetail() {
                   <SelectContent>
                     {product.variants.map((variant) => (
                       <SelectItem key={variant.name} value={variant.name}>
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center gap-2">
-                            {product.variantImageMap && product.variantImageMap[variant.name] !== undefined && (
-                              <img 
-                                src={product.images[product.variantImageMap[variant.name]]} 
-                                alt={variant.name}
-                                className="w-8 h-8 object-cover rounded border"
-                              />
-                            )}
-                            <span>{variant.name}</span>
-                          </div>
-                          <span className="text-sm font-medium text-muted-foreground">
-                            {variant.price.toLocaleString('vi-VN')}đ
-                          </span>
+                        {/* TRƯỚC ĐÓ: <div className="flex items-center justify-between w-full">
+                          BÂY GIỜ: chúng ta xóa thẻ 'span' hiển thị giá 
+                        */}
+                        <div className="flex items-center gap-2">
+                          {product.variantImageMap && product.variantImageMap[variant.name] !== undefined && (
+                            <img 
+                              src={product.images[product.variantImageMap[variant.name]]} 
+                              alt={variant.name}
+                              className="w-8 h-8 object-cover rounded border"
+                            />
+                          )}
+                          <span>{variant.name}</span>
                         </div>
+                        
+                        {/* === (ĐÃ XÓA) ===
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {variant.price.toLocaleString('vi-VN')}đ
+                        </span>
+                        === KẾT THÚC XÓA === */}
+
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -282,7 +277,7 @@ export default function ProductDetail() {
                 size="lg"
                 disabled={isExpired}
               >
-                {isExpired ? <CalendarOff className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
+                {isExpired ? <CalendarOff className="h-5 w-4" /> : <ShoppingCart className="h-5 w-5" />}
                 {isExpired ? "Đã hết hạn order" : "Thêm vào giỏ hàng"}
               </Button>
 
