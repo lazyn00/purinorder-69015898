@@ -21,13 +21,11 @@ export const productsData = [
     category: "Merch",
     artist: "CORTIS",
     
-    // === CẬP NHẬT ===
     status: "Pre-order",
-    orderDeadline: "2025-10-30T23:59:00", // (Ví dụ: 30/10/2025)
+    orderDeadline: "2025-10-30T23:59:00", // (còn hạn)
     variants: [
       { name: "Full Set 5 members", price: 83000 }
     ],
-    // === KẾT THÚC CẬP NHẬT ===
 
     variantImageMap: {
       "Full Set 5 members": 0
@@ -56,13 +54,11 @@ export const productsData = [
     category: "Merch",
     artist: "CORTIS",
     
-    // === CẬP NHẬT ===
-    status: "Sẵn", // (Ví dụ: hàng có sẵn)
-    orderDeadline: null, // (Không có hạn order vì hàng sẵn)
+    status: "Sẵn", 
+    orderDeadline: null, // (hàng sẵn, không có hạn)
     variants: [
       { name: "Full Set 5 members", price: 79000 }
     ],
-    // === KẾT THÚC CẬP NHẬT ===
 
     variantImageMap: {
       "Full Set 5 members": 0
@@ -73,7 +69,7 @@ export const productsData = [
   {
     id: 3,
     name: "Keychain điện thoại",
-    price: 107000, // Giá khởi điểm
+    price: 107000, 
     priceDisplay: "107,000đ",
     description: [],
     images: [
@@ -88,18 +84,16 @@ export const productsData = [
     category: "Merch",
     artist: "CORTIS",
 
-    // === CẬP NHẬT ===
     status: "Pre-order",
-    orderDeadline: "2025-12-31T23:59:00", // (Ví dụ: 31/12/2025)
+    orderDeadline: "2025-12-31T23:59:00", // (còn hạn)
     variants: [
       { name: "James", price: 107000 },
       { name: "Juhoon", price: 107000 },
       { name: "Martin", price: 107000 },
       { name: "Seunghyeon", price: 107000 },
       { name: "Keonho", price: 107000 },
-      { name: "Full Set 5 members", price: 500000 } // (Ví dụ: giá full set khác)
+      { name: "Full Set 5 members", price: 500000 } 
     ],
-    // === KẾT THÚC CẬP NHẬT ===
 
     variantImageMap: {
       "Full Set 5 members": 0,
@@ -130,9 +124,10 @@ export const productsData = [
     category: "Merch",
     artist: "CORTIS",
 
-    // === CẬP NHẬT ===
-    status: "Order", // (Ví dụ: đang nhận order)
-    orderDeadline: "2024-11-20T23:59:00", // (Ví dụ: đã hết hạn)
+    status: "Order", 
+    // === ĐÃ SỬA: đổi ngày sang tương lai ===
+    orderDeadline: "2026-01-31T23:59:00", // (còn hạn) 
+    // === KẾT THÚC SỬA ===
     variants: [
       { name: "Viền trong-James", price: 48000 },
       { name: "Viền màu-James", price: 48000 },
@@ -144,10 +139,9 @@ export const productsData = [
       { name: "Viền màu-Seunghyeon", price: 48000 },
       { name: "Viền trong-Keonho", price: 48000 },
       { name: "Viền màu-Keonho", price: 48000 },
-      { name: "Viền trong-Full Set 5 members", price: 230000 }, // (Ví dụ giá khác)
-      { name: "Viền màu-Full Set 5 members", price: 230000 }  // (Ví dụ giá khác)
+      { name: "Viền trong-Full Set 5 members", price: 230000 }, 
+      { name: "Viền màu-Full Set 5 members", price: 230000 } 
     ],
-    // === KẾT THÚC CẬP NHẬT ===
 
     variantImageMap: {
       "Viền trong-Full Set 5 members": 0,
