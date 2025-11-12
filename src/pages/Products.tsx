@@ -1,135 +1,91 @@
-// @/pages/Products.tsx
+// @/components/ProductCard.tsx
 
-import { Layout } from "@/components/Layout";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { productsData } from "@/data/products";
-// SỬA ĐỔI: import component card mới
-import { ProductCard } from "@/components/ProductCard"; 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, ArrowUpDown } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
-export default function Products() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedArtist, setSelectedArtist] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("default");
+// (Bạn có thể cần import kiểu Product từ data/context)
+type ProductVariant = {
+  name: string;
+  price: number;
+};
 
-  const artists = ["all", ...Array.from(new Set(productsData.map(p => p.artist)))];
+type Product = {
+  id: number;
+  name: string;
+  price: number;
+  images: string[];
+  status?: string;
+  variants: ProductVariant[];
+};
 
-  // Filter products
-  let filteredProducts = productsData.filter(product => {
-    const categoryMatch = selectedCategory === "all" || product.category === selectedCategory;
-    const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
-    return categoryMatch && artistMatch;
-  });
+// Hàm helper (giữ nguyên)
+const formatPrice = (price: number) => {
+  return `${price.toLocaleString('vi-VN')}đ`;
+};
 
-  // Sort products
-  if (sortBy === "price-asc") {
-    filteredProducts = [...filteredProducts].sort((a, b) => a.price - b.price);
-  } else if (sortBy === "price-desc") {
-    filteredProducts = [...filteredProducts].sort((a, b) => b.price - a.price);
-  } else if (sortBy === "name") {
-    filteredProducts = [...filteredProducts].sort((a, b) => a.name.localeCompare(b.name));
+const getPriceRange = (variants: ProductVariant[], defaultPrice: number): string => {
+  if (!variants || variants.length === 0) {
+    return formatPrice(defaultPrice);
+  }
+  if (variants.length === 1) {
+    return formatPrice(variants[0].price);
   }
 
-  return (
-    <Layout>
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Sản phẩm Pre-order</h1>
-          <p className="text-muted-foreground">
-            Order sản phẩm K-pop, C-pop, Anime từ Taobao, PDD, Douyin, XHS, 1688
-          </p>
-        </div>
+  let minPrice = variants[0].price;
+  let maxPrice = variants[0].price;
+  for (const variant of variants) {
+    if (variant.price < minPrice) minPrice = variant.price;
+    if (variant.price > maxPrice) maxPrice = variant.price;
+  }
 
-        {/* Filters and Sort (Giữ nguyên) */}
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Danh mục" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả danh mục</SelectItem>
-                  <SelectItem value="Outfit & Doll">Outfit & Doll</SelectItem>
-                  <SelectItem value="Merch">Merch</SelectItem>
-                  <SelectItem value="Khác">Khác</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedArtist} onValueChange={setSelectedArtist}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Nhóm nhạc/Artist" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả artist</SelectItem>
-                  {artists.slice(1).map(artist => (
-                    <SelectItem key={artist} value={artist}>{artist}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sắp xếp" />
-                </Trigger>
-                <SelectContent>
-                  <SelectItem value="default">Mặc định</SelectItem>
-                  <SelectItem value="price-asc">Giá: Thấp đến cao</SelectItem>
-                  <SelectItem value="price-desc">Giá: Cao đến thấp</SelectItem>
-                  <SelectItem value="name">Tên A-Z</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {(selectedCategory !== "all" || selectedArtist !== "all") && (
-            <div className="flex gap-2 items-center">
-              <span className="text-sm text-muted-foreground">Đang lọc:</span>
-              {selectedCategory !== "all" && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSelectedCategory("all")}
-                >
-                  {selectedCategory} ✕
-                </Button>
-              )}
-              {selectedArtist !== "all" && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSelectedArtist("all")}
-                >
-                  {selectedArtist} ✕
-                </Button>
-              )}
-            </div>
+  if (minPrice === maxPrice) {
+    return formatPrice(minPrice);
+  }
+
+  // Thay vì "k", chúng ta hiển thị giá đầy đủ
+  return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+};
+
+export function ProductCard({ product }: { product: Product }) {
+  const thumbnail = product.images[0] || "https://i.imgur.com/placeholder.png";
+  
+  // Sửa đổi hàm getPriceRange để hiển thị khoảng giá đầy đủ thay vì "k"
+  const priceDisplay = getPriceRange(product.variants, product.price);
+
+  return (
+    <Link to={`/product/${product.id}`} className="group block">
+      {/* Sửa đổi: Bỏ border, dùng shadow nhẹ cho style Shopee */}
+      <div className="overflow-hidden rounded-sm bg-card shadow-sm transition-shadow hover:shadow-md">
+        
+        {/* Phần ảnh và Tag */}
+        <div className="relative aspect-square overflow-hidden">
+          <img
+            src={thumbnail}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+          {product.status && (
+            // Sửa đổi: Tag nhỏ hơn
+            <Badge 
+              variant="secondary" 
+              className="absolute top-1.5 left-1.5 h-5 px-1.5 text-[10px]"
+            >
+              {product.status}
+            </Badge>
           )}
         </div>
 
-        {/* === (SỬA ĐỔI) LAYOUT RESPONSIVE CỦA BẠN === */}
-        {/* Mobile: 2 cột, Tablet: 3 cột, Desktop: 4 cột */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {filteredProducts.map((product) => (
-            // Sửa đổi: ép kiểu 'any' nếu 'product' từ productsData
-            // không khớp 100% với kiểu 'Product' mới định nghĩa
-            <ProductCard key={product.id} product={product as any} />
-          ))}
+        {/* Phần Tên và Giá (Style Shopee) */}
+        {/* Sửa đổi: Giảm padding, giảm cỡ chữ */}
+        <div className="p-2">
+          <h3 className="h-8 text-xs font-normal line-clamp-2 md:text-sm md:h-10">
+            {product.name}
+          </h3>
+          <p className="mt-1 truncate text-sm font-bold text-primary md:text-base">
+            {priceDisplay}
+          </p>
         </div>
-        {/* === KẾT THÚC SỬA ĐỔI === */}
-
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Không tìm thấy sản phẩm nào</p>
-          </div>
-        )}
       </div>
-    </Layout>
+    </Link>
   );
 }
