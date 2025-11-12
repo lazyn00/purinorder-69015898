@@ -14,7 +14,7 @@ export default function Policy() {
           {/* Chính sách đặt hàng */}
           <Card>
             <CardHeader>
-              <CardTitle>Chính sách đặt hàng (Pre-order)</CardTitle>
+              <CardTitle>1. Chính sách đặt hàng (Pre-order)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-muted-foreground">
               <p>• Vì đa phần là hàng order, Purin chỉ chấp nhận hình thức thanh toán trước 50-100%.</p>
@@ -29,7 +29,7 @@ export default function Policy() {
           {/* Chính sách thanh toán */}
           <Card>
             <CardHeader>
-              <CardTitle>Chính sách thanh toán</CardTitle>
+              <CardTitle>2. Chính sách thanh toán</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-muted-foreground">
               <p>• Thanh toán 50-100% giá trị đơn hàng qua chuyển khoản ngân hàng hoặc ví điện tử (Momo, ZaloPay).</p>
@@ -40,7 +40,7 @@ export default function Policy() {
           {/* Chính sách vận chuyển */}
           <Card>
             <CardHeader>
-              <CardTitle>Chính sách vận chuyển</CardTitle>
+              <CardTitle>3. Chính sách vận chuyển</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-muted-foreground">
               <p>• Phí ship được tính theo khu vực: 15,000đ – 50,000đ.</p>
@@ -52,7 +52,7 @@ export default function Policy() {
           {/* Chính sách đổi trả */}
           <Card>
             <CardHeader>
-              <CardTitle>Chính sách đổi trả</CardTitle>
+              <CardTitle>4. Chính sách đổi trả</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-muted-foreground">
               <p>• Purin chỉ chấp nhận hỗ trợ đổi trả nếu sản phẩm bị lỗi do nhà sản xuất.</p>
@@ -60,11 +60,39 @@ export default function Policy() {
               <p>• Không chấp nhận đổi trả với lý do cá nhân như đổi ý, không thích, hoặc khác màu.</p>
             </CardContent>
           </Card>
+          
+          {/* === BẢN SỬA: CHÍNH SÁCH HOÀN TIỀN (MỤC 5) === */}
+          <Card>
+            <CardHeader>
+              <CardTitle>5. Chính sách Hoàn tiền</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ul className="list-disc list-inside space-y-3 pl-4 text-muted-foreground">
+                <li>
+                  <span className="font-semibold text-foreground">Mas hủy đoàn:</span> Purin hoàn đúng số tiền Mas đã trả + công cân.
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">Hàng thất lạc:</span> Hoàn 50–100% tùy mức bồi thường của vận chuyển + công cân.
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">Hàng thiếu/lỗi:</span> Hoàn theo số tiền được bồi thường của Mas sau khi xác nhận. Không bồi thường nếu Mas không xử lý.
+                </li>
+                <li>
+                  <span className="font-semibold text-red-500">Trường hợp Mas gian lận (scam):</span> Không hoàn tiền 100%, chỉ hoàn công cân đã thu.
+                </li>
+              </ul>
+              <div className="bg-yellow-50 border-l-4 border-amber-500 text-amber-700 p-4 rounded-md mt-6">
+                <p className="font-bold">Lưu ý:</p>
+                <p className="text-sm">Không hoàn tiền vì khác hình, lỗi xưởng, hoặc đổi ý.</p>
+              </div>
+            </CardContent>
+          </Card>
+          {/* === KẾT THÚC BẢN SỬA === */}
 
           {/* Chính sách bảo mật */}
           <Card>
             <CardHeader>
-              <CardTitle>Chính sách bảo mật thông tin</CardTitle>
+              <CardTitle>6. Chính sách bảo mật thông tin</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-muted-foreground">
               <p>• Purin cam kết bảo mật tuyệt đối thông tin cá nhân của khách hàng.</p>
@@ -77,7 +105,7 @@ export default function Policy() {
           {/* Liên hệ */}
           <Card>
             <CardHeader>
-              <CardTitle>Liên hệ hỗ trợ</CardTitle>
+              <CardTitle>7. Liên hệ hỗ trợ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-muted-foreground">
               <p>📧 Email: ppurin.order@gmail.com</p>
