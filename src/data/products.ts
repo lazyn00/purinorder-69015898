@@ -4,7 +4,8 @@ export const productsData = [
     name: "Sticker lấp la lấp lánh",
     price: 83000,
     priceDisplay: "83,000đ",
-    description: "Set 20 cái sticker (mỗi mẫu 2 cái)\nGiá đã bao gồm cân và ship nội địa dự kiến",
+    description: "Set 20 cái sticker (mỗi mẫu 2 cái)
+      Giá đã bao gồm cân và ship nội địa dự kiến",
     images: [
       "https://i.imgur.com/TILP0up.jpeg",
       "https://i.imgur.com/RSuiM56.jpeg",
@@ -23,7 +24,8 @@ export const productsData = [
     name: "Sticker Hàn Quốc trong suốt",
     price: 79000,
     priceDisplay: "79,000đ",
-    description: "Set 6 cái sticker\nGiá đã bao gồm cân và ship nội địa dự kiến",
+    description: "Set 6 cái sticker
+      Giá đã bao gồm cân và ship nội địa dự kiến",
     images: [
       "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=800",
       "https://images.unsplash.com/photo-1614680376739-414d95ff43df?w=800"
