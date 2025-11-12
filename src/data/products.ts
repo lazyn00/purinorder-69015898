@@ -1,6 +1,7 @@
 // @/data/products.ts
 
 export const productsData = [
+  // === (ID 1: GIỮ NGUYÊN) ===
   {
     id: 1,
     name: "Sticker lấp la lấp lánh",
@@ -33,6 +34,8 @@ export const productsData = [
     feesIncluded: true,
     master: "seeuKJH (xhs)"
   },
+  
+  // === (ID 2: GIỮ NGUYÊN) ===
   {
     id: 2,
     name: "Sticker Hàn Quốc trong suốt",
@@ -66,6 +69,8 @@ export const productsData = [
     feesIncluded: true,
     master: "脆脆小饼干 (xhs)"
   },
+  
+  // === (ID 3: GIỮ NGUYÊN) ===
   {
     id: 3,
     name: "Keychain điện thoại",
@@ -106,6 +111,8 @@ export const productsData = [
     feesIncluded: false,
     master: "Boky Buyer (xhs)"
   },
+  
+  // === (ID 4: ĐÃ CẬP NHẬT 2 PHÂN LOẠI) ===
   {
     id: 4,
     name: "Kẹp giấy",
@@ -127,7 +134,7 @@ export const productsData = [
     status: "Order", 
     orderDeadline: "2026-01-31T23:59:00", 
 
-    // === (THÊM MỚI) CẤU TRÚC 2 PHÂN LOẠI ===
+    // (CẤU TRÚC 2 PHÂN LOẠI)
     optionGroups: [
       {
         name: "Kiểu viền",
@@ -138,9 +145,8 @@ export const productsData = [
         options: ["James", "Juhoon", "Martin", "Seunghyeon", "Keonho", "Full Set 5 members"]
       }
     ],
-    // === KẾT THÚC THÊM MỚI ===
     
-    // (GIỮ NGUYÊN) Mảng variants vẫn là các chuỗi đã gộp
+    // (Mảng variants vẫn là các chuỗi đã gộp)
     variants: [
       { name: "Viền trong-James", price: 48000 },
       { name: "Viền màu-James", price: 48000 },
@@ -156,13 +162,20 @@ export const productsData = [
       { name: "Viền màu-Full Set 5 members", price: 230000 } 
     ],
     
-    // (GIỮ NGUYÊN) Map vẫn dùng chuỗi gộp
+    // (Map vẫn dùng chuỗi gộp)
     variantImageMap: {
       "Viền trong-Full Set 5 members": 0,
       "Viền màu-Full Set 5 members": 1,
       "Viền trong-James": 2,
       "Viền màu-James": 2,
-      // ... (giữ nguyên)
+      "Viền trong-Juhoon": 3,
+      "Viền màu-Juhoon": 3,
+      "Viền trong-Martin": 4,
+      "Viền màu-Martin": 4,
+      "Viền trong-Seunghyeon": 5,
+      "Viền màu-Seunghyeon": 5,
+      "Viền trong-Keonho": 6,
+      "Viền màu-Keonho": 6
     },
     feesIncluded: false,
     master: "Boky Buyer (xhs)"
