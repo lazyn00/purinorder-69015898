@@ -34,8 +34,6 @@ export default function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
   
-  // (Các hàm useEffect và handlers giữ nguyên)
-  // ...
   useEffect(() => {
     if (carouselApi && selectedVariant && product?.variantImageMap) {
       const imageIndex = product.variantImageMap[selectedVariant];
@@ -146,7 +144,6 @@ export default function ProductDetail() {
   
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
-  // ...
 
   if (!product) {
     return (
@@ -163,7 +160,6 @@ export default function ProductDetail() {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         
-        {/* NÚT QUAY LẠI */}
         <Button
           variant="ghost"
           onClick={() => navigate("/products")}
@@ -174,17 +170,17 @@ export default function ProductDetail() {
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Image Carousel (giữ nguyên) */}
+          {/* Image Carousel (Đã sửa lại kích thước ảnh) */}
           <div className="space-y-4">
             <Carousel className="w-full" setApi={setCarouselApi}>
               <CarouselContent>
                 {product.images.map((image, index) => (
                   <CarouselItem key={index}>
-                    <div className="relative overflow-hidden rounded-lg border">
+                    <div className="relative overflow-hidden rounded-lg border aspect-square flex items-center justify-center"> {/* Thêm flex để căn giữa */}
                       <img
                         src={image}
                         alt={`${product.name} - ${index + 1}`}
-                        className="w-full h-full object-contain"
+                        className="max-h-[500px] max-w-full object-contain" // Sử dụng max-h và object-contain
                       />
                     </div>
                   </CarouselItem>
@@ -216,9 +212,8 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* Product Info */}
+          {/* Product Info (Giữ nguyên) */}
           <div className="space-y-6">
-            {/* Tên, Trạng thái (đọc động) */}
             <div>
               {product.status && (
                 <Badge variant="secondary" className="mb-3">
@@ -228,7 +223,6 @@ export default function ProductDetail() {
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
             </div>
 
-            {/* Giá (động), Hạn order (động) */}
             <div className="border-t pt-4">
               <p className="text-4xl font-bold text-primary">
                 {currentPrice.toLocaleString('vi-VN')}đ
@@ -248,12 +242,9 @@ export default function ProductDetail() {
               )}
             </div>
             
-            {/* === (KHÔI PHỤC) MÔ TẢ & MASTER === */}
-            {/* Chỉ hiển thị block này nếu có description hoặc master */}
             {(product.description && product.description.length > 0) || product.master ? (
               <div className="border-t pt-4 space-y-4">
                 
-                {/* Phần Mô tả (chỉ hiện nếu có) */}
                 {product.description && product.description.length > 0 && (
                   <div>
                     <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
@@ -265,7 +256,6 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {/* Phần Master (chỉ hiện nếu có) */}
                 {product.master && (
                   <div>
                     <h3 className="font-semibold mb-1">Master</h3>
@@ -275,12 +265,8 @@ export default function ProductDetail() {
 
               </div>
             ) : null}
-            {/* === KẾT THÚC KHÔI PHỤC === */}
 
-
-            {/* LOGIC PHÂN LOẠI (1 hoặc 2) */}
             <div className="border-t pt-4 space-y-4">
-              {/* Trường hợp 1: 2+ phân loại (ID 4) */}
               {product.optionGroups && (
                 product.optionGroups.map((group) => (
                   <div key={group.name}>
@@ -306,7 +292,6 @@ export default function ProductDetail() {
                 ))
               )}
 
-              {/* Trường hợp 2: 1 phân loại (ID 3) */}
               {!product.optionGroups && product.variants && product.variants.length > 1 && (
                 <div>
                   <Label htmlFor="variant" className="text-base font-semibold">
@@ -340,7 +325,6 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Quantity */}
             <div className="border-t pt-4">
               <Label htmlFor="quantity" className="text-base font-semibold">
                 Số lượng
@@ -363,7 +347,6 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Action Buttons (đã thêm logic disable) */}
             <div className="border-t pt-4 space-y-3">
               <Button 
                 onClick={handleAddToCart}
