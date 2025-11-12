@@ -34,8 +34,6 @@ export default function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
   
-  // (Các useEffect và handlers giữ nguyên)
-  // ...
   useEffect(() => {
     if (carouselApi && selectedVariant && product?.variantImageMap) {
       const imageIndex = product.variantImageMap[selectedVariant];
@@ -172,21 +170,19 @@ export default function ProductDetail() {
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Image Carousel (Đã sửa lại, gỡ aspect-square) */}
+          {/* Image Carousel (Giữ định dạng ảnh gốc, giới hạn 500px) */}
           <div className="space-y-4">
             <Carousel className="w-full" setApi={setCarouselApi}>
               <CarouselContent>
                 {product.images.map((image, index) => (
                   <CarouselItem key={index}>
-                    {/* === (ĐÃ SỬA LỖI) Giới hạn chiều cao === */}
                     <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20">
                       <img
                         src={image}
                         alt={`${product.name} - ${index + 1}`}
-                        className="w-auto h-auto max-w-full max-h-[500px] object-contain" // Giữ định dạng gốc, giới hạn 500px
+                        className="w-auto h-auto max-w-full max-h-[500px] object-contain"
                       />
                     </div>
-                    {/* === KẾT THÚC SỬA LỖI === */}
                   </CarouselItem>
                 ))}
               </CarouselContent>
@@ -323,7 +319,9 @@ export default function ProductDetail() {
                           </div>
                         </SelectItem>
                       ))}
+                      {/* === (ĐÃ SỬA LỖI) === */}
                     </SelectContent>
+                    {/* === KẾT THÚC SỬA LỖI === */}
                   </Select>
                 </div>
               )}
