@@ -49,8 +49,8 @@ export default function ProductDetail() {
     if (product) {
       setCurrentPrice(product.price);
       
-      if (product.orderDeadline) {
-        const deadline = new Date(product.orderDeadline);
+      if (product.orderdeadline) {
+        const deadline = new Date(product.orderdeadline);
         if (deadline < new Date()) setIsExpired(true);
       } else if (product.status === "Sẵn") {
          setIsExpired(false);
@@ -249,9 +249,9 @@ export default function ProductDetail() {
               <p className="text-sm text-muted-foreground mt-2">
                 *{product.feesIncluded ? 'Đã full phí dự kiến' : 'Chưa full phí'}
               </p>
-              {product.orderDeadline && !isExpired && (
+              {product.orderdeadline && !isExpired && (
                  <p className="text-sm text-amber-600 mt-2">
-                   Hạn order: {new Date(product.orderDeadline).toLocaleString('vi-VN')}
+                   Hạn order: {new Date(product.orderdeadline).toLocaleString('vi-VN')}
                  </p>
               )}
               {isExpired && (
