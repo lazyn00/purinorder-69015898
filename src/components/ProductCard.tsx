@@ -26,51 +26,41 @@ const formatPriceK = (price: number) => {
 // Hàm helper 2: Lấy khoảng giá (LUÔN LUÔN ra "k")
 const getPriceRange = (variants: ProductVariant[], defaultPrice: number): string => {
   if (!variants || variants.length === 0) {
-    // Trường hợp 1: Không có variant
     return formatPriceK(defaultPrice);
   }
 
   let minPrice = variants[0].price;
   let maxPrice = variants[0].price;
 
-  // Nếu có nhiều variant, tìm min/max
   if (variants.length > 1) {
     for (const variant of variants) {
       if (variant.price < minPrice) minPrice = variant.price;
       if (variant.price > maxPrice) maxPrice = variant.price;
     }
   } else {
-    // Trường hợp 2: Chỉ có 1 variant (như "Sticker 83k")
     minPrice = maxPrice = variants[0].price;
   }
 
   const minK = Math.round(minPrice / 1000);
   const maxK = Math.round(maxPrice / 1000);
 
-  // === (ĐÂY LÀ PHẦN SỬA LỖI) ===
   if (minK === maxK) {
-    // Trước đó: nó có thể trả về 83.000đ
-    // Bây giờ: nó sẽ trả về "83k"
     return `${minK}k`;
   }
-  // === KẾT THÚC SỬA LỖI ===
 
-  // Trường hợp 3: Khoảng giá (ví dụ "48k - 230k")
   return `${minK}k - ${maxK}k`;
 };
 
 
 export function ProductCard({ product }: { product: Product }) {
   const thumbnail = product.images[0] || "https://i.imgur.com/placeholder.png";
-  
-  // Hàm này giờ sẽ luôn trả về "k"
   const priceDisplay = getPriceRange(product.variants, product.price);
 
   return (
     <Link to={`/product/${product.id}`} className="group block">
-      {/* (Layout "Shopee") */}
       <div className="overflow-hidden rounded-sm bg-card shadow-sm transition-shadow hover:shadow-md">
         
+        {/* (Phần ảnh giữ nguyên) */}
         <div className="relative aspect-square overflow-hidden">
           <img
             src={thumbnail}
@@ -87,10 +77,18 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
+        {/* (Phần Tên và Giá) */}
         <div className="p-2">
-          <h3 className="h-8 text-xs font-normal line-clamp-2 md:text-sm md:h-10">
+          {/* === (ĐÃ SỬA LỖI ĐỊNH DẠNG) === */}
+          {/*
+            Trước đó: "h-8 text-xs font-normal line-clamp-2 md:text-sm md:h-10"
+            Bây giờ: To hơn (text-sm), in đậm (font-semibold), và chiều cao cố định (h-10)
+          */}
+          <h3 className="h-10 text-sm font-semibold line-clamp-2">
             {product.name}
           </h3>
+          {/* === KẾT THÚC SỬA LỖI === */}
+
           <p className="mt-1 truncate text-sm font-bold text-primary md:text-base">
             {priceDisplay}
           </p>
