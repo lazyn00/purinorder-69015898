@@ -17,12 +17,12 @@ export default function Guide() {
     {
       icon: <CreditCard className="w-8 h-8" />,
       title: "Bước 3: Xác nhận và thanh toán",
-      description: "Sau khi đặt hàng, chúng tôi sẽ liên hệ xác nhận và gửi thông tin thanh toán cho bạn."
+      description: "Sau khi xác nhận đơn, hệ thống sẽ chuyển đến Form thanh toán — bạn nhập thông tin, đính kèm bill và nhấn gửi."
     },
     {
       icon: <Truck className="w-8 h-8" />,
-      title: "Bước 4: Nhận hàng",
-      description: "Sản phẩm sẽ được giao đến địa chỉ của bạn sau khi về hàng. Thời gian dự kiến 2-4 tuần."
+      title: "Bước 4: Chờ đợi & nhận hàng",
+      description: "Sản phẩm sẽ được Purin cập nhật tiến độ cho bạn qua Email và Purin sẽ giao đến địa chỉ của bạn sau khi về hàng."
     }
   ];
 
@@ -62,21 +62,20 @@ export default function Guide() {
             <div>
               <h3 className="font-semibold mb-2">📦 Về hàng Pre-order</h3>
               <p className="text-muted-foreground">
-                Sản phẩm pre-order là hàng đặt trước, thời gian về hàng dự kiến 2-4 tuần kể từ khi đóng đơn.
-                Chúng tôi sẽ thông báo khi hàng về.
+                Đa số sản phẩm là hàng order không có sẵn, thời gian về hàng dự kiến 1-2 tuần kể từ khi đóng đơn.
+                Purin sẽ thông báo khi hàng về.
               </p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">💳 Thanh toán</h3>
               <p className="text-muted-foreground">
                 Bạn có thể thanh toán qua chuyển khoản ngân hàng hoặc ví điện tử.
-                Thông tin thanh toán sẽ được gửi sau khi xác nhận đơn hàng.
               </p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">🚚 Vận chuyển</h3>
               <p className="text-muted-foreground">
-                Phí ship sẽ được tính theo khu vực. Đơn hàng trên 500,000đ được freeship toàn quốc.
+                Phí ship sẽ được tính theo khu vực. 
               </p>
             </div>
             <div>
