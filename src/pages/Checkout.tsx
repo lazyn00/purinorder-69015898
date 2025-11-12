@@ -124,7 +124,6 @@ export default function Checkout() {
   const paymentDetails = getPaymentDetails();
 
   if (cartItems.length === 0) {
-    // ... (phần giỏ hàng trống)
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 text-center">
@@ -197,8 +196,9 @@ export default function Checkout() {
                 <div className="bg-muted/50 p-4 rounded-md space-y-1">
                     <p className="font-semibold text-lg">Chuyển khoản</p>
                     <p>Chủ tài khoản: <span className="font-bold">{PAYMENT_INFO.accountName}</span></p>
-                    <p>Ngân hàng/Ví: <span className="font-bold text-primary">{paymentDetails.label}</span></p>
-                    <p>Số tài khoản: <span className="font-bold text-primary">{paymentDetails.number}</span></p>
+                    {/* === SỬA TẠI ĐÂY: XÓA text-primary === */}
+                    <p>Ngân hàng/Ví: <span className="font-bold">{paymentDetails.label}</span></p>
+                    <p>Số tài khoản: <span className="font-bold">{paymentDetails.number}</span></p>
                     <p className="pt-2 text-sm text-amber-600">
                         *Vui lòng kiểm tra kỹ số tiền và chuyển khoản trước khi nhấn "Đặt hàng ngay".
                     </p>
