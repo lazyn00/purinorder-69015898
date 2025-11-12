@@ -20,6 +20,9 @@ export const productsData = [
     category: "Merch",
     artist: "CORTIS",
     variants: ["Full Set 6 members"],
+    variantImageMap: {
+      "Full Set 6 members": 0
+    },
     feesIncluded: true,
     master: "CORTIS Official"
   },
@@ -39,6 +42,9 @@ export const productsData = [
     category: "Merch",
     artist: "CORTIS",
     variants: ["Full Set 6 members"],
+    variantImageMap: {
+      "Full Set 6 members": 0
+    },
     feesIncluded: false,
     master: "Korean Sticker Shop"
   }

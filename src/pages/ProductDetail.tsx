@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import type { CarouselApi } from "@/components/ui/carousel";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -25,8 +26,18 @@ export default function ProductDetail() {
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<string>("");
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
 
   const product = productsData.find(p => p.id === Number(id));
+
+  useEffect(() => {
+    if (carouselApi && selectedVariant && product?.variantImageMap) {
+      const imageIndex = product.variantImageMap[selectedVariant];
+      if (imageIndex !== undefined) {
+        carouselApi.scrollTo(imageIndex);
+      }
+    }
+  }, [selectedVariant, carouselApi, product]);
 
   if (!product) {
     return (
@@ -65,7 +76,7 @@ export default function ProductDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Image Carousel */}
           <div className="space-y-4">
-            <Carousel className="w-full">
+            <Carousel className="w-full" setApi={setCarouselApi}>
               <CarouselContent>
                 {product.images.map((image, index) => (
                   <CarouselItem key={index}>
@@ -148,7 +159,16 @@ export default function ProductDetail() {
                   <SelectContent>
                     {product.variants.map((variant) => (
                       <SelectItem key={variant} value={variant}>
-                        {variant}
+                        <div className="flex items-center gap-2">
+                          {product.variantImageMap && product.variantImageMap[variant] !== undefined && (
+                            <img 
+                              src={product.images[product.variantImageMap[variant]]} 
+                              alt={variant}
+                              className="w-8 h-8 object-cover rounded border"
+                            />
+                          )}
+                          <span>{variant}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>

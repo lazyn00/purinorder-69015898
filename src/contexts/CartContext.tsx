@@ -10,6 +10,7 @@ export interface Product {
   category: string;
   artist: string;
   variants?: string[];
+  variantImageMap?: { [key: string]: number }; // Map variant to image index
   feesIncluded?: boolean;
   master?: string;
 }
