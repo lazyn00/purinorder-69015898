@@ -347,7 +347,7 @@ export default function ProductDetail() {
                     <SelectTrigger id="variant" className="mt-2">
                       <SelectValue placeholder="Chọn phân loại" />
                     </SelectTrigger>
-                    {/* === (SỬA 5: TYPO) === */}
+                    {/* (Sửa lỗi typo TSelectTrigger) */}
                     <SelectContent>
                       {product.variants.map((variant) => (
                         <SelectItem key={variant.name} value={variant.name}>
