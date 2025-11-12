@@ -1,8 +1,11 @@
+// @/pages/Products.tsx
+
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { productsData } from "@/data/products";
-import { ProductCard } from "@/components/ProductCard";
+// SỬA ĐỔI: import component card mới
+import { ProductCard } from "@/components/ProductCard"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter, ArrowUpDown } from "lucide-react";
 
@@ -11,7 +14,6 @@ export default function Products() {
   const [selectedArtist, setSelectedArtist] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
 
-  // Get unique artists
   const artists = ["all", ...Array.from(new Set(productsData.map(p => p.artist)))];
 
   // Filter products
@@ -40,10 +42,9 @@ export default function Products() {
           </p>
         </div>
 
-        {/* Filters and Sort */}
+        {/* Filters and Sort (Giữ nguyên) */}
         <div className="mb-8 space-y-4">
           <div className="flex flex-wrap gap-4">
-            {/* Category Dropdown */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -58,8 +59,6 @@ export default function Products() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Artist Filter */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select value={selectedArtist} onValueChange={setSelectedArtist}>
@@ -74,14 +73,12 @@ export default function Products() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Sort */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sắp xếp" />
-                </SelectTrigger>
+                </Trigger>
                 <SelectContent>
                   <SelectItem value="default">Mặc định</SelectItem>
                   <SelectItem value="price-asc">Giá: Thấp đến cao</SelectItem>
@@ -91,8 +88,6 @@ export default function Products() {
               </Select>
             </div>
           </div>
-
-          {/* Active filters */}
           {(selectedCategory !== "all" || selectedArtist !== "all") && (
             <div className="flex gap-2 items-center">
               <span className="text-sm text-muted-foreground">Đang lọc:</span>
@@ -118,12 +113,16 @@ export default function Products() {
           )}
         </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* === (SỬA ĐỔI) LAYOUT RESPONSIVE CỦA BẠN === */}
+        {/* Mobile: 2 cột, Tablet: 3 cột, Desktop: 4 cột */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            // Sửa đổi: ép kiểu 'any' nếu 'product' từ productsData
+            // không khớp 100% với kiểu 'Product' mới định nghĩa
+            <ProductCard key={product.id} product={product as any} />
           ))}
         </div>
+        {/* === KẾT THÚC SỬA ĐỔI === */}
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
