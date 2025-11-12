@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft } from "lucide-react";
-import { productsData } from "@/data/products";
-import { useCart } from "@/contexts/CartContext";
+import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Loader2 } from "lucide-react";
+// (Đọc từ Context, không đọc từ file .ts)
+import { useCart, Product } from "@/contexts/CartContext"; 
 import { useToast } from "@/hooks/use-toast";
 import {
   Carousel,
@@ -22,27 +22,28 @@ import {
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  // (Đọc products và isLoading từ context)
+  const { addToCart, products, isLoading } = useCart();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
 
-  const product = productsData.find(p => p.id === Number(id));
-
-  const [currentPrice, setCurrentPrice] = useState(product?.price || 0);
+  const [product, setProduct] = useState<Product | undefined>(undefined);
+  
+  const [currentPrice, setCurrentPrice] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<string>(""); 
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
   
+  // useEffect để tìm sản phẩm khi 'products' tải xong
   useEffect(() => {
-    if (carouselApi && selectedVariant && product?.variantImageMap) {
-      const imageIndex = product.variantImageMap[selectedVariant];
-      if (imageIndex !== undefined) {
-        carouselApi.scrollTo(imageIndex);
-      }
+    if (!isLoading && products.length > 0) {
+      const foundProduct = products.find(p => p.id == Number(id)); 
+      setProduct(foundProduct);
     }
-  }, [selectedVariant, carouselApi, product]);
+  }, [isLoading, products, id]);
 
+  // useEffect để cập nhật state khi 'product' được tìm thấy
   useEffect(() => {
     if (product) {
       setCurrentPrice(product.price);
@@ -54,7 +55,7 @@ export default function ProductDetail() {
          setIsExpired(false);
       }
       
-      if (product.optionGroups) {
+      if (product.optionGroups && product.optionGroups.length > 0) {
         const initialOptions = product.optionGroups.reduce((acc, group) => {
             acc[group.name] = "";
             return acc;
@@ -69,8 +70,9 @@ export default function ProductDetail() {
     }
   }, [product]);
 
+  // useEffect xử lý 2+ phân loại
   useEffect(() => {
-    if (product?.optionGroups) {
+    if (product?.optionGroups && product.optionGroups.length > 0) {
       const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
 
       if (allOptionsSelected) {
@@ -100,6 +102,8 @@ export default function ProductDetail() {
   }, [selectedOptions, product, carouselApi]);
   
   const handleAddToCart = () => {
+    if (!product) return; 
+
     const hasVariants = product.variants && product.variants.length > 0;
 
     if (hasVariants && !selectedVariant) {
@@ -136,7 +140,7 @@ export default function ProductDetail() {
 
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
-    const variant = product.variants.find(v => v.name === variantName);
+    const variant = product?.variants.find(v => v.name === variantName);
     if (variant) {
       setCurrentPrice(variant.price);
     }
@@ -145,6 +149,18 @@ export default function ProductDetail() {
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
+  // (Xử lý loading)
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center items-center h-[50vh]">
+          <Loader2 className="h-10 w-10 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // (Xử lý không tìm thấy)
   if (!product) {
     return (
       <Layout>
@@ -156,6 +172,7 @@ export default function ProductDetail() {
     );
   }
 
+  // (Render khi đã có 'product')
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -215,11 +232,13 @@ export default function ProductDetail() {
           {/* Product Info (Giữ nguyên) */}
           <div className="space-y-6">
             <div>
+              {/* === (ĐÃ SỬA) ĐỌC TAG ĐỘNG === */}
               {product.status && (
                 <Badge variant="secondary" className="mb-3">
                   {product.status}
                 </Badge>
               )}
+              {/* === KẾT THÚC SỬA === */}
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
             </div>
 
@@ -267,7 +286,7 @@ export default function ProductDetail() {
             ) : null}
 
             <div className="border-t pt-4 space-y-4">
-              {product.optionGroups && (
+              {product.optionGroups && product.optionGroups.length > 0 && (
                 product.optionGroups.map((group) => (
                   <div key={group.name}>
                     <Label htmlFor={`variant-${group.name}`} className="text-base font-semibold">
@@ -292,7 +311,7 @@ export default function ProductDetail() {
                 ))
               )}
 
-              {!product.optionGroups && product.variants && product.variants.length > 1 && (
+              {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
                 <div>
                   <Label htmlFor="variant" className="text-base font-semibold">
                     Phân loại *
@@ -319,9 +338,7 @@ export default function ProductDetail() {
                           </div>
                         </SelectItem>
                       ))}
-                      {/* === (ĐÃ SỬA LỖI) === */}
                     </SelectContent>
-                    {/* === KẾT THÚC SỬA LỖI === */}
                   </Select>
                 </div>
               )}
