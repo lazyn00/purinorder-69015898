@@ -1,4 +1,7 @@
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+// @/components/Cart.tsx
+
+import { Link } from "react-router-dom";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Trash2, Minus, Plus } from "lucide-react";
@@ -9,10 +12,7 @@ import { Separator } from "@/components/ui/separator";
 export function Cart() {
   const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
 
-  const handleCheckout = () => {
-    // Chuyển hướng đến form Google
-    window.open('https://forms.gle/Mh7PVx8fZfm18UVN7', '_blank');
-  };
+  // (Chúng ta không cần hàm handleCheckout nữa, vì đã dùng <Link>)
 
   return (
     <Sheet>
@@ -60,14 +60,15 @@ export function Cart() {
                           Phân loại: {item.selectedVariant}
                         </p>
                       )}
-                      <p className="text-sm font-bold text-primary">{item.priceDisplay}</p>
+                      {/* Sửa lại: hiển thị tổng tiền của line item */}
+                      <p className="text-sm font-bold text-primary">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity - 1)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -76,7 +77,7 @@ export function Cart() {
                             variant="outline"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -85,7 +86,7 @@ export function Cart() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={() => removeFromCart(item.id, item.selectedVariant)}
                         >
                           <Trash2 className="h-3 w-3 text-destructive" />
                         </Button>
@@ -104,13 +105,20 @@ export function Cart() {
                 </span>
               </div>
               <Separator />
-              <Button 
-                onClick={handleCheckout}
-                className="w-full bg-gradient-primary"
-                size="lg"
-              >
-                Đặt hàng ngay
-              </Button>
+              
+              {/* === (SỬA ĐỔI) DÙNG LINK ĐỂ QUA TRANG CHECKOUT === */}
+              {/* SheetClose sẽ tự động đóng giỏ hàng khi bấm */}
+              <SheetClose asChild>
+                <Link to="/checkout" className="w-full">
+                  <Button 
+                    className="w-full bg-gradient-primary"
+                    size="lg"
+                  >
+                    Đặt hàng ngay
+                  </Button>
+                </Link>
+              </SheetClose>
+              {/* === KẾT THÚC SỬA ĐỔI === */}
             </div>
           </>
         )}
