@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, MapPin, Facebook, Instagram } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Instagram, MessageSquare, Music2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,7 +41,7 @@ export default function Contact() {
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Liên hệ</h1>
-          <p className="text-muted-foreground">Chúng tôi luôn sẵn sàng hỗ trợ bạn</p>
+          <p className="text-muted-foreground">Purin Order luôn sẵn sàng hỗ trợ bạn 💛</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
@@ -50,7 +50,7 @@ export default function Contact() {
             <CardHeader>
               <CardTitle>Gửi tin nhắn</CardTitle>
               <CardDescription>
-                Điền thông tin và tin nhắn của bạn, chúng tôi sẽ phản hồi trong 24h
+                Điền thông tin và tin nhắn của bạn, Purin sẽ phản hồi trong thời gian sớm nhất
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -83,7 +83,7 @@ export default function Contact() {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="0901234567"
+                    placeholder="0395939035"
                   />
                 </div>
                 <div>
@@ -117,7 +117,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="font-semibold">Email</p>
-                    <p className="text-muted-foreground">support@idolshop.vn</p>
+                    <p className="text-muted-foreground">ppurin.order@gmail.com</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -126,7 +126,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="font-semibold">Hotline</p>
-                    <p className="text-muted-foreground">0901234567</p>
+                    <p className="text-muted-foreground">0395939035</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -135,9 +135,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="font-semibold">Địa chỉ</p>
-                    <p className="text-muted-foreground">
-                      123 Đường ABC, Quận 1, TP. Hồ Chí Minh
-                    </p>
+                    <p className="text-muted-foreground">Thành phố Hồ Chí Minh</p>
                   </div>
                 </div>
               </CardContent>
@@ -146,26 +144,44 @@ export default function Contact() {
             <Card>
               <CardHeader>
                 <CardTitle>Mạng xã hội</CardTitle>
-                <CardDescription>Theo dõi chúng tôi để cập nhật sản phẩm mới</CardDescription>
+                <CardDescription>Theo dõi Purin để cập nhật sản phẩm mới nhất 💫</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <a
-                  href="https://facebook.com"
+                  href="https://www.facebook.com/puorderin/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
                 >
                   <Facebook className="w-5 h-5 text-primary" />
-                  <span className="font-medium">Facebook: @idolshop</span>
+                  <span className="font-medium">Facebook: @puorderin</span>
                 </a>
                 <a
-                  href="https://instagram.com"
+                  href="https://www.instagram.com/purin_order/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
                 >
                   <Instagram className="w-5 h-5 text-primary" />
-                  <span className="font-medium">Instagram: @idolshop</span>
+                  <span className="font-medium">Instagram: @purin_order</span>
+                </a>
+                <a
+                  href="https://www.threads.com/@purin_order"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
+                >
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Threads: @purin_order</span>
+                </a>
+                <a
+                  href="https://www.tiktok.com/@purin_order/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
+                >
+                  <Music2 className="w-5 h-5 text-primary" />
+                  <span className="font-medium">TikTok: @purin_order</span>
                 </a>
               </CardContent>
             </Card>
@@ -175,9 +191,7 @@ export default function Contact() {
                 <CardTitle>Giờ làm việc</CardTitle>
               </CardHeader>
               <CardContent className="text-muted-foreground space-y-2">
-                <p><strong>Thứ 2 - Thứ 6:</strong> 9:00 - 18:00</p>
-                <p><strong>Thứ 7:</strong> 9:00 - 17:00</p>
-                <p><strong>Chủ nhật:</strong> Nghỉ</p>
+                <p><strong>Luôn mở cửa</strong> — Purin luôn sẵn sàng hỗ trợ bạn bất cứ lúc nào 💛</p>
               </CardContent>
             </Card>
           </div>
