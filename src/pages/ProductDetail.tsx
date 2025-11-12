@@ -49,7 +49,7 @@ export default function ProductDetail() {
     if (product) {
       setCurrentPrice(product.price);
       
-      // === (SỬA 1) ===
+      // === (SỬA 1: HẠN ORDER) ===
       if (product.orderdeadline) {
         const deadline = new Date(product.orderdeadline);
         if (deadline < new Date()) setIsExpired(true);
@@ -72,15 +72,24 @@ export default function ProductDetail() {
     }
   }, [product]);
 
+  // === (SỬA 2: QUY CÁCH TÊN [Option1] Option2) ===
   // useEffect xử lý 2+ phân loại
   useEffect(() => {
     if (product?.optionGroups && product.optionGroups.length > 0) {
       const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
 
       if (allOptionsSelected) {
-        const constructedName = product.optionGroups
-            .map(group => selectedOptions[group.name])
-            .join("-");
+        
+        // Logic mới để tạo tên dạng "[Option1] Option2"
+        let constructedName = "";
+        if (product.optionGroups.length >= 2) {
+           const option1 = selectedOptions[product.optionGroups[0].name]; // Ví dụ: "Viền trong"
+           const option2 = selectedOptions[product.optionGroups[1].name]; // Ví dụ: "James"
+           constructedName = `[${option1}] ${option2}`; // Tạo ra "[Viền trong] James"
+        } else {
+           // Dự phòng
+           constructedName = Object.values(selectedOptions).join("-");
+        }
         
         const variant = product.variants.find(v => v.name === constructedName);
         
@@ -140,7 +149,7 @@ export default function ProductDetail() {
     }));
   };
 
-  // === (SỬA 2) ===
+  // === (SỬA 3: CUỘN ẢNH 1 PHÂN LOẠI) ===
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
     const variant = product?.variants.find(v => v.name === variantName);
@@ -260,7 +269,7 @@ export default function ProductDetail() {
                 *{product.feesIncluded ? 'Đã full phí dự kiến' : 'Chưa full phí'}
               </p>
               
-              {/* === (SỬA 3) === */}
+              {/* === (SỬA 4: HẠN ORDER) === */}
               {product.orderdeadline && !isExpired && (
                  <p className="text-sm text-amber-600 mt-2">
                    Hạn order: {new Date(product.orderdeadline).toLocaleString('vi-VN')}
@@ -337,7 +346,7 @@ export default function ProductDetail() {
                   >
                     <SelectTrigger id="variant" className="mt-2">
                       <SelectValue placeholder="Chọn phân loại" />
-                    </SelectTrigger>
+                    </TSelectTrigger>
                     <SelectContent>
                       {product.variants.map((variant) => (
                         <SelectItem key={variant.name} value={variant.name}>
