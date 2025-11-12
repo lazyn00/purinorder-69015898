@@ -11,7 +11,7 @@ export function Cart() {
 
   const handleCheckout = () => {
     // Chuyển hướng đến form Google
-    window.open('https://forms.gle/kYyp2DE3FcSrot47A', '_blank');
+    window.open('https://forms.gle/Mh7PVx8fZfm18UVN7', '_blank');
   };
 
   return (
