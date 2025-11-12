@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-// === (THÊM MỚI) icon ArrowLeft ===
+// Thêm icon ArrowLeft
 import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft } from "lucide-react";
-// === KẾT THÚC THÊM MỚI ===
 import { productsData } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -36,8 +35,7 @@ export default function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
   
-  // (Các hàm useEffect và handlers giữ nguyên)
-  // ...
+  // useEffect cho Carousel
   useEffect(() => {
     if (carouselApi && selectedVariant && product?.variantImageMap) {
       const imageIndex = product.variantImageMap[selectedVariant];
@@ -47,6 +45,7 @@ export default function ProductDetail() {
     }
   }, [selectedVariant, carouselApi, product]);
 
+  // useEffect khởi tạo
   useEffect(() => {
     if (product) {
       setCurrentPrice(product.price);
@@ -73,6 +72,7 @@ export default function ProductDetail() {
     }
   }, [product]);
 
+  // useEffect xử lý 2+ phân loại
   useEffect(() => {
     if (product?.optionGroups) {
       const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
@@ -103,8 +103,8 @@ export default function ProductDetail() {
     }
   }, [selectedOptions, product, carouselApi]);
   
+  // Hàm Add To Cart
   const handleAddToCart = () => {
-    const hasOptions = product.optionGroups && product.optionGroups.length > 0;
     const hasVariants = product.variants && product.variants.length > 0;
 
     if (hasVariants && !selectedVariant) {
@@ -132,6 +132,7 @@ export default function ProductDetail() {
     });
   };
 
+  // Hàm xử lý 2+ phân loại
   const handleOptionChange = (groupName: string, value: string) => {
     setSelectedOptions(prev => ({
       ...prev,
@@ -139,6 +140,7 @@ export default function ProductDetail() {
     }));
   };
 
+  // Hàm xử lý 1 phân loại
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
     const variant = product.variants.find(v => v.name === variantName);
@@ -149,7 +151,6 @@ export default function ProductDetail() {
   
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
-  // ...
 
   if (!product) {
     return (
@@ -166,19 +167,18 @@ export default function ProductDetail() {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         
-        {/* === (THÊM MỚI) NÚT QUAY LẠI === */}
+        {/* NÚT QUAY LẠI */}
         <Button
           variant="ghost"
-          onClick={() => navigate("/products")} // Quay lại trang danh sách
+          onClick={() => navigate("/products")}
           className="mb-6 gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
           Quay lại trang sản phẩm
         </Button>
-        {/* === KẾT THÚC THÊM MỚI === */}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Image Carousel (giữ nguyên) */}
+          {/* Image Carousel (Đã sửa object-contain và clickable) */}
           <div className="space-y-4">
             <Carousel className="w-full" setApi={setCarouselApi}>
               <CarouselContent>
@@ -222,7 +222,7 @@ export default function ProductDetail() {
 
           {/* Product Info */}
           <div className="space-y-6">
-            {/* Tên, Trạng thái */}
+            {/* Tên, Trạng thái (đọc động) */}
             <div>
               {product.status && (
                 <Badge variant="secondary" className="mb-3">
@@ -232,7 +232,7 @@ export default function ProductDetail() {
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
             </div>
 
-            {/* Giá, Hạn order */}
+            {/* Giá (động), Hạn order (động) */}
             <div className="border-t pt-4">
               <p className="text-4xl font-bold text-primary">
                 {currentPrice.toLocaleString('vi-VN')}đ
@@ -252,12 +252,11 @@ export default function ProductDetail() {
               )}
             </div>
             
-            {/* === (KHÔI PHỤC) MÔ TẢ SẢN PHẨM === */}
+            {/* KHÔI PHỤC MÔ TẢ */}
             {product.description && product.description.length > 0 && (
               <div className="border-t pt-4 space-y-3">
                 <div>
                   <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
-                  {/* Dùng list-disc để hiển thị dấu • */}
                   <ul className="text-muted-foreground space-y-1 list-disc list-inside">
                     {product.description.map((item, index) => (
                       <li key={index}>{item}</li>
@@ -266,10 +265,10 @@ export default function ProductDetail() {
                 </div>
               </div>
             )}
-            {/* === KẾT THÚC KHÔI PHỤC === */}
 
-            {/* Phân loại (giữ nguyên logic 1 hoặc nhiều) */}
+            {/* LOGIC PHÂN LOẠI (1 hoặc 2) */}
             <div className="border-t pt-4 space-y-4">
+              {/* Trường hợp 1: 2+ phân loại (ID 4) */}
               {product.optionGroups && (
                 product.optionGroups.map((group) => (
                   <div key={group.name}>
@@ -295,6 +294,7 @@ export default function ProductDetail() {
                 ))
               )}
 
+              {/* Trường hợp 2: 1 phân loại (ID 3) */}
               {!product.optionGroups && product.variants && product.variants.length > 1 && (
                 <div>
                   <Label htmlFor="variant" className="text-base font-semibold">
@@ -328,7 +328,7 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Quantity (giữ nguyên) */}
+            {/* Quantity */}
             <div className="border-t pt-4">
               <Label htmlFor="quantity" className="text-base font-semibold">
                 Số lượng
@@ -351,7 +351,7 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Action Buttons (giữ nguyên) */}
+            {/* Action Buttons (đã thêm logic disable) */}
             <div className="border-t pt-4 space-y-3">
               <Button 
                 onClick={handleAddToCart}
