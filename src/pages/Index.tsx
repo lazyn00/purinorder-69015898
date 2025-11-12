@@ -19,7 +19,7 @@ const Index = () => {
     {
       icon: <Shield className="w-8 h-8" />,
       title: "Kiểm hàng kỹ",
-      description: "Kiểm tra chất lượng sản phẩm trước khi ship về Việt Nam"
+      description: "Kiểm tra chất lượng sản phẩm trước khi ship đến tay bạn"
     },
     {
       icon: <Headphones className="w-8 h-8" />,
@@ -34,7 +34,7 @@ const Index = () => {
       <section className="bg-gradient-hero py-20 md:py-32">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            🍮 Purin Order - Order Trung Quốc Uy Tín
+            🍮 Purin Order - Muốn Gì Cũm Coá
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Chuyên nhận order các sản phẩm K-pop, C-pop, Anime từ Taobao, 1688, PDD, Douyin, XHS.
@@ -59,7 +59,7 @@ const Index = () => {
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Tại sao chọn chúng tôi?
+            Tại sao chọn Purin?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
@@ -81,40 +81,27 @@ const Index = () => {
         </div>
       </section>
 
-      {/* About Section */}
-      <section className="py-16 md:py-24 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Về chúng tôi
-            </h2>
-            <p className="text-lg text-muted-foreground mb-6">
-              Purin Order chuyên nhận order các sản phẩm K-pop, C-pop, Anime từ các sàn thương mại điện tử
-              lớn của Trung Quốc như Taobao, 1688, PDD, Douyin, XHS. Chúng tôi giúp bạn tiếp cận được
-              những sản phẩm độc quyền, phiên bản giới hạn với giá tốt nhất.
-            </p>
-            <p className="text-lg text-muted-foreground mb-8">
-              Với kinh nghiệm order từ Trung Quốc, chúng tôi cam kết kiểm tra kỹ hàng, đóng gói cẩn thận
-              và ship về Việt Nam nhanh chóng. Đội ngũ của chúng tôi luôn sẵn sàng hỗ trợ tìm kiếm sản phẩm
-              và tư vấn cho bạn.
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-primary">5000+</p>
-                <p className="text-muted-foreground">Đơn hàng</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-primary">3000+</p>
-                <p className="text-muted-foreground">Khách hàng</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-primary">100%</p>
-                <p className="text-muted-foreground">Hài lòng</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+     {/* about section */}
+<section classname="py-16 md:py-24 bg-muted/50">
+  <div classname="container mx-auto px-4">
+    <div classname="max-w-3xl mx-auto text-center">
+      <h2 classname="text-3xl md:text-4xl font-bold mb-6">
+        về chúng tôi
+      </h2>
+      <p classname="text-lg text-muted-foreground mb-6">
+        purin order chuyên nhận order các sản phẩm k-pop, c-pop, anime từ các sàn thương mại điện tử
+        lớn của trung quốc như taobao, 1688, pdd, douyin, xhs. chúng tôi giúp bạn tiếp cận được
+        những sản phẩm độc quyền, phiên bản giới hạn với giá tốt nhất.
+      </p>
+      <p classname="text-lg text-muted-foreground mb-8">
+        purin có kinh nghiệm order hàng từ trung quốc nên bạn yên tâm nha! tụi mình sẽ kiểm tra kỹ,
+        đóng gói cẩn thận và đưa đến tay bạn một cách an toàn. cần tìm món gì hay muốn hỏi thêm,
+        purin luôn ở đây hỗ trợ bạn 💛
+      </p>
+      {/* khối div chứa thống kê đã bị xoá ở đây */}
+    </div>
+  </div>
+</section>
 
       {/* CTA Section */}
       <section className="py-16 md:py-24">
