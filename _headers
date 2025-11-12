@@ -1,0 +1,3 @@
+/*
+  Content-Type: text/javascript
+  Content-Security-Policy: default-src 'self' 'unsafe-inline' https://*.vercel.app; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel.app https://apis.google.com https://cdn.jsdelivr.net; connect-src 'self' https://script.google.com https://sheets.googleapis.com https://*.vercel.app; img-src 'self' data: https://i.imgur.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:
