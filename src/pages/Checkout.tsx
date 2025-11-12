@@ -6,29 +6,39 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-// === (SỬA LẠI: GỠ LOADER2) ===
-import { ArrowLeft } from "lucide-react"; 
+import { Loader2, ArrowLeft } from "lucide-react"; 
 import { Separator } from "@/components/ui/separator";
 
-// === DÁN LINK GOOGLE FORM CỦA BẠN VÀO ĐÂY ===
-const GOOGLE_FORM_URL = "https://forms.gle/tTcYYvFw3BjzER8QA"; 
-// === (ĐÃ GỠ BỎ APPS SCRIPT) ===
+// === DÁN URL GOOGLE APPS SCRIPT CỦA BẠN VÀO ĐÂY (Bước 3) ===
+const GAS_WEB_APP_URL = "DÁN_URL_APPS_SCRIPT_CỦA_BẠN_VÀO_ĐÂY"; // <<< CẦN THAY THẾ
+// === URL GOOGLE FORM (Dùng để chuyển hướng sau khi gửi Apps Script) ===
+const GOOGLE_FORM_URL = "https://forms.gle/tTcYYvFw3BjzER8QA";
+
+// === THÔNG TIN THANH TOÁN TĨNH ===
+const PAYMENT_INFO = {
+    accountName: "BUI THANH NHU Y",
+    vietcombank: "BNTY25",
+    momo: "0931146787",
+    zalopay: "0931146787"
+};
 
 
 export default function Checkout() {
-  const { cartItems, totalPrice } = useCart();
+  const { cartItems, totalPrice, clearCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // === (GIỮ LẠI STATE THÔNG TIN KHÁCH HÀNG) ===
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     fb: "",
     email: "",
     phone: ""
   });
-  // === (ĐÃ GỠ isSubmitting) ===
+  
+  const [selectedMethod, setSelectedMethod] = useState("Vietcombank");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -38,7 +48,7 @@ export default function Checkout() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // === (GIỮ LẠI VALIDATION) ===
+    // Validation
     if (!customerInfo.phone && !customerInfo.email && !customerInfo.fb) {
       toast({
         title: "Lỗi",
@@ -48,13 +58,73 @@ export default function Checkout() {
       return;
     }
     
-    // === (ĐÃ GỠ BỎ TOÀN BỘ LOGIC APPS SCRIPT VÀ FETCH) ===
-    
-    // === (SỬA LỖI: Chuyển hướng đến Google Form) ===
-    window.location.href = GOOGLE_FORM_URL;
+    // Kiểm tra cấu hình Apps Script
+    if (GAS_WEB_APP_URL.includes("DÁN_URL_APPS_SCRIPT_CỦA_BẠN_VÀO_ĐÂY")) {
+      toast({
+        title: "Lỗi cấu hình",
+        description: "URL Google Apps Script chưa được thiết lập trong code.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const payload = {
+      items: cartItems,
+      totalPrice: totalPrice,
+      customer: customerInfo,
+      paymentMethod: selectedMethod, // Thêm phương thức thanh toán vào payload
+    };
+
+    try {
+      await fetch(GAS_WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors", 
+        cache: "no-cache",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      // Gửi thành công
+      setIsSubmitting(false);
+      clearCart(); // Xóa giỏ hàng
+      toast({
+        title: "Đơn hàng đã được ghi lại!",
+        description: "Vui lòng điền nốt thông tin trên Google Form.",
+      });
+      
+      // Chuyển hướng sang Google Form
+      window.location.href = GOOGLE_FORM_URL;
+
+    } catch (error) {
+      console.error("Error submitting order:", error);
+      setIsSubmitting(false);
+      toast({
+        title: "Lỗi mạng",
+        description: "Đã có lỗi xảy ra khi gửi đơn hàng. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    }
   };
 
+  const getPaymentDetails = () => {
+      switch (selectedMethod) {
+          case 'Vietcombank':
+              return { label: "Vietcombank", number: PAYMENT_INFO.vietcombank };
+          case 'Momo':
+              return { label: "Momo", number: PAYMENT_INFO.momo };
+          case 'Zalopay':
+              return { label: "Zalopay", number: PAYMENT_INFO.zalopay };
+          default:
+              return { label: "Vietcombank", number: PAYMENT_INFO.vietcombank };
+      }
+  };
+  
+  const paymentDetails = getPaymentDetails();
+
   if (cartItems.length === 0) {
+    // ... (phần giỏ hàng trống)
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 text-center">
@@ -72,10 +142,10 @@ export default function Checkout() {
   return (
     <Layout>
       <div className="container mx-auto max-w-2xl px-4 py-12">
-        {/* Nút quay lại giỏ hàng */}
+        {/* Nút quay lại mua sắm */}
         <Button
           variant="ghost"
-          onClick={() => navigate("/products")} // Hoặc -1 để quay lại
+          onClick={() => navigate("/products")}
           className="mb-6 gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -84,9 +154,9 @@ export default function Checkout() {
       
         <form onSubmit={handleSubmitOrder} className="space-y-8">
           
-          {/* === (GIỮ NGUYÊN FORM THÔNG TIN) === */}
+          {/* 1. Thông tin liên hệ */}
           <div className="rounded-lg border p-6">
-            <h2 className="text-2xl font-semibold mb-6">Thông tin đặt hàng</h2>
+            <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="fb">Link Facebook / Instagram *</Label>
@@ -103,7 +173,41 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* 2. Giỏ hàng (Giống ảnh) */}
+          {/* 2. Thông tin Thanh toán */}
+          <div className="rounded-lg border p-6">
+            <h2 className="text-2xl font-semibold mb-6">Thanh toán</h2>
+            <div className="space-y-4">
+                
+                {/* Chọn phương thức */}
+                <div>
+                    <Label htmlFor="paymentMethod" className="font-semibold">Chọn phương thức thanh toán</Label>
+                    <Select value={selectedMethod} onValueChange={setSelectedMethod}>
+                        <SelectTrigger id="paymentMethod" className="mt-2">
+                            <SelectValue placeholder="Chọn ngân hàng/ví điện tử" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Vietcombank">Vietcombank</SelectItem>
+                            <SelectItem value="Momo">Momo</SelectItem>
+                            <SelectItem value="Zalopay">Zalopay</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Chi tiết chuyển khoản */}
+                <div className="bg-muted/50 p-4 rounded-md space-y-1">
+                    <p className="font-semibold text-lg">Chuyển khoản</p>
+                    <p>Chủ tài khoản: <span className="font-bold">{PAYMENT_INFO.accountName}</span></p>
+                    <p>Ngân hàng/Ví: <span className="font-bold text-primary">{paymentDetails.label}</span></p>
+                    <p>Số tài khoản: <span className="font-bold text-primary">{paymentDetails.number}</span></p>
+                    <p className="pt-2 text-sm text-amber-600">
+                        *Vui lòng kiểm tra kỹ số tiền và chuyển khoản trước khi nhấn "Đặt hàng ngay".
+                    </p>
+                </div>
+            </div>
+          </div>
+
+
+          {/* 3. Giỏ hàng */}
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Giỏ hàng</h2>
             <div className="space-y-4">
@@ -131,7 +235,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* 3. Tổng cộng (Giống ảnh) */}
+          {/* 4. Tổng cộng */}
           <div className="rounded-lg border p-6 space-y-4">
             <div className="flex justify-between items-center text-lg font-medium">
               <span>Tổng cộng:</span>
@@ -144,9 +248,13 @@ export default function Checkout() {
               type="submit"
               className="w-full bg-gradient-primary"
               size="lg"
-              // === (ĐÃ GỠ BỎ NÚT DISABLED VÀ LOADER) ===
+              disabled={isSubmitting}
             >
-              Đặt hàng ngay
+               {isSubmitting ? (
+                 <Loader2 className="h-5 w-5 animate-spin" />
+               ) : (
+                 "Đặt hàng ngay (Ghi lại đơn)"
+               )}
             </Button>
           </div>
         </form>
