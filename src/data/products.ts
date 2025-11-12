@@ -1,31 +1,36 @@
 export const productsData = [
   {
     id: 1,
-    name: "BTS Official Doll Set",
-    price: 1250000,
-    priceDisplay: "1,250,000đ",
-    description: "Bộ doll chính hãng BTS 7 thành viên, cao 20cm, có khớp cử động. Bao gồm outfit chính và phụ kiện đi kèm.",
+    name: "Sticker lấp la lấp lánh",
+    price: 83000,
+    priceDisplay: "83,000đ",
+    description: "Set 20 cái sticker (mỗi mẫu 2 cái)\nGiá đã bao gồm cân và ship nội địa dự kiến",
     images: [
-      "https://images.unsplash.com/photo-1614680376739-414d95ff43df?w=800",
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
-      "https://images.unsplash.com/photo-1611339555312-e607c8352fd7?w=800"
+      "https://i.imgur.com/TILP0up.jpeg",
+      "https://i.imgur.com/RSuiM56.jpeg",
+      "https://i.imgur.com/JFK1wuM.jpeg",
+      "https://i.imgur.com/P6Fxzda.jpeg",
+      "https://i.imgur.com/FbQUu1p.jpeg",
+      "https://i.imgur.com/TR7ObvO.jpeg",
+      "https://i.imgur.com/4GO97Nz.jpeg"
     ],
-    category: "Outfit & Doll",
-    artist: "BTS",
-    variants: ["Full Set 7 members", "Jungkook", "V", "Jimin", "RM", "Jin", "Suga", "J-Hope"]
+    category: "Merch",
+    artist: "CORTIS",
+    variants: ["Full Set 6 members"]
   },
   {
     id: 2,
-    name: "BLACKPINK Official Lightstick Ver 2",
-    price: 950000,
-    priceDisplay: "950,000đ",
-    description: "Lightstick chính hãng BLACKPINK phiên bản 2, kết nối Bluetooth, đồng bộ concert.",
+    name: "Sticker Hàn Quốc trong suốt",
+    price: 79000,
+    priceDisplay: "79,000đ",
+    description: "Set 6 cái sticker\nGiá đã bao gồm cân và ship nội địa dự kiến",
     images: [
       "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=800",
       "https://images.unsplash.com/photo-1614680376739-414d95ff43df?w=800"
     ],
     category: "Merch",
-    artist: "BLACKPINK"
+    artist: "CORTIS"
+    variants: ["Full Set 6 members"]
   },
   {
     id: 3,
