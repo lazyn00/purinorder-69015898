@@ -3,22 +3,19 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-// (Xóa 'productsData', import 'useCart')
+// (Đọc từ Context)
 import { useCart } from "@/contexts/CartContext"; 
 import { ProductCard } from "@/components/ProductCard"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, ArrowUpDown, Loader2 } from "lucide-react"; // Thêm Loader2
+import { Filter, ArrowUpDown, Loader2 } from "lucide-react";
 
 export default function Products() {
-  // === (SỬA ĐỔI) Đọc sản phẩm từ context ===
   const { products, isLoading } = useCart();
-  // === KẾT THÚC SỬA ĐỔI ===
   
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedArtist, setSelectedArtist] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
 
-  // (Sửa lại: đọc artist từ state 'products' động)
   const artists = ["all", ...Array.from(new Set(products.map(p => p.artist)))];
 
   // Filter products
@@ -37,7 +34,7 @@ export default function Products() {
     filteredProducts = [...filteredProducts].sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // === (THÊM MỚI) Xử lý loading ===
+  // (Xử lý loading)
   if (isLoading) {
     return (
       <Layout>
@@ -47,7 +44,6 @@ export default function Products() {
       </Layout>
     );
   }
-  // === KẾT THÚC THÊM MỚI ===
 
   return (
     <Layout>
@@ -59,10 +55,11 @@ export default function Products() {
           </p>
         </div>
 
-        {/* (Phần filter đã sửa lỗi) */}
+        {/* Filters and Sort */}
         <div className="mb-8 space-y-4">
           <div className="flex flex-wrap gap-4">
             
+            {/* Category Dropdown */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -78,13 +75,16 @@ export default function Products() {
               </Select>
             </div>
 
+            {/* Artist Filter */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select value={selectedArtist} onValueChange={setSelectedArtist}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Nhóm nhạc/Artist" />
-                </Trigger>
+                </SelectTrigger>
+                {/* === (ĐÃ SỬA LỖI) === */}
                 <SelectContent>
+                {/* === KẾT THÚC SỬA LỖI === */}
                   <SelectItem value="all">Tất cả artist</SelectItem>
                   {artists.slice(1).map(artist => (
                     <SelectItem key={artist} value={artist}>{artist}</SelectItem>
@@ -93,60 +93,11 @@ export default function Products() {
               </Select>
             </div>
 
+            {/* Sort */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sắp xếp" />
-                </Trigger>
-                <SelectContent>
-                  <SelectItem value="default">Mặc định</SelectItem>
-                  <SelectItem value="price-asc">Giá: Thấp đến cao</SelectItem>
-                  <SelectItem value="price-desc">Giá: Cao đến thấp</SelectItem>
-                  <SelectItem value="name">Tên A-Z</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {(selectedCategory !== "all" || selectedArtist !== "all") && (
-            <div className="flex gap-2 items-center">
-              <span className="text-sm text-muted-foreground">Đang lọc:</span>
-              {selectedCategory !== "all" && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSelectedCategory("all")}
-                >
-                  {selectedCategory} ✕
-                </Button>
-              )}
-              {selectedArtist !== "all" && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSelectedArtist("all")}
-                >
-                  {selectedArtist} ✕
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* (Layout "Shopee" 2-6 cột) */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product as any} />
-          ))}
-        </div>
-
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Không tìm thấy sản phẩm nào</p>
-          </div>
-        )}
-      </div>
-    </Layout>
-  );
-}
+                </SelectTrigger>
+                {/* === (ĐÃ SỬA LỖI) === */}
