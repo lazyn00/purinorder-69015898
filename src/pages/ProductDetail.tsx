@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Minus, Plus, CalendarOff } from "lucide-react"; // <- Thêm CalendarOff
 import { productsData } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +30,11 @@ export default function ProductDetail() {
 
   const product = productsData.find(p => p.id === Number(id));
 
+  // === THÊM MỚI: state cho giá và trạng thái hết hạn ===
+  const [currentPrice, setCurrentPrice] = useState(product?.price || 0);
+  const [isExpired, setIsExpired] = useState(false);
+  // === KẾT THÚC THÊM MỚI ===
+
   useEffect(() => {
     if (carouselApi && selectedVariant && product?.variantImageMap) {
       const imageIndex = product.variantImageMap[selectedVariant];
@@ -38,6 +43,32 @@ export default function ProductDetail() {
       }
     }
   }, [selectedVariant, carouselApi, product]);
+
+  // === THÊM MỚI: useEffect để kiểm tra hạn order ===
+  useEffect(() => {
+    if (product) {
+      // 1. Đặt giá mặc định khi tải trang
+      setCurrentPrice(product.price);
+      
+      // 2. Kiểm tra hạn order
+      if (product.orderDeadline) {
+        const deadline = new Date(product.orderDeadline);
+        if (deadline < new Date()) {
+          setIsExpired(true);
+        }
+      } else if (product.status === "Sẵn") {
+         // Nếu là hàng "Sẵn", không hết hạn
+         setIsExpired(false);
+      }
+      
+      // 3. Tự động chọn variant đầu tiên nếu chỉ có 1 variant
+      if (product.variants && product.variants.length === 1) {
+          setSelectedVariant(product.variants[0].name);
+          setCurrentPrice(product.variants[0].price);
+      }
+    }
+  }, [product]); // <- chạy khi product tải xong
+  // === KẾT THÚC THÊM MỚI ===
 
   if (!product) {
     return (
@@ -51,7 +82,7 @@ export default function ProductDetail() {
   }
 
   const handleAddToCart = () => {
-    if (product.variants && !selectedVariant) {
+    if (product.variants && product.variants.length > 0 && !selectedVariant) {
       toast({
         title: "Vui lòng chọn phân loại",
         description: "Bạn cần chọn phân loại sản phẩm trước khi thêm vào giỏ hàng",
@@ -63,9 +94,23 @@ export default function ProductDetail() {
     addToCart(product, quantity, selectedVariant);
     toast({
       title: "Đã thêm vào giỏ hàng!",
-      description: `${product.name} x${quantity}`,
+      description: `${product.name}${selectedVariant ? ` (${selectedVariant})` : ''} x${quantity}`,
     });
   };
+
+  // === THÊM MỚI: hàm xử lý khi đổi variant ===
+  const handleVariantChange = (variantName: string) => {
+    setSelectedVariant(variantName);
+    
+    // Tìm variant object trong mảng
+    const variant = product.variants.find(v => v.name === variantName);
+    
+    // Cập nhật giá hiển thị
+    if (variant) {
+      setCurrentPrice(variant.price);
+    }
+  };
+  // === KẾT THÚC THÊM MỚI ===
 
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
@@ -80,11 +125,12 @@ export default function ProductDetail() {
               <CarouselContent>
                 {product.images.map((image, index) => (
                   <CarouselItem key={index}>
-                    <div className="relative aspect-square overflow-hidden rounded-lg border">
+                    {/* SỬA ĐỔI: Gỡ bỏ aspect-square để giữ ảnh gốc */}
+                    <div className="relative overflow-hidden rounded-lg border">
                       <img
                         src={image}
                         alt={`${product.name} - ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain" // <- Đổi từ object-cover
                       />
                     </div>
                   </CarouselItem>
@@ -102,11 +148,16 @@ export default function ProductDetail() {
             {product.images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto">
                 {product.images.map((image, index) => (
-                  <div key={index} className="flex-shrink-0">
+                  // SỬA ĐỔI: Thêm onClick để scroll tới ảnh
+                  <div 
+                    key={index} 
+                    className="flex-shrink-0 cursor-pointer"
+                    onClick={() => carouselApi?.scrollTo(index)} // <- Thêm dòng này
+                  >
                     <img
                       src={image}
                       alt={`Thumb ${index + 1}`}
-                      className="w-20 h-20 object-cover rounded border cursor-pointer hover:border-primary transition-colors"
+                      className="w-20 h-20 object-cover rounded border hover:border-primary transition-colors"
                     />
                   </div>
                 ))}
@@ -117,57 +168,83 @@ export default function ProductDetail() {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <Badge variant="secondary" className="mb-3">Pre-order</Badge>
+              {/* SỬA ĐỔI: đọc status động */}
+              {product.status && (
+                <Badge variant="secondary" className="mb-3">
+                  {product.status}
+                </Badge>
+              )}
+              {/* KẾT THÚC SỬA ĐỔI */}
+              
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-              <p className="text-muted-foreground">🎤 {product.artist}</p>
+              {/* ĐÃ XÓA: thông tin artist */}
             </div>
 
             <div className="border-t pt-4">
-              <p className="text-4xl font-bold text-primary">{product.priceDisplay}</p>
+              {/* SỬA ĐỔI: hiển thị giá động (currentPrice) */}
+              <p className="text-4xl font-bold text-primary">
+                {currentPrice.toLocaleString('vi-VN')}đ
+              </p>
+              {/* KẾT THÚC SỬA ĐỔI */}
+
               <p className="text-sm text-muted-foreground mt-2">
                 *{product.feesIncluded ? 'Đã full phí dự kiến' : 'Chưa full phí'}
               </p>
+
+              {/* THÊM MỚI: hiển thị hạn order */}
+              {product.orderDeadline && !isExpired && (
+                 <p className="text-sm text-amber-600 mt-2">
+                   Hạn order: {new Date(product.orderDeadline).toLocaleString('vi-VN')}
+                 </p>
+              )}
+              {isExpired && (
+                 <p className="text-sm text-destructive mt-2">
+                   Đã hết hạn order
+                 </p>
+              )}
+              {/* KẾT THÚC THÊM MỚI */}
             </div>
 
-            <div className="border-t pt-4 space-y-3">
-              <div>
-                <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
-                <ul className="text-muted-foreground space-y-1">
-                  {product.description.map((item, index) => (
-                    <li key={index}>• {item}</li>
-                  ))}
-                </ul>
-              </div>
-              {product.master && (
-                <div>
-                  <h3 className="font-semibold mb-1">Master</h3>
-                  <p className="text-muted-foreground">{product.master}</p>
-                </div>
-              )}
-            </div>
+            {/* ĐÃ XÓA: phần Mô tả sản phẩm và Master */}
 
             {/* Variant Selection */}
-            {product.variants && (
+            {product.variants && product.variants.length > 0 && (
               <div className="border-t pt-4">
                 <Label htmlFor="variant" className="text-base font-semibold">
                   Phân loại *
                 </Label>
-                <Select value={selectedVariant} onValueChange={setSelectedVariant}>
+                {/* SỬA ĐỔI: dùng handleVariantChange */}
+                <Select 
+                  value={selectedVariant} 
+                  onValueChange={handleVariantChange} // <- thay đổi ở đây
+                >
+                {/* KẾT THÚC SỬA ĐỔI */}
                   <SelectTrigger id="variant" className="mt-2">
                     <SelectValue placeholder="Chọn phân loại" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* SỬA ĐỔI: lặp qua mảng object mới */}
                     {product.variants.map((variant) => (
-                      <SelectItem key={variant} value={variant}>
-                        <div className="flex items-center gap-2">
-                          {product.variantImageMap && product.variantImageMap[variant] !== undefined && (
-                            <img 
-                              src={product.images[product.variantImageMap[variant]]} 
-                              alt={variant}
-                              className="w-8 h-8 object-cover rounded border"
-                            />
-                          )}
-                          <span>{variant}</span>
+                      <SelectItem key={variant.name} value={variant.name}>
+                      {/* KẾT THÚC SỬA ĐỔI */}
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            {product.variantImageMap && product.variantImageMap[variant.name] !== undefined && (
+                              <img 
+                                src={product.images[product.variantImageMap[variant.name]]} 
+                                alt={variant.name}
+                                className="w-8 h-8 object-cover rounded border"
+                              />
+                            )}
+                            {/* SỬA ĐỔI: đọc variant.name */}
+                            <span>{variant.name}</span>
+                            {/* KẾT THÚC SỬA ĐỔI */}
+                          </div>
+                          {/* THÊM MỚI: hiển thị giá của riêng variant đó */}
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {variant.price.toLocaleString('vi-VN')}đ
+                          </span>
+                          {/* KẾT THÚC THÊM MỚI */}
                         </div>
                       </SelectItem>
                     ))}
@@ -210,14 +287,18 @@ export default function ProductDetail() {
 
             {/* Action Buttons */}
             <div className="border-t pt-4 space-y-3">
+              {/* SỬA ĐỔI: thêm logic disable khi hết hạn */}
               <Button 
                 onClick={handleAddToCart}
                 className="w-full bg-gradient-primary gap-2"
                 size="lg"
+                disabled={isExpired} // <- thêm dòng này
               >
-                <ShoppingCart className="h-5 w-5" />
-                Thêm vào giỏ hàng
+                {isExpired ? <CalendarOff className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
+                {isExpired ? "Đã hết hạn order" : "Thêm vào giỏ hàng"}
               </Button>
+              {/* KẾT THÚC SỬA ĐỔI */}
+
               <Button 
                 onClick={() => navigate("/products")}
                 variant="outline"
