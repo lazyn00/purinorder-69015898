@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { Cart } from "./Cart";
 
 const menuItems = [
   { path: "/", label: "Giới thiệu" },
@@ -39,17 +40,20 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   {item.label}
                 </Link>
               ))}
+              <Cart />
             </div>
 
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X /> : <Menu />}
-            </Button>
+            {/* Mobile Menu Button and Cart */}
+            <div className="flex items-center gap-2 md:hidden">
+              <Cart />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X /> : <Menu />}
+              </Button>
+            </div>
           </div>
 
           {/* Mobile Menu */}
