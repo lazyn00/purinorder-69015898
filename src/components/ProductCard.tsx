@@ -2,102 +2,96 @@
 
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { productsData } from "@/data/products"; // Import kiểu dữ liệu
 
-// Lấy kiểu Product từ file data (hoặc từ context nếu bạn có)
-// Chúng ta cần định nghĩa rõ kiểu 'variants' để tính toán
 type ProductVariant = {
   name: string;
   price: number;
 };
 
-// Giả sử kiểu Product của bạn trông như thế này
-// (Bạn có thể cần điều chỉnh dựa trên file product.ts đầy đủ)
 type Product = {
   id: number;
   name: string;
-  price: number; // Giá gốc
+  price: number;
   images: string[];
-  status?: string; // Tag trạng thái
-  variants: ProductVariant[]; // Mảng các phân loại
+  status?: string;
+  variants: ProductVariant[];
 };
 
-
-// Hàm helper để định dạng tiền
-const formatPrice = (price: number) => {
-  return `${price.toLocaleString('vi-VN')}đ`;
+// Hàm helper 1: Chỉ định dạng "k"
+const formatPriceK = (price: number) => {
+  const priceInK = Math.round(price / 1000);
+  return `${priceInK}k`;
 };
 
-// Hàm helper để lấy khoảng giá
+// Hàm helper 2: Lấy khoảng giá (LUÔN LUÔN ra "k")
 const getPriceRange = (variants: ProductVariant[], defaultPrice: number): string => {
-  // Nếu không có variant, dùng giá gốc
   if (!variants || variants.length === 0) {
-    return formatPrice(defaultPrice);
+    // Trường hợp 1: Không có variant
+    return formatPriceK(defaultPrice);
   }
 
-  // Nếu chỉ có 1 variant, dùng giá đó
-  if (variants.length === 1) {
-    return formatPrice(variants[0].price);
-  }
-
-  // Tính min/max
   let minPrice = variants[0].price;
   let maxPrice = variants[0].price;
 
-  for (const variant of variants) {
-    if (variant.price < minPrice) minPrice = variant.price;
-    if (variant.price > maxPrice) maxPrice = variant.price;
+  // Nếu có nhiều variant, tìm min/max
+  if (variants.length > 1) {
+    for (const variant of variants) {
+      if (variant.price < minPrice) minPrice = variant.price;
+      if (variant.price > maxPrice) maxPrice = variant.price;
+    }
+  } else {
+    // Trường hợp 2: Chỉ có 1 variant (như "Sticker 83k")
+    minPrice = maxPrice = variants[0].price;
   }
 
-  // Nếu min và max bằng nhau, hiển thị 1 giá
-  if (minPrice === maxPrice) {
-    return formatPrice(minPrice);
+  const minK = Math.round(minPrice / 1000);
+  const maxK = Math.round(maxPrice / 1000);
+
+  // === (ĐÂY LÀ PHẦN SỬA LỖI) ===
+  if (minK === maxK) {
+    // Trước đó: nó có thể trả về 83.000đ
+    // Bây giờ: nó sẽ trả về "83k"
+    return `${minK}k`;
   }
+  // === KẾT THÚC SỬA LỖI ===
 
-  // Rút gọn (ví dụ: 48k - 230k)
-  const minSimple = Math.round(minPrice / 1000);
-  const maxSimple = Math.round(maxPrice / 1000);
-
-  return `${minSimple}k - ${maxSimple}k`;
+  // Trường hợp 3: Khoảng giá (ví dụ "48k - 230k")
+  return `${minK}k - ${maxK}k`;
 };
 
 
 export function ProductCard({ product }: { product: Product }) {
-  // Lấy ảnh đầu tiên làm thumbnail
   const thumbnail = product.images[0] || "https://i.imgur.com/placeholder.png";
   
-  // Tự động tính toán khoảng giá
+  // Hàm này giờ sẽ luôn trả về "k"
   const priceDisplay = getPriceRange(product.variants, product.price);
 
   return (
-    // Toàn bộ card là 1 link (theo yêu cầu "bỏ nút xem chi tiết")
     <Link to={`/product/${product.id}`} className="group block">
-      <div className="overflow-hidden rounded-lg border transition-shadow hover:shadow-md">
+      {/* (Layout "Shopee") */}
+      <div className="overflow-hidden rounded-sm bg-card shadow-sm transition-shadow hover:shadow-md">
         
-        {/* Phần ảnh và Tag (dạng ô vuông) */}
         <div className="relative aspect-square overflow-hidden">
           <img
             src={thumbnail}
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          {/* Đọc tag trạng thái động từ product.status */}
           {product.status && (
             <Badge 
               variant="secondary" 
-              className="absolute top-2 left-2"
+              className="absolute top-1.5 left-1.5 h-5 px-1.5 text-[10px]"
             >
               {product.status}
             </Badge>
           )}
         </div>
 
-        {/* Phần Tên và Giá (Không có description, artist) */}
-        <div className="p-3 md:p-4">
-          <h3 className="truncate font-semibold text-sm">
+        <div className="p-2">
+          <h3 className="h-8 text-xs font-normal line-clamp-2 md:text-sm md:h-10">
             {product.name}
           </h3>
-          <p className="mt-1 text-base font-bold text-primary">
+          <p className="mt-1 truncate text-sm font-bold text-primary md:text-base">
             {priceDisplay}
           </p>
         </div>
