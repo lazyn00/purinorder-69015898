@@ -72,24 +72,17 @@ export default function ProductDetail() {
     }
   }, [product]);
 
-  // === (SỬA 2: QUY CÁCH TÊN [Option1] Option2) ===
+  // === (SỬA 2: QUAY LẠI LOGIC GỐC "-") ===
   // useEffect xử lý 2+ phân loại
   useEffect(() => {
     if (product?.optionGroups && product.optionGroups.length > 0) {
       const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
 
       if (allOptionsSelected) {
-        
-        // Logic mới để tạo tên dạng "[Option1] Option2"
-        let constructedName = "";
-        if (product.optionGroups.length >= 2) {
-           const option1 = selectedOptions[product.optionGroups[0].name]; // Ví dụ: "Viền trong"
-           const option2 = selectedOptions[product.optionGroups[1].name]; // Ví dụ: "James"
-           constructedName = `[${option1}] ${option2}`; // Tạo ra "[Viền trong] James"
-        } else {
-           // Dự phòng
-           constructedName = Object.values(selectedOptions).join("-");
-        }
+        // Quay lại logic gốc, dùng dấu "-"
+        const constructedName = product.optionGroups
+            .map(group => selectedOptions[group.name])
+            .join("-");
         
         const variant = product.variants.find(v => v.name === constructedName);
         
