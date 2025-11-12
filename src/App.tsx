@@ -12,6 +12,10 @@ import Policy from "./pages/Policy";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
+// === (THÊM MỚI 1/2) Import trang checkout ===
+import Checkout from "./pages/Checkout";
+// === KẾT THÚC THÊM MỚI ===
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -28,6 +32,11 @@ const App = () => (
             <Route path="/guide" element={<Guide />} />
             <Route path="/policy" element={<Policy />} />
             <Route path="/contact" element={<Contact />} />
+            
+            {/* === (THÊM MỚI 2/2) Thêm route cho trang checkout === */}
+            <Route path="/checkout" element={<Checkout />} />
+            {/* === KẾT THÚC THÊM MỚI === */}
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
