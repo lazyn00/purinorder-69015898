@@ -99,10 +99,7 @@ export const productsData = [
   ],
   category: "Merch",
   artist: "CORTIS",
-  variants: {
-    Type: ["Viền trong", "Viền màu"],
-    Name: ["James","Juhoon","Martin","Seunghyeon","Keonho","Full Set 5 members"]
-  },
+  variants: ["Viền trong-James","Viền màu-James","Viền trong-Juhoon","Viền màu-Juhoon","Viền trong-Martin","Viền màu-Martin","Viền trong-Seunghyeon","Viền màu-Seunghyeon","Viền trong-Keonho","Viền màu-Keonho","Viền trong-Full Set 5 members","Viền màu-Full Set 5 members"],
   variantImageMap: {
     "Viền trong-Full Set 5 members": 0,
     "Viền màu-Full Set 5 members": 1,
