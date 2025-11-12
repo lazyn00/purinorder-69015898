@@ -20,7 +20,7 @@ export const productsData = [
     artist: "CORTIS",
     variants: ["Full Set 5 members"],
     variantImageMap: {
-      "Full Set 6 members": 0
+      "Full Set 5 members": 0
     },
     feesIncluded: true,
     master: "seeuKJH (xhs)"
@@ -50,6 +50,37 @@ export const productsData = [
       "Full Set 5 members": 0
     },
     feesIncluded: true,
-    master: "Korean Sticker Shop"
+    master: "脆脆小饼干 (xhs)"
   }
+  {
+    id: 3,
+    name: "Keychain điện thoại",
+    price: 107000,
+    priceDisplay: "107,000đ",
+    description: [
+      "James","Juhoon","Martin","Seunghyeon","Keonho","Full Set 5 members"
+    ], // <- thêm dấu phẩy ở đây
+    images: [
+      "https://i.imgur.com/oTsdiml.jpeg",
+      "https://i.imgur.com/DseAHvD.jpeg",
+      "https://i.imgur.com/QZKqgHf.jpeg",
+      "https://i.imgur.com/aRRxxzr.jpeg",
+      "https://i.imgur.com/VgY9HWu.jpeg",
+      "https://i.imgur.com/DBmFtMH.jpeg",
+      "https://i.imgur.com/lY1XEwd.jpeg"
+    ],
+    category: "Merch",
+    artist: "CORTIS",
+    variants: ["James","Juhoon","Martin","Seunghyeon","Keonho","Full Set 5 members"],
+    variantImageMap: {
+      "Full Set 5 members": 0,
+      "James": 2,
+      "Juhoon": 3,
+      "Martin": 4,
+      "Seunghyeon": 5,
+      "Keonho": 6
+    },
+    feesIncluded: true,
+    master: "Boky Buyer (xhs)"
+  },
 ];
