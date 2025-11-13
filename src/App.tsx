@@ -12,6 +12,7 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Checkout from "./pages/Checkout";
 import TrackOrder from "./pages/TrackOrder";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -26,15 +27,11 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/products" element={<Products />} />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/guide" element={<Guide />} />
             <Route path="/policy" element={<Policy />} />
             <Route path="/contact" element={<Contact />} />
-            
-            {/* === (THÊM MỚI 2/2) Thêm route cho trang checkout === */}
             <Route path="/checkout" element={<Checkout />} />
-            {/* === KẾT THÚC THÊM MỚI === */}
-
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/track-order" element={<TrackOrder />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

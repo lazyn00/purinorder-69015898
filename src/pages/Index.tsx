@@ -46,9 +46,9 @@ const Index = () => {
                 Xem sản phẩm
               </Button>
             </Link>
-            <Link to="/guide">
+            <Link to="/track-order">
               <Button size="lg" variant="outline" className="text-lg px-8">
-                Hướng dẫn đặt hàng
+                Tra cứu đơn hàng
               </Button>
             </Link>
           </div>
