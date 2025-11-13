@@ -5,8 +5,7 @@ import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
 
-const menuItems = [
-  { path: "/", label: "Giới thiệu" },
+const menuItems = [,
   { path: "/products", label: "Sản phẩm" },
   { path: "/policy", label: "Chính sách" },
   { path: "/contact", label: "Liên hệ" },
