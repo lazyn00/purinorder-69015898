@@ -1,10 +1,13 @@
+// App.jsx (hoặc tên file chứa component App)
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./contexts/CartContext";
-import Index from "./pages/Index";
+// Xóa dòng import Index này:
+// import Index from "./pages/Index"; 
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Policy from "./pages/Policy";
@@ -24,8 +27,15 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/products" element={<Products />} />
+            {/* THAY ĐỔI DÒNG NÀY: */}
+            {/* Thay <Route path="/" element={<Index />} /> */}
+            {/* Bằng cách đặt component Products vào đường dẫn gốc / */}
+            <Route path="/" element={<Products />} /> 
+
+            {/* Nếu bạn không muốn trang Products cũng có ở /products nữa thì có thể xóa dòng sau, 
+               nhưng thường thì nên giữ lại để người dùng vẫn có thể truy cập qua đường dẫn này */}
+            <Route path="/products" element={<Products />} /> 
+            
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/policy" element={<Policy />} />
             <Route path="/contact" element={<Contact />} />
