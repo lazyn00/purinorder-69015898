@@ -107,6 +107,25 @@ export default function ProductDetail() {
       }
     }
   }, [selectedOptions, product, carouselApi]);
+
+  // useEffect xử lý cuộn ảnh cho 1 phân loại đơn giản
+  useEffect(() => {
+    console.log("Debug carousel scroll:", {
+      hasCarouselApi: !!carouselApi,
+      hasVariantImageMap: !!product?.variantImageMap,
+      selectedVariant,
+      variantImageMap: product?.variantImageMap,
+    });
+    
+    if (carouselApi && product?.variantImageMap && selectedVariant) {
+      const imageIndex = product.variantImageMap[selectedVariant];
+      console.log(`Image index for ${selectedVariant}:`, imageIndex);
+      if (imageIndex !== undefined) {
+        console.log(`Scrolling to image ${imageIndex} for variant: ${selectedVariant}`);
+        carouselApi.scrollTo(imageIndex);
+      }
+    }
+  }, [selectedVariant, carouselApi, product]);
   
   const handleAddToCart = () => {
     if (!product) return; 
@@ -336,16 +355,7 @@ export default function ProductDetail() {
                     <SelectContent>
                       {product.variants.map((variant) => (
                         <SelectItem key={variant.name} value={variant.name}>
-                          <div className="flex items-center gap-2">
-                            {product.variantImageMap && product.variantImageMap[variant.name] !== undefined && (
-                              <img 
-                                src={product.images[product.variantImageMap[variant.name]]} 
-                                alt={variant.name}
-                                className="w-8 h-8 object-cover rounded border"
-                              />
-                            )}
-                            <span>{variant.name}</span>
-                          </div>
+                          {variant.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
