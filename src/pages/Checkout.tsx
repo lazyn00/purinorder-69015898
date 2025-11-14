@@ -33,11 +33,11 @@ export default function Checkout() {
   const [deliveryInfo, setDeliveryInfo] = useState({
     name: "",
     phone: "",
-    address: "",
-    email: ""
+    address: ""
   });
   
   const [selectedMethod, setSelectedMethod] = useState("Vietcombank");
+  const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,10 +49,10 @@ export default function Checkout() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!contactInfo.phone && !contactInfo.email && !contactInfo.fb) {
+    if (!contactInfo.fb || !contactInfo.email || !contactInfo.phone) {
       toast({
         title: "Lỗi",
-        description: "Vui lòng nhập ít nhất một thông tin liên hệ.",
+        description: "Vui lòng điền đầy đủ tất cả thông tin liên hệ.",
         variant: "destructive"
       });
       return;
@@ -62,6 +62,15 @@ export default function Checkout() {
       toast({
         title: "Lỗi",
         description: "Vui lòng điền đầy đủ thông tin nhận hàng.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!paymentProof) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng đăng bill chuyển khoản trước khi đặt hàng.",
         variant: "destructive"
       });
       return;
@@ -95,16 +104,16 @@ export default function Checkout() {
       const { error: insertError } = await (supabase as any)
         .from('orders')
         .insert({
-          customer_fb: contactInfo.fb || null,
-          customer_email: contactInfo.email || null,
+          customer_fb: contactInfo.fb,
+          customer_email: contactInfo.email,
           customer_phone: contactInfo.phone,
           delivery_name: deliveryInfo.name,
           delivery_phone: deliveryInfo.phone,
           delivery_address: deliveryInfo.address,
-          delivery_email: deliveryInfo.email || null,
           items: cartItems as any,
           total_price: totalPrice,
           payment_method: selectedMethod,
+          payment_type: paymentType,
           payment_proof_url: paymentProofUrl
         } as any);
 
@@ -176,18 +185,17 @@ export default function Checkout() {
             <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="contact-fb">Link Facebook / Instagram</Label>
-                <Input id="contact-fb" value={contactInfo.fb} onChange={(e) => setContactInfo({...contactInfo, fb: e.target.value})} placeholder="https://..." />
+                <Label htmlFor="contact-fb">Link Facebook / Instagram *</Label>
+                <Input id="contact-fb" value={contactInfo.fb} onChange={(e) => setContactInfo({...contactInfo, fb: e.target.value})} placeholder="https://..." required />
               </div>
               <div>
-                <Label htmlFor="contact-email">Email</Label>
-                <Input id="contact-email" type="email" value={contactInfo.email} onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})} placeholder="email@example.com" />
+                <Label htmlFor="contact-email">Email *</Label>
+                <Input id="contact-email" type="email" value={contactInfo.email} onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})} placeholder="email@example.com" required />
               </div>
               <div>
                 <Label htmlFor="contact-phone">Số điện thoại *</Label>
                 <Input id="contact-phone" type="tel" value={contactInfo.phone} onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})} placeholder="090..." required />
               </div>
-              <p className="text-sm text-muted-foreground">* Vui lòng điền ít nhất một thông tin liên hệ</p>
             </div>
           </div>
 
@@ -206,16 +214,45 @@ export default function Checkout() {
                 <Label htmlFor="delivery-address">Địa chỉ nhận hàng *</Label>
                 <Input id="delivery-address" value={deliveryInfo.address} onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})} placeholder="Số nhà, đường, phường, quận, thành phố" required />
               </div>
-              <div>
-                <Label htmlFor="delivery-email">Email nhận hàng</Label>
-                <Input id="delivery-email" type="email" value={deliveryInfo.email} onChange={(e) => setDeliveryInfo({...deliveryInfo, email: e.target.value})} placeholder="email@example.com" />
-              </div>
             </div>
           </div>
 
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thanh toán</h2>
-            <div className="space-y-4">
+            <div className="space-y-6">
+              <div>
+                <Label className="font-semibold mb-3 block">Hình thức thanh toán</Label>
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <input 
+                      type="radio" 
+                      name="paymentType" 
+                      value="full" 
+                      checked={paymentType === 'full'} 
+                      onChange={(e) => setPaymentType(e.target.value as "full")}
+                      className="mt-1"
+                    />
+                    <div>
+                      <div className="font-medium">Thanh toán đủ 100% ({totalPrice.toLocaleString('vi-VN')}đ)</div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <input 
+                      type="radio" 
+                      name="paymentType" 
+                      value="deposit" 
+                      checked={paymentType === 'deposit'} 
+                      onChange={(e) => setPaymentType(e.target.value as "deposit")}
+                      className="mt-1"
+                    />
+                    <div>
+                      <div className="font-medium">Đặt cọc 50% ({(totalPrice * 0.5).toLocaleString('vi-VN')}đ) - Hẹn hoàn cọc trong 1 tháng</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <Label htmlFor="paymentMethod" className="font-semibold">Chọn phương thức thanh toán</Label>
                 <Select value={selectedMethod} onValueChange={setSelectedMethod}>
@@ -237,15 +274,23 @@ export default function Checkout() {
                 <p>Số tài khoản: <span className="font-bold">{paymentDetails.number}</span></p>
               </div>
               
-              <div>
-                <Label htmlFor="payment-proof">Đăng bill chuyển khoản</Label>
-                <Input id="payment-proof" type="file" accept="image/*" onChange={handleFileChange} className="mt-2" />
+              <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
+                <Label htmlFor="payment-proof" className="font-semibold text-lg mb-3 block">Đăng bill chuyển khoản *</Label>
+                <Input 
+                  id="payment-proof" 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange} 
+                  required
+                  className="cursor-pointer"
+                />
                 {paymentProof && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    <Upload className="inline h-4 w-4 mr-1" />
-                    {paymentProof.name}
-                  </p>
+                  <div className="mt-3 p-3 bg-background rounded-md flex items-center gap-2">
+                    <Upload className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">{paymentProof.name}</span>
+                  </div>
                 )}
+                <p className="text-sm text-muted-foreground mt-2">* Bắt buộc gửi bill trước khi bấm đặt hàng ngay</p>
               </div>
             </div>
           </div>
