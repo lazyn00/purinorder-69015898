@@ -16,26 +16,26 @@ type Product = {
   status?: string;
   orderDeadline?: string;
   variants: ProductVariant[];
-  artist?: string; 
+  artist?: string; 
 };
 
 // === HÀM HELPER: ĐỊNH DẠNG NGÀY GIỜ (Giữ nguyên nhưng không sử dụng) ===
 const formatDeadline = (isoString: string | null | undefined): string => {
-    if (!isoString) return "";
-    
-    const transformedString = isoString.replace(' ', 'T');
-    const date = new Date(transformedString);
-    
-    if (isNaN(date.getTime())) return "Ngày không hợp lệ";
+    if (!isoString) return "";
+    
+    const transformedString = isoString.replace(' ', 'T');
+    const date = new Date(transformedString);
+    
+    if (isNaN(date.getTime())) return "Ngày không hợp lệ";
 
-    return date.toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    });
+    return date.toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
 };
 // === KẾT THÚC HÀM HELPER ===
 
@@ -64,7 +64,9 @@ export function ProductCard({ product }: { product: Product }) {
   
   const minPriceValue = getMinPrice(product.variants, product.price);
   const priceDisplay = formatPrice(minPriceValue);
-  
+
+  // XÓA LOGIC LIÊN QUAN ĐẾN DEADLINE
+  
   return (
     <Link to={`/product/${product.id}`} className="group block">
       <div className="overflow-hidden rounded-sm bg-card shadow-sm transition-shadow hover:shadow-md">
@@ -75,10 +77,10 @@ export function ProductCard({ product }: { product: Product }) {
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          
-          {/* CONTAINER CHO CÁC TAG - SỬA: Dùng flex và space-x-1 để xếp ngang */}
-          <div className="absolute top-1.5 left-1.5 flex items-start **space-x-1**">
-            {/* TAG STATUS */}
+          
+          {/* CONTAINER CHO CÁC TAG - ĐÃ SỬA: BỎ flex-col và dùng space-x-1 */}
+          <div className="absolute top-1.5 left-1.5 flex items-start space-x-1"> 
+            {/* TAG STATUS */}
             {product.status && (
               <Badge 
                 variant="secondary" 
@@ -88,8 +90,8 @@ export function ProductCard({ product }: { product: Product }) {
               </Badge>
             )}
 
-            {/* TAG ARTIST (MÀU PRIMARY - HỒNG) */}
-            {product.artist && (
+            {/* TAG ARTIST ĐÃ ĐỔI MÀU PRIMARY (HỒNG) */}
+            {product.artist && (
               <Badge 
                 variant="default"
                 className="h-5 px-1.5 text-[10px] bg-primary text-primary-foreground hover:bg-primary/80" 
@@ -97,11 +99,11 @@ export function ProductCard({ product }: { product: Product }) {
                 {product.artist}
               </Badge>
             )}
-          </div>
+          </div>
         </div>
 
         <div className="p-2">
-          
+          
           <h3 className="h-10 text-sm font-semibold line-clamp-2">
             {product.name}
           </h3>
