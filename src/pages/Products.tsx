@@ -4,8 +4,8 @@ import { useState, useMemo } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { Input } from "@/components/ui/input";
-// THAY ĐỔI DÒNG NÀY: Thêm ArrowUpWideNarrow và ArrowDownWideNarrow
-import { Search, ChevronRight, ArrowLeft, SlidersHorizontal, ArrowUpWideNarrow, ArrowDownWideNarrow } from "lucide-react";
+// THAY ĐỔI DÒNG NÀY: Thêm ArrowUpDown và loại bỏ ArrowUpWideNarrow, ArrowDownWideNarrow nếu không dùng
+import { Search, ChevronRight, ArrowLeft, SlidersHorizontal, ArrowUpDown } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Link, useSearchParams } from "react-router-dom";
@@ -136,17 +136,6 @@ export default function Products() {
     return null;
   };
 
-  // Hàm hiển thị icon sắp xếp
-  const SortIcon = () => {
-    if (sortBy === 'price-asc') {
-        return <ArrowUpWideNarrow className="h-4 w-4" />;
-    }
-    if (sortBy === 'price-desc') {
-        return <ArrowDownWideNarrow className="h-4 w-4" />;
-    }
-    return null;
-  };
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -168,76 +157,72 @@ export default function Products() {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="mb-8">
-          <div className="relative max-w-xl mx-auto">
+        {/* Search Bar and Filters - ĐÃ CHUYỂN RA NGOÀI ĐIỀU KIỆN */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8 items-center max-w-4xl mx-auto">
+          {/* Search Input */}
+          <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Tìm kiếm sản phẩm, artist, danh mục..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 w-full"
             />
+          </div>
+
+          {/* Filters and Sort */}
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            {/* Artist Filter */}
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedArtist} onValueChange={setSelectedArtist}>
+                <SelectTrigger className="w-[150px] sm:w-[180px]">
+                  <SelectValue placeholder="Tất cả nhóm nhạc" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả nhóm nhạc</SelectItem>
+                  {uniqueArtists.map((artist) => (
+                    <SelectItem key={artist} value={artist}>
+                      {artist}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort by Price */}
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" /> {/* Luôn hiển thị icon này */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[150px] sm:w-[180px]">
+                  <SelectValue placeholder="Mặc định" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Mặc định</SelectItem>
+                  <SelectItem value="price-asc">Giá thấp đến cao</SelectItem>
+                  <SelectItem value="price-desc">Giá cao đến thấp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
-        {/* Category Sections or Grid */}
-        {searchQuery === "" && !categoryParam ? (
+        {/* Category Sections or Product Grid */}
+        {searchQuery === "" && !categoryParam && selectedArtist === "all" && sortBy === "default" ? (
+          // Nếu không có tìm kiếm, không có filter category, không có filter artist, không có sort
           <>
             <CategorySection title="Outfit & Doll" products={outfitDoll} categoryKey="outfit" />
             <CategorySection title="Merch" products={merch} categoryKey="merch" />
             <CategorySection title="Khác" products={other} categoryKey="other" />
           </>
         ) : (
-          <>
-            {/* Filter and Sort Bar */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2 flex-1">
-                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedArtist} onValueChange={setSelectedArtist}>
-                  <SelectTrigger className="w-full sm:w-[200px]">
-                    <SelectValue placeholder="Tất cả nhóm nhạc" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả nhóm nhạc</SelectItem>
-                    {uniqueArtists.map((artist) => (
-                      <SelectItem key={artist} value={artist}>
-                        {artist}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* THAY ĐỔI Ở KHỐI NÀY */}
-              <div className="flex items-center gap-2">
-                {/* Loại bỏ chữ "Sắp xếp:" và thay bằng icon nếu có sắp xếp */}
-                <span className="text-sm text-muted-foreground whitespace-nowrap">
-                    {SortIcon()}
-                </span>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Mặc định" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Mặc định</SelectItem>
-                    <SelectItem value="price-asc">Giá thấp đến cao</SelectItem>
-                    <SelectItem value="price-desc">Giá cao đến thấp</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* KẾT THÚC THAY ĐỔI */}
-
-            </div>
-
-            {/* Product Grid - Shopee style */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </>
+          // Hiển thị dạng lưới khi có tìm kiếm hoặc bất kỳ bộ lọc/sắp xếp nào được áp dụng
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
         )}
 
         {filteredProducts.length === 0 && (
