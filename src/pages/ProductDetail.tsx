@@ -1,8 +1,8 @@
+import { Layout } from "@/components/Layout";
+import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import type { CarouselApi } from "@/components/ui/carousel";
 import { useParams, useNavigate } from "react-router-dom";
-import { Layout } from "@/components/Layout";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,7 @@ import { LoadingPudding } from "@/components/LoadingPudding";
 // (Đọc từ Context, không đọc từ file .ts)
 import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import { ProductCard } from "@/components/ProductCard";
 import {
   Carousel,
   CarouselContent,
@@ -253,6 +254,11 @@ export default function ProductDetail() {
                 </Badge>
               )}
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+              {product.master && (
+                <p className="text-muted-foreground text-sm">
+                  Artist: {product.master}
+                </p>
+              )}
             </div>
 
             <div className="border-t pt-4">
@@ -276,47 +282,17 @@ export default function ProductDetail() {
               )}
             </div>
             
-            {(product.description && product.description.length > 0) || product.master ? (
-              <div className="border-t pt-4 space-y-4">
-                
-                {product.description && product.description.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
-                    <ul className="text-muted-foreground space-y-1 list-disc list-inside">
-                      {product.description.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Thuộc tính/Properties Section */}
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <h3 className="font-semibold mb-3">Thuộc tính</h3>
-                  <div className="space-y-2 text-sm">
-                    {product.master && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Artist:</span>
-                        <span className="font-medium">{product.master}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Trạng thái:</span>
-                      <span className="font-medium">{product.status || 'N/A'}</span>
-                    </div>
-                    {product.orderDeadline && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Hạn order:</span>
-                        <span className="font-medium text-red-600">
-                          {new Date(product.orderDeadline).toLocaleDateString('vi-VN')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
+            
+            {product.description && product.description.length > 0 && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
+                <ul className="text-muted-foreground space-y-1 list-disc list-inside">
+                  {product.description.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
               </div>
-            ) : null}
+            )}
 
             {/* (Logic 1 hoặc 2 phân loại) */}
             <div className="border-t pt-4 space-y-4">
@@ -424,6 +400,21 @@ export default function ProductDetail() {
             </div>
           </div>
         </div>
+
+        {/* Related Products Section */}
+        {product.master && products.filter(p => p.master === product.master && p.id !== product.id).length > 0 && (
+          <div className="border-t pt-12 mt-12">
+            <h2 className="text-2xl font-bold mb-6">Sản phẩm liên quan</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products
+                .filter(p => p.master === product.master && p.id !== product.id)
+                .slice(0, 4)
+                .map((relatedProduct) => (
+                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                ))}
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

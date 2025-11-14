@@ -18,6 +18,8 @@ export default function Products() {
   const [selectedArtist, setSelectedArtist] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const productsPerPage = 24;
 
   const artists = ["all", ...Array.from(new Set(products.map(p => p.artist)))];
 
@@ -40,6 +42,17 @@ export default function Products() {
   } else if (sortBy === "name") {
     filteredProducts = [...filteredProducts].sort((a, b) => a.name.localeCompare(b.name));
   }
+
+  // Pagination
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const startIndex = (currentPage - 1) * productsPerPage;
+  const endIndex = startIndex + productsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = () => {
+    setCurrentPage(1);
+  };
 
   // (Xử lý loading)
   if (isLoading) {
@@ -83,7 +96,7 @@ export default function Products() {
             {/* Category Dropdown */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <Select value={selectedCategory} onValueChange={(value) => { setSelectedCategory(value); handleFilterChange(); }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Danh mục" />
                 </SelectTrigger>
@@ -99,7 +112,7 @@ export default function Products() {
             {/* Artist Filter (Đã sửa) */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedArtist} onValueChange={setSelectedArtist}>
+              <Select value={selectedArtist} onValueChange={(value) => { setSelectedArtist(value); handleFilterChange(); }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Nhóm nhạc/Artist" />
                 </SelectTrigger>
@@ -137,7 +150,7 @@ export default function Products() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setSelectedCategory("all")}
+                  onClick={() => { setSelectedCategory("all"); handleFilterChange(); }}
                 >
                   {selectedCategory} ✕
                 </Button>
@@ -146,7 +159,7 @@ export default function Products() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setSelectedArtist("all")}
+                  onClick={() => { setSelectedArtist("all"); handleFilterChange(); }}
                 >
                   {selectedArtist} ✕
                 </Button>
@@ -155,14 +168,39 @@ export default function Products() {
           )}
         </div>
 
-        {/* Layout "Shopee" (2-6 cột) */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product as any} />
-          ))}
-        </div>
+        {/* Products Grid */}
+        {paginatedProducts.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {paginatedProducts.map((product) => (
+                <ProductCard key={product.id} product={product as any} />
+              ))}
+            </div>
 
-        {filteredProducts.length === 0 && (
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Trước
+                </Button>
+                <span className="text-sm text-muted-foreground px-4">
+                  Trang {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Sau
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Không tìm thấy sản phẩm nào</p>
           </div>
