@@ -101,9 +101,16 @@ export default function Checkout() {
         paymentProofUrl = publicUrl;
       }
 
+      // Generate order number #PO + YYYYMMDD + sequential number
+      const today = new Date();
+      const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+      const orderNumber = `PO${dateStr}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+
+
       const { error: insertError } = await (supabase as any)
         .from('orders')
         .insert({
+          order_number: orderNumber,
           customer_fb: contactInfo.fb,
           customer_email: contactInfo.email,
           customer_phone: contactInfo.phone,
@@ -114,7 +121,8 @@ export default function Checkout() {
           total_price: totalPrice,
           payment_method: selectedMethod,
           payment_type: paymentType,
-          payment_proof_url: paymentProofUrl
+          payment_proof_url: paymentProofUrl,
+          status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán'
         } as any);
 
       if (insertError) {
