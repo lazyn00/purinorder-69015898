@@ -15,23 +15,28 @@ export default function Products() {
   const { products, isLoading } = useCart();
   
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedMaster, setSelectedMaster] = useState<string>("all");
+  // Đã ĐỔI TÊN: selectedMaster -> selectedArtist
+  const [selectedArtist, setSelectedArtist] = useState<string>("all"); 
   const [sortBy, setSortBy] = useState<string>("default");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const productsPerPage = 24;
 
-  const masters = ["all", ...Array.from(new Set(products.map(p => p.master).filter(Boolean)))];
+  // Đã ĐỔI TÊN và LỌC: master -> artist
+  const artists = ["all", ...Array.from(new Set(products.map(p => p.artist).filter(Boolean)))];
 
   // Filter products
   let filteredProducts = products.filter(product => {
     const categoryMatch = selectedCategory === "all" || product.category === selectedCategory;
-    const masterMatch = selectedMaster === "all" || product.master === selectedMaster;
+    // Đã ĐỔI TÊN và SỬA LOGIC LỌC: masterMatch -> artistMatch
+    const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
     const searchMatch = searchQuery === "" || 
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.master?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // Đã SỬA: master -> artist trong tìm kiếm
+      product.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category?.toLowerCase().includes(searchQuery.toLowerCase());
-    return categoryMatch && masterMatch && searchMatch;
+    // Đã SỬA: masterMatch -> artistMatch
+    return categoryMatch && artistMatch && searchMatch;
   });
 
   // Sort products
@@ -109,23 +114,27 @@ export default function Products() {
               </Select>
             </div>
 
-            {/* Master Filter */}
+            {/* Artist Filter (Đã SỬA từ Master Filter) */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedMaster} onValueChange={(value) => { setSelectedMaster(value); handleFilterChange(); }}>
+              {/* Đã SỬA: selectedMaster -> selectedArtist */}
+              <Select value={selectedArtist} onValueChange={(value) => { setSelectedArtist(value); handleFilterChange(); }}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Master" />
+                  {/* Đã SỬA: Master -> Artist */}
+                  <SelectValue placeholder="Artist" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả master</SelectItem>
-                  {masters.slice(1).map(master => (
-                    <SelectItem key={master} value={master}>{master}</SelectItem>
+                  {/* Đã SỬA: master -> artist */}
+                  <SelectItem value="all">Tất cả Artist</SelectItem>
+                  {/* Đã SỬA: masters -> artists, master -> artist */}
+                  {artists.slice(1).map(artist => (
+                    <SelectItem key={artist} value={artist}>{artist}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Sort (Đã sửa) */}
+            {/* Sort */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={setSortBy}>
@@ -143,7 +152,8 @@ export default function Products() {
           </div>
 
           {/* Active filters */}
-          {(selectedCategory !== "all" || selectedMaster !== "all") && (
+          {/* Đã SỬA: selectedMaster -> selectedArtist */}
+          {(selectedCategory !== "all" || selectedArtist !== "all") && (
             <div className="flex gap-2 items-center">
               <span className="text-sm text-muted-foreground">Đang lọc:</span>
               {selectedCategory !== "all" && (
@@ -155,13 +165,15 @@ export default function Products() {
                   {selectedCategory} ✕
                 </Button>
               )}
-              {selectedMaster !== "all" && (
+              {/* Đã SỬA: selectedMaster -> selectedArtist */}
+              {selectedArtist !== "all" && (
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => { setSelectedMaster("all"); handleFilterChange(); }}
+                  onClick={() => { setSelectedArtist("all"); handleFilterChange(); }}
                 >
-                  {selectedMaster} ✕
+                  {/* Đã SỬA: selectedMaster -> selectedArtist */}
+                  {selectedArtist} ✕
                 </Button>
               )}
             </div>
