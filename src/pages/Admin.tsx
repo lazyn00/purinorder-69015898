@@ -91,7 +91,7 @@ export default function Admin() {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('orders')
         .select('*')
         .is('deleted_at', null)
@@ -113,7 +113,7 @@ export default function Admin() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId);
@@ -142,7 +142,7 @@ export default function Admin() {
     if (!confirm("Bạn có chắc muốn xóa đơn hàng này?")) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('orders')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', orderId);

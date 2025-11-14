@@ -92,7 +92,7 @@ export default function Checkout() {
         paymentProofUrl = publicUrl;
       }
 
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('orders')
         .insert({
           customer_fb: contactInfo.fb || null,
