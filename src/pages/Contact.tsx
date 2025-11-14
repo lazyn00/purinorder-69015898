@@ -55,7 +55,7 @@ export default function Contact() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <a 
-                  href="https://facebook.com/puorderin" 
+                  href="https://www.facebook.com/puorderin/?locale=vi_VN" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 hover:text-primary transition-colors"
