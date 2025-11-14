@@ -57,7 +57,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         
         if (data.products) {
-          setProducts(data.products);
+          // Parse variantImageMap nếu nó là string
+          const parsedProducts = data.products.map((product: any) => {
+            if (product.variantImageMap && typeof product.variantImageMap === 'string') {
+              try {
+                product.variantImageMap = JSON.parse(product.variantImageMap);
+              } catch (e) {
+                console.error(`Lỗi parse variantImageMap cho sản phẩm ${product.id}:`, e);
+                product.variantImageMap = {};
+              }
+            }
+            return product;
+          });
+          setProducts(parsedProducts);
         } else {
           console.error("Lỗi tải products:", data.error);
         }
