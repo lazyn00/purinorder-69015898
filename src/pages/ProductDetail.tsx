@@ -256,7 +256,7 @@ export default function ProductDetail() {
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
               {product.master && (
                 <p className="text-muted-foreground text-sm">
-                  Artist: {product.master}
+                  Master: {product.master}
                 </p>
               )}
             </div>
@@ -405,13 +405,16 @@ export default function ProductDetail() {
         {product.master && products.filter(p => p.master === product.master && p.id !== product.id).length > 0 && (
           <div className="border-t pt-12 mt-12">
             <h2 className="text-2xl font-bold mb-6">Sản phẩm liên quan</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products
-                .filter(p => p.master === product.master && p.id !== product.id)
-                .slice(0, 4)
-                .map((relatedProduct) => (
-                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
-                ))}
+            <div className="relative">
+              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+                {products
+                  .filter(p => p.master === product.master && p.id !== product.id)
+                  .map((relatedProduct) => (
+                    <div key={relatedProduct.id} className="flex-shrink-0 w-[200px] snap-start">
+                      <ProductCard product={relatedProduct} />
+                    </div>
+                  ))}
+              </div>
             </div>
           </div>
         )}

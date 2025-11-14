@@ -15,23 +15,23 @@ export default function Products() {
   const { products, isLoading } = useCart();
   
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedArtist, setSelectedArtist] = useState<string>("all");
+  const [selectedMaster, setSelectedMaster] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const productsPerPage = 24;
 
-  const artists = ["all", ...Array.from(new Set(products.map(p => p.artist)))];
+  const masters = ["all", ...Array.from(new Set(products.map(p => p.master).filter(Boolean)))];
 
   // Filter products
   let filteredProducts = products.filter(product => {
     const categoryMatch = selectedCategory === "all" || product.category === selectedCategory;
-    const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
+    const masterMatch = selectedMaster === "all" || product.master === selectedMaster;
     const searchMatch = searchQuery === "" || 
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.master?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category?.toLowerCase().includes(searchQuery.toLowerCase());
-    return categoryMatch && artistMatch && searchMatch;
+    return categoryMatch && masterMatch && searchMatch;
   });
 
   // Sort products
@@ -109,17 +109,17 @@ export default function Products() {
               </Select>
             </div>
 
-            {/* Artist Filter (Đã sửa) */}
+            {/* Master Filter */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedArtist} onValueChange={(value) => { setSelectedArtist(value); handleFilterChange(); }}>
+              <Select value={selectedMaster} onValueChange={(value) => { setSelectedMaster(value); handleFilterChange(); }}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Nhóm nhạc/Artist" />
+                  <SelectValue placeholder="Master" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả artist</SelectItem>
-                  {artists.slice(1).map(artist => (
-                    <SelectItem key={artist} value={artist}>{artist}</SelectItem>
+                  <SelectItem value="all">Tất cả master</SelectItem>
+                  {masters.slice(1).map(master => (
+                    <SelectItem key={master} value={master}>{master}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -143,7 +143,7 @@ export default function Products() {
           </div>
 
           {/* Active filters */}
-          {(selectedCategory !== "all" || selectedArtist !== "all") && (
+          {(selectedCategory !== "all" || selectedMaster !== "all") && (
             <div className="flex gap-2 items-center">
               <span className="text-sm text-muted-foreground">Đang lọc:</span>
               {selectedCategory !== "all" && (
@@ -155,13 +155,13 @@ export default function Products() {
                   {selectedCategory} ✕
                 </Button>
               )}
-              {selectedArtist !== "all" && (
+              {selectedMaster !== "all" && (
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => { setSelectedArtist("all"); handleFilterChange(); }}
+                  onClick={() => { setSelectedMaster("all"); handleFilterChange(); }}
                 >
-                  {selectedArtist} ✕
+                  {selectedMaster} ✕
                 </Button>
               )}
             </div>
