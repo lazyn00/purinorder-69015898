@@ -41,7 +41,7 @@ export default function TrackOrder() {
     setIsSearching(true);
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('orders')
         .select('*')
         .or(`customer_phone.eq.${phone},delivery_phone.eq.${phone}`)
