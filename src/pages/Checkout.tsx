@@ -129,6 +129,40 @@ export default function Checkout() {
         throw insertError;
       }
 
+      // Sync to Google Sheets
+      try {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-order-to-sheets`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+          },
+          body: JSON.stringify({
+            order: {
+              id: orderNumber,
+              order_number: orderNumber,
+              created_at: new Date().toISOString(),
+              customer_fb: contactInfo.fb,
+              customer_email: contactInfo.email,
+              customer_phone: contactInfo.phone,
+              delivery_name: deliveryInfo.name,
+              delivery_phone: deliveryInfo.phone,
+              delivery_address: deliveryInfo.address,
+              items: cartItems,
+              total_price: totalPrice,
+              payment_method: selectedMethod,
+              payment_type: paymentType,
+              payment_proof_url: paymentProofUrl,
+              status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán'
+            }
+          })
+        }).catch(err => {
+          console.warn('Failed to sync to Google Sheets:', err);
+        });
+      } catch (syncError) {
+        console.warn('Google Sheets sync error:', syncError);
+      }
+
       setIsSubmitting(false);
       clearCart();
       
@@ -275,8 +309,25 @@ export default function Checkout() {
                 </Select>
               </div>
 
-              <div className="bg-muted/50 p-4 rounded-md space-y-1">
-                <p className="font-semibold text-lg">Chuyển khoản</p>
+              <div className="bg-muted/50 p-4 rounded-md space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-lg">Chuyển khoản</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const text = `${PAYMENT_INFO.accountName}\n${paymentDetails.label}: ${paymentDetails.number}`;
+                      navigator.clipboard.writeText(text);
+                      toast({
+                        title: "Đã copy",
+                        description: "Thông tin chuyển khoản đã được copy vào clipboard"
+                      });
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
                 <p>Chủ tài khoản: <span className="font-bold">{PAYMENT_INFO.accountName}</span></p>
                 <p>Ngân hàng/Ví: <span className="font-bold">{paymentDetails.label}</span></p>
                 <p>Số tài khoản: <span className="font-bold">{paymentDetails.number}</span></p>
