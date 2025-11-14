@@ -55,13 +55,13 @@ export default function Contact() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <a 
-                  href="https://facebook.com/purinorder" 
+                  href="https://facebook.com/puorderin" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 hover:text-primary transition-colors"
                 >
                   <Facebook className="h-5 w-5" />
-                  <span>Facebook: Purin Order</span>
+                  <span>Facebook: Purin Order - Muốn Gì Cũm Coá</span>
                 </a>
                 <a 
                   href="https://instagram.com/purin_order" 
@@ -73,7 +73,7 @@ export default function Contact() {
                   <span>Instagram: @purin_order</span>
                 </a>
                 <a 
-                  href="https://www.threads.com/@purin_order" 
+                  href="https://www.threads.com/@purin_order?hl=en" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 hover:text-primary transition-colors"
