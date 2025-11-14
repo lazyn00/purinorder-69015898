@@ -8,7 +8,8 @@ import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Filter, ArrowUpDown, Loader2, Search } from "lucide-react";
+import { Filter, ArrowUpDown, Search } from "lucide-react";
+import { LoadingPudding } from "@/components/LoadingPudding";
 
 export default function Products() {
   const { products, isLoading } = useCart();
@@ -45,7 +46,7 @@ export default function Products() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center h-[50vh]">
-          <Loader2 className="h-10 w-10 animate-spin" />
+          <LoadingPudding />
         </div>
       </Layout>
     );
