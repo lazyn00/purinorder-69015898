@@ -45,8 +45,20 @@ CREATE TABLE public.orders (
     payment_method text NOT NULL,
     payment_proof_url text,
     status text DEFAULT 'chưa thanh toán'::text,
-    deleted_at timestamp with time zone
+    deleted_at timestamp with time zone,
+    payment_type text DEFAULT 'full'::text NOT NULL,
+    order_number text,
+    second_payment_proof_url text,
+    CONSTRAINT check_payment_type CHECK ((payment_type = ANY (ARRAY['full'::text, 'deposit'::text])))
 );
+
+
+--
+-- Name: orders orders_order_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_order_number_key UNIQUE (order_number);
 
 
 --
