@@ -74,7 +74,7 @@ export default function Products() {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Sản phẩm Pre-order</h1>
+          <h1 className="text-4xl font-bold mb-4">Sản phẩm</h1>
           <p className="text-muted-foreground">
             Order sản phẩm K-pop, C-pop, Anime từ Taobao, PDD, Douyin, XHS, 1688
           </p>
