@@ -16,7 +16,7 @@ type Product = {
   status?: string;
   orderDeadline?: string;
   variants: ProductVariant[];
-  artist?: string; // Đã thêm
+  artist?: string; 
 };
 
 // === HÀM HELPER: ĐỊNH DẠNG NGÀY GIỜ (Giữ nguyên nhưng không sử dụng) ===
@@ -64,8 +64,6 @@ export function ProductCard({ product }: { product: Product }) {
   
   const minPriceValue = getMinPrice(product.variants, product.price);
   const priceDisplay = formatPrice(minPriceValue);
-
-  // Đã loại bỏ logic deadline
   
   return (
     <Link to={`/product/${product.id}`} className="group block">
@@ -79,7 +77,7 @@ export function ProductCard({ product }: { product: Product }) {
           />
           
           {/* CONTAINER CHO CÁC TAG - SỬA: Dùng flex và space-x-1 để xếp ngang */}
-          <div className="absolute top-1.5 left-1.5 flex items-start space-x-1">
+          <div className="absolute top-1.5 left-1.5 flex items-start **space-x-1**">
             {/* TAG STATUS */}
             {product.status && (
               <Badge 
