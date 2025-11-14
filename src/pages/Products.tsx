@@ -3,7 +3,6 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-// (Đọc từ Context)
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import {
@@ -17,8 +16,16 @@ import { Input } from "@/components/ui/input";
 import { Filter, ArrowUpDown, Search } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 
-// Số lượng sản phẩm hiển thị ban đầu cho mỗi mục
-// (1 hàng trên màn hình lớn nhất xl:grid-cols-6)
+// Imports cho Carousel
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+
+// Số lượng sản phẩm hiển thị trong carousel "lướt" ban đầu
 const INITIAL_PRODUCTS_PER_CATEGORY = 6;
 
 export default function Products() {
@@ -27,9 +34,8 @@ export default function Products() {
   const [selectedArtist, setSelectedArtist] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  
-  // Thêm state để quản lý việc "Xem thêm" cho từng danh mục
-  // Dùng Set để lưu tên các danh mục đang được mở rộng
+
+  // LẤY LẠI: State để quản lý việc "Xem thêm"
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const artists = [
@@ -60,7 +66,7 @@ export default function Products() {
       a.name.localeCompare(b.name)
     );
   }
-  
+
   // (Xử lý loading - Giữ nguyên)
   if (isLoading) {
     return (
@@ -75,15 +81,13 @@ export default function Products() {
   // Danh mục cần hiển thị
   const categoriesToDisplay = ["Outfit & Doll", "Merch", "Khác"];
 
-  // Hàm để bật/tắt "Xem thêm" cho một danh mục
+  // LẤY LẠI: Hàm để bật/tắt "Xem thêm"
   const toggleCategoryExpansion = (category: string) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev);
       if (newSet.has(category)) {
-        // Nếu đã có, xoá đi (Thu gọn)
         newSet.delete(category);
       } else {
-        // Nếu chưa có, thêm vào (Xem thêm)
         newSet.add(category);
       }
       return newSet;
@@ -93,7 +97,7 @@ export default function Products() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        {/* Header (Giữ nguyên) */}
+        {/* Header và Filters (Giữ nguyên) */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Sản phẩm</h1>
           <p className="text-muted-foreground">
@@ -101,7 +105,6 @@ export default function Products() {
           </p>
         </div>
 
-        {/* Search Bar (Giữ nguyên) */}
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -115,10 +118,8 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Filters and Sort (Giữ nguyên) */}
         <div className="mb-8 space-y-4">
           <div className="flex flex-wrap gap-4">
-            {/* Artist Filter */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select
@@ -140,8 +141,6 @@ export default function Products() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Sort */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={setSortBy}>
@@ -157,8 +156,6 @@ export default function Products() {
               </Select>
             </div>
           </div>
-
-          {/* Active filters (Giữ nguyên) */}
           {selectedArtist !== "all" && (
             <div className="flex gap-2 items-center">
               <span className="text-sm text-muted-foreground">Đang lọc:</span>
@@ -175,28 +172,24 @@ export default function Products() {
           )}
         </div>
 
-        {/* Cấu trúc render grid ĐÃ THAY ĐỔI */}
+        {/* Cấu trúc render KẾT HỢP */}
         {filteredProducts.length > 0 ? (
           <div className="space-y-12">
             {categoriesToDisplay.map((category) => {
-              // Lọc sản phẩm cho từng danh mục (giữ nguyên)
+              // Lọc sản phẩm cho từng danh mục
               const productsForCategory = filteredProducts.filter(
                 (p) => p.category === category
               );
 
-              // Ẩn cả mục nếu không có sản phẩm nào
               if (productsForCategory.length === 0) {
                 return null;
               }
 
-              // Logic mới: Xác định trạng thái expand và sản phẩm cần hiển thị
+              // Logic mới
               const isExpanded = expandedCategories.has(category);
               const showSeeMoreButton = productsForCategory.length > INITIAL_PRODUCTS_PER_CATEGORY;
-              
-              // Cắt mảng sản phẩm nếu chưa expand
-              const productsToShow = isExpanded
-                ? productsForCategory
-                : productsForCategory.slice(0, INITIAL_PRODUCTS_PER_CATEGORY);
+              // Chỉ lấy 6 sản phẩm đầu tiên cho carousel
+              const productsForCarousel = productsForCategory.slice(0, INITIAL_PRODUCTS_PER_CATEGORY);
 
               return (
                 <section key={category}>
@@ -205,17 +198,45 @@ export default function Products() {
                     {category}
                   </h2>
 
-                  {/* Lưới sản phẩm (chỉ render productsToShow) */}
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {productsToShow.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product as any}
-                      />
-                    ))}
-                  </div>
+                  {/* THAY ĐỔI LỚN: Render Carousel hoặc Grid tùy state */}
+                  {isExpanded ? (
+                    // 1. Chế độ MỞ RỘNG (Grid)
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                      {productsForCategory.map((product) => ( // Render TẤT CẢ
+                        <ProductCard
+                          key={product.id}
+                          product={product as any}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    // 2. Chế độ THU GỌN (Carousel)
+                    <Carousel
+                      opts={{
+                        align: "start",
+                        dragFree: true,
+                      }}
+                      className="w-full"
+                    >
+                      <CarouselContent className="-ml-2">
+                        {productsForCarousel.map((product) => ( // Chỉ render 6 SẢN PHẨM ĐẦU
+                          <CarouselItem
+                            key={product.id}
+                            className="pl-2 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6"
+                          >
+                            <ProductCard
+                              product={product as any}
+                            />
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="hidden sm:flex" />
+                      <CarouselNext className="hidden sm:flex" />
+                    </Carousel>
+                  )}
 
                   {/* Nút "Xem thêm" / "Thu gọn" */}
+                  {/* Chỉ hiển thị nút nếu tổng sản phẩm > số lượng ban đầu */}
                   {showSeeMoreButton && (
                     <div className="text-center mt-6">
                       <Button
@@ -224,7 +245,7 @@ export default function Products() {
                       >
                         {isExpanded
                           ? "Thu gọn"
-                          : `Xem thêm (${productsForCategory.length - INITIAL_PRODUCTS_PER_CATEGORY} sản phẩm)`}
+                          : `Xem tất cả (${productsForCategory.length} sản phẩm)`}
                       </Button>
                     </div>
                   )}
