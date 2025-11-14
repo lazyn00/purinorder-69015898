@@ -302,7 +302,7 @@ export default function Checkout() {
                     <SelectValue placeholder="Chọn ngân hàng/ví điện tử" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Vietcombank">Vietcombank</SelectItem>
+                    <SelectItem value="Ngân hàng">Ngân hàng</SelectItem>
                     <SelectItem value="Momo">Momo</SelectItem>
                     <SelectItem value="Zalopay">Zalopay</SelectItem>
                   </SelectContent>
