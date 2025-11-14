@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Loader2 } from "lucide-react";
+import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft } from "lucide-react";
+import { LoadingPudding } from "@/components/LoadingPudding";
 // (Đọc từ Context, không đọc từ file .ts)
-import { useCart, Product } from "@/contexts/CartContext"; 
+import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import {
   Carousel,
@@ -167,7 +168,7 @@ export default function ProductDetail() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center h-[50vh]">
-          <Loader2 className="h-10 w-10 animate-spin" />
+          <LoadingPudding />
         </div>
       </Layout>
     );
@@ -293,10 +294,6 @@ export default function ProductDetail() {
                 <div className="p-4 bg-muted/30 rounded-lg">
                   <h3 className="font-semibold mb-3">Thuộc tính</h3>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Danh mục:</span>
-                      <span className="font-medium">{product.category || 'Chưa phân loại'}</span>
-                    </div>
                     {product.master && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Artist:</span>
@@ -315,10 +312,6 @@ export default function ProductDetail() {
                         </span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Đã bao gồm phí:</span>
-                      <span className="font-medium">{product.feesIncluded ? 'Có' : 'Chưa'}</span>
-                    </div>
                   </div>
                 </div>
 
