@@ -11,7 +11,7 @@ export default function Policy() {
         </div>
 
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* 1. Chính sách đặt hàng (Giữ nguyên) */}
+          {/* 1. Chính sách đặt hàng */}
           <Card>
             <CardHeader>
               <CardTitle>1. Chính sách đặt hàng</CardTitle>
@@ -28,7 +28,7 @@ export default function Policy() {
             </CardContent>
           </Card>
 
-          {/* 2. Chính sách thanh toán (Giữ nguyên) */}
+          {/* 2. Chính sách thanh toán */}
           <Card>
             <CardHeader>
               <CardTitle>2. Chính sách thanh toán</CardTitle>
@@ -41,7 +41,7 @@ export default function Policy() {
             </CardContent>
           </Card>
 
-          {/* 3. Chính sách vận chuyển (Giữ nguyên) */}
+          {/* 3. Chính sách vận chuyển */}
           <Card>
             <CardHeader>
               <CardTitle>3. Chính sách vận chuyển</CardTitle>
@@ -55,7 +55,7 @@ export default function Policy() {
             </CardContent>
           </Card>
 
-          {/* 4. Chính sách đổi trả (Giữ nguyên) */}
+          {/* 4. Chính sách đổi trả */}
           <Card>
             <CardHeader>
               <CardTitle>4. Chính sách đổi trả</CardTitle>
@@ -69,7 +69,7 @@ export default function Policy() {
             </CardContent>
           </Card>
           
-          {/* 5. CHÍNH SÁCH HOÀN TIỀN (Giữ nguyên) */}
+          {/* 5. CHÍNH SÁCH HOÀN TIỀN */}
           <Card>
             <CardHeader>
               <CardTitle>5. Chính sách Hoàn tiền</CardTitle>
@@ -96,7 +96,7 @@ export default function Policy() {
             </CardContent>
           </Card>
           
-          {/* 6. Chính sách bảo mật (Giữ nguyên) */}
+          {/* 6. Chính sách bảo mật */}
           <Card>
             <CardHeader>
               <CardTitle>6. Chính sách bảo mật thông tin</CardTitle>
@@ -107,29 +107,6 @@ export default function Policy() {
                 <li>Thông tin chỉ được sử dụng cho mục đích xử lý đơn hàng và chăm sóc khách hàng.</li>
                 <li>Không chia sẻ thông tin khách hàng cho bên thứ ba.</li>
                 <li>Khách hàng có quyền yêu cầu chỉnh sửa hoặc xóa thông tin bất cứ lúc nào.</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* 7. LIÊN HỆ HỖ TRỢ (ĐÃ SỬA ĐỂ CÓ NHÃN NỔI BẬT) */}
-          <Card>
-            <CardHeader>
-              <CardTitle>7. Liên hệ hỗ trợ</CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
-              <ul className="list-disc list-inside space-y-3">
-                <li>
-                  <span className="font-medium text-foreground">📧 Email:</span> ppurin.order@gmail.com
-                </li>
-                <li>
-                  <span className="font-medium text-foreground">📱 Hotline:</span> 0393039035
-                </li>
-                <li>
-                  <span className="font-medium text-foreground">💬 Facebook:</span> fb.com/purinorder
-                </li>
-                <li>
-                  <span className="font-medium text-foreground">📸 Instagram:</span> @purin_order
-                </li>
               </ul>
             </CardContent>
           </Card>
