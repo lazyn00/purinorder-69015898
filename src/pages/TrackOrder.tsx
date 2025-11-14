@@ -27,6 +27,8 @@ interface Order {
   payment_type: string;
   payment_proof_url: string;
   second_payment_proof_url: string;
+  shipping_provider: string;
+  tracking_code: string;
 }
 
 const getStatusColor = (status: string) => {
@@ -246,6 +248,28 @@ export default function TrackOrder() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Shipping information section */}
+                  {order.shipping_provider && order.tracking_code && (
+                    <>
+                      <Separator />
+                      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+                        <h3 className="font-semibold mb-3 text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                          📦 Thông tin vận chuyển
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Nhà vận chuyển:</span>
+                            <span className="font-medium">{order.shipping_provider}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Mã vận đơn:</span>
+                            <span className="font-mono font-medium text-blue-600 dark:text-blue-400">{order.tracking_code}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Upload bill box - show for all orders without second payment proof */}
                   {!order.second_payment_proof_url && (

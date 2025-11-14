@@ -71,6 +71,8 @@ interface Order {
   payment_type: string;
   payment_proof_url: string;
   second_payment_proof_url: string;
+  shipping_provider: string;
+  tracking_code: string;
 }
 
 export default function Admin() {
@@ -79,6 +81,7 @@ export default function Admin() {
   const [password, setPassword] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [shippingInfo, setShippingInfo] = useState<{[key: string]: {provider: string, code: string}}>({});
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -144,16 +147,37 @@ export default function Admin() {
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    // If changing to "đang giao" and shipping info is missing, show error
+    if (newStatus === "đang giao") {
+      const shipping = shippingInfo[orderId];
+      if (!shipping || !shipping.provider || !shipping.code) {
+        toast({
+          title: "Thiếu thông tin",
+          description: "Vui lòng nhập nhà vận chuyển và mã vận đơn",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     try {
+      const updateData: any = { status: newStatus };
+      
+      // Add shipping info if status is "đang giao"
+      if (newStatus === "đang giao" && shippingInfo[orderId]) {
+        updateData.shipping_provider = shippingInfo[orderId].provider;
+        updateData.tracking_code = shippingInfo[orderId].code;
+      }
+
       const { error } = await (supabase as any)
         .from('orders')
-        .update({ status: newStatus })
+        .update(updateData)
         .eq('id', orderId);
 
       if (error) throw error;
 
       setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.id === orderId ? { ...order, ...updateData } : order
       ));
 
       toast({
@@ -340,31 +364,73 @@ export default function Admin() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-4">
-                    <div className="flex-1">
-                      <Select
-                        value={order.status}
-                        onValueChange={(value) => updateOrderStatus(order.id, value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ORDER_STATUSES.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {status}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  {order.shipping_provider && order.tracking_code && (
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-muted-foreground mb-2">Thông tin vận chuyển:</p>
+                      <div className="text-sm space-y-1">
+                        <p><span className="font-medium">Nhà vận chuyển:</span> {order.shipping_provider}</p>
+                        <p><span className="font-medium">Mã vận đơn:</span> {order.tracking_code}</p>
+                      </div>
                     </div>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => deleteOrder(order.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  )}
+
+                  <div className="space-y-3 pt-4">
+                    {(!order.shipping_provider || !order.tracking_code) && (
+                      <div className="space-y-2 p-3 bg-muted/50 rounded-md">
+                        <Label className="text-sm font-medium">Thông tin vận chuyển (bắt buộc khi chuyển sang "đang giao")</Label>
+                        <div className="space-y-2">
+                          <Input
+                            placeholder="Nhà vận chuyển (VD: Giao hàng nhanh, J&T...)"
+                            value={shippingInfo[order.id]?.provider || ""}
+                            onChange={(e) => setShippingInfo({
+                              ...shippingInfo,
+                              [order.id]: {
+                                ...shippingInfo[order.id],
+                                provider: e.target.value
+                              }
+                            })}
+                          />
+                          <Input
+                            placeholder="Mã vận đơn"
+                            value={shippingInfo[order.id]?.code || ""}
+                            onChange={(e) => setShippingInfo({
+                              ...shippingInfo,
+                              [order.id]: {
+                                ...shippingInfo[order.id],
+                                code: e.target.value
+                              }
+                            })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Select
+                          value={order.status}
+                          onValueChange={(value) => updateOrderStatus(order.id, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ORDER_STATUSES.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => deleteOrder(order.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
