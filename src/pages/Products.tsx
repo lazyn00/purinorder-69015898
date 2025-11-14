@@ -17,25 +17,28 @@ import { Input } from "@/components/ui/input";
 import { Filter, ArrowUpDown, Search } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 
+// Số lượng sản phẩm hiển thị ban đầu cho mỗi mục
+// (1 hàng trên màn hình lớn nhất xl:grid-cols-6)
+const INITIAL_PRODUCTS_PER_CATEGORY = 6;
+
 export default function Products() {
   const { products, isLoading } = useCart();
 
-  // Xoá: state cho selectedCategory và pagination
-  // const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedArtist, setSelectedArtist] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  // const [currentPage, setCurrentPage] = useState<number>(1);
-  // const productsPerPage = 24;
+  
+  // Thêm state để quản lý việc "Xem thêm" cho từng danh mục
+  // Dùng Set để lưu tên các danh mục đang được mở rộng
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const artists = [
     "all",
     ...Array.from(new Set(products.map((p) => p.artist).filter(Boolean))),
   ];
-  
-  // Thay đổi: Lọc chính chỉ còn theo artist và search
+
+  // Lọc chính (giữ nguyên)
   let filteredProducts = products.filter((product) => {
-    // Xoá: categoryMatch
     const artistMatch =
       selectedArtist === "all" || product.artist === selectedArtist;
     const searchMatch =
@@ -43,11 +46,11 @@ export default function Products() {
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return artistMatch && searchMatch;
   });
 
-  // Sort products (Giữ nguyên)
+  // Sort products (giữ nguyên)
   if (sortBy === "price-asc") {
     filteredProducts = [...filteredProducts].sort((a, b) => a.price - b.price);
   } else if (sortBy === "price-desc") {
@@ -57,17 +60,6 @@ export default function Products() {
       a.name.localeCompare(b.name)
     );
   }
-
-  // Xoá: Logic pagination
-  // const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-  // const startIndex = (currentPage - 1) * productsPerPage;
-  // const endIndex = startIndex + productsPerPage;
-  // const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-
-  // Xoá: handleFilterChange vì không còn phân trang
-  // const handleFilterChange = () => {
-  //   setCurrentPage(1);
-  // };
   
   // (Xử lý loading - Giữ nguyên)
   if (isLoading) {
@@ -80,12 +72,28 @@ export default function Products() {
     );
   }
 
-  // Thay đổi: Định nghĩa các danh mục bạn muốn hiển thị
+  // Danh mục cần hiển thị
   const categoriesToDisplay = ["Outfit & Doll", "Merch", "Khác"];
+
+  // Hàm để bật/tắt "Xem thêm" cho một danh mục
+  const toggleCategoryExpansion = (category: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        // Nếu đã có, xoá đi (Thu gọn)
+        newSet.delete(category);
+      } else {
+        // Nếu chưa có, thêm vào (Xem thêm)
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  };
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
+        {/* Header (Giữ nguyên) */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Sản phẩm</h1>
           <p className="text-muted-foreground">
@@ -107,16 +115,12 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Filters and Sort */}
+        {/* Filters and Sort (Giữ nguyên) */}
         <div className="mb-8 space-y-4">
           <div className="flex flex-wrap gap-4">
-            
-            {/* Xoá: Dropdown lọc Category */}
-
-            {/* Artist Filter (Giữ nguyên) */}
+            {/* Artist Filter */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              {/* Thay đổi: Bỏ handleFilterChange */}
               <Select
                 value={selectedArtist}
                 onValueChange={(value) => {
@@ -137,7 +141,7 @@ export default function Products() {
               </Select>
             </div>
 
-            {/* Sort (Giữ nguyên) */}
+            {/* Sort */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={setSortBy}>
@@ -154,8 +158,7 @@ export default function Products() {
             </div>
           </div>
 
-          {/* Active filters */}
-          {/* Thay đổi: Chỉ hiển thị filter của Artist */}
+          {/* Active filters (Giữ nguyên) */}
           {selectedArtist !== "all" && (
             <div className="flex gap-2 items-center">
               <span className="text-sm text-muted-foreground">Đang lọc:</span>
@@ -172,36 +175,59 @@ export default function Products() {
           )}
         </div>
 
-        {/* Thay đổi LỚN: Cấu trúc render grid */}
+        {/* Cấu trúc render grid ĐÃ THAY ĐỔI */}
         {filteredProducts.length > 0 ? (
           <div className="space-y-12">
             {categoriesToDisplay.map((category) => {
-              // Lọc sản phẩm cho từng danh mục từ danh sách đã lọc (theo artist/search) và đã sort
+              // Lọc sản phẩm cho từng danh mục (giữ nguyên)
               const productsForCategory = filteredProducts.filter(
                 (p) => p.category === category
               );
 
-              // Chỉ hiển thị mục nếu có sản phẩm
+              // Ẩn cả mục nếu không có sản phẩm nào
               if (productsForCategory.length === 0) {
                 return null;
               }
 
+              // Logic mới: Xác định trạng thái expand và sản phẩm cần hiển thị
+              const isExpanded = expandedCategories.has(category);
+              const showSeeMoreButton = productsForCategory.length > INITIAL_PRODUCTS_PER_CATEGORY;
+              
+              // Cắt mảng sản phẩm nếu chưa expand
+              const productsToShow = isExpanded
+                ? productsForCategory
+                : productsForCategory.slice(0, INITIAL_PRODUCTS_PER_CATEGORY);
+
               return (
                 <section key={category}>
-                  {/* Tiêu đề cho từng mục */}
+                  {/* Tiêu đề mục (Giữ nguyên) */}
                   <h2 className="text-2xl font-bold mb-6 pb-2 border-b">
                     {category}
                   </h2>
-                  
-                  {/* Lưới sản phẩm cho mục này */}
+
+                  {/* Lưới sản phẩm (chỉ render productsToShow) */}
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {productsForCategory.map((product) => (
+                    {productsToShow.map((product) => (
                       <ProductCard
                         key={product.id}
                         product={product as any}
                       />
                     ))}
                   </div>
+
+                  {/* Nút "Xem thêm" / "Thu gọn" */}
+                  {showSeeMoreButton && (
+                    <div className="text-center mt-6">
+                      <Button
+                        variant="outline"
+                        onClick={() => toggleCategoryExpansion(category)}
+                      >
+                        {isExpanded
+                          ? "Thu gọn"
+                          : `Xem thêm (${productsForCategory.length - INITIAL_PRODUCTS_PER_CATEGORY} sản phẩm)`}
+                      </Button>
+                    </div>
+                  )}
                 </section>
               );
             })}
@@ -211,8 +237,6 @@ export default function Products() {
             <p className="text-muted-foreground">Không tìm thấy sản phẩm nào</p>
           </div>
         )}
-
-        {/* Xoá: Nút điều khiển pagination */}
       </div>
     </Layout>
   );
