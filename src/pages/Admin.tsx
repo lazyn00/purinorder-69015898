@@ -17,6 +17,7 @@ const ADMIN_PASSWORD = "Nhuy7890";
 const ORDER_STATUSES = [
   "chưa thanh toán",
   "đã thanh toán",
+  "đã cọc",
   "Purin đã đặt hàng",
   "Đang sản xuất",
   "đang vận chuyển",
@@ -32,6 +33,8 @@ const getStatusColor = (status: string) => {
       return "bg-red-100 text-red-800 border-red-200";
     case "đã thanh toán":
       return "bg-green-100 text-green-800 border-green-200";
+    case "đã cọc":
+      return "bg-amber-100 text-amber-800 border-amber-200";
     case "Purin đã đặt hàng":
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "Đang sản xuất":
@@ -53,6 +56,7 @@ const getStatusColor = (status: string) => {
 
 interface Order {
   id: string;
+  order_number: string;
   created_at: string;
   customer_phone: string;
   customer_email: string;
@@ -64,7 +68,9 @@ interface Order {
   total_price: number;
   status: string;
   payment_method: string;
+  payment_type: string;
   payment_proof_url: string;
+  second_payment_proof_url: string;
 }
 
 export default function Admin() {
@@ -265,7 +271,7 @@ export default function Admin() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">#{order.id.slice(0, 8)}</CardTitle>
+                      <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
                         {new Date(order.created_at).toLocaleString('vi-VN')}
                       </p>
@@ -295,10 +301,21 @@ export default function Admin() {
                     <div>
                       <p className="text-muted-foreground">Tổng tiền</p>
                       <p className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</p>
+                      <p className="text-xs text-muted-foreground">{order.payment_type === 'deposit' ? 'Đặt cọc 50%' : 'Thanh toán 100%'}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Thanh toán</p>
                       <p className="font-medium">{order.payment_method}</p>
+                      {order.payment_proof_url && (
+                        <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                          Xem bill 1
+                        </a>
+                      )}
+                      {order.second_payment_proof_url && (
+                        <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline block">
+                          Xem bill 2
+                        </a>
+                      )}
                     </div>
                   </div>
 
