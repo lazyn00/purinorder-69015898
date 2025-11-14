@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { Input } from "@/components/ui/input";
-// THAY ĐỔI DÒNG NÀY: Thêm ArrowUpDown và loại bỏ ArrowUpWideNarrow, ArrowDownWideNarrow nếu không dùng
 import { Search, ChevronRight, ArrowLeft, SlidersHorizontal, ArrowUpDown } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -157,10 +156,10 @@ export default function Products() {
           </div>
         )}
 
-        {/* Search Bar and Filters - ĐÃ CHUYỂN RA NGOÀI ĐIỀU KIỆN */}
+        {/* Search Bar and Filters - ĐÃ TỐI ƯU CHO ĐIỆN THOẠI */}
         <div className="flex flex-col md:flex-row gap-4 mb-8 items-center max-w-4xl mx-auto">
           {/* Search Input */}
-          <div className="relative flex-grow">
+          <div className="relative flex-grow w-full md:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
@@ -172,16 +171,18 @@ export default function Products() {
           </div>
 
           {/* Filters and Sort */}
-          <div className="flex items-center gap-4 w-full md:w-auto">
+          {/* Thay đổi: Dùng flex-nowrap để giữ trên 1 hàng trên mọi kích thước */}
+          {/* Thay đổi: Thu nhỏ SelectTrigger trên mobile (w-[110px] sm:w-[180px]) */}
+          <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto flex-nowrap justify-between sm:justify-start">
             {/* Artist Filter */}
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+              <SlidersHorizontal className="h-4 w-4 text-muted-foreground hidden sm:block" />
               <Select value={selectedArtist} onValueChange={setSelectedArtist}>
-                <SelectTrigger className="w-[150px] sm:w-[180px]">
-                  <SelectValue placeholder="Tất cả nhóm nhạc" />
+                <SelectTrigger className="w-[110px] sm:w-[180px] h-9">
+                  <SelectValue placeholder="Thuộc tính" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả nhóm nhạc</SelectItem>
+                  <SelectItem value="all">Tất cả thuộc tính/ artist</SelectItem>
                   {uniqueArtists.map((artist) => (
                     <SelectItem key={artist} value={artist}>
                       {artist}
@@ -192,16 +193,16 @@ export default function Products() {
             </div>
 
             {/* Sort by Price */}
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="h-4 w-4 text-muted-foreground" /> {/* Luôn hiển thị icon này */}
+            <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[150px] sm:w-[180px]">
+                <SelectTrigger className="w-[110px] sm:w-[180px] h-9">
                   <SelectValue placeholder="Mặc định" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="default">Mặc định</SelectItem>
-                  <SelectItem value="price-asc">Giá thấp đến cao</SelectItem>
-                  <SelectItem value="price-desc">Giá cao đến thấp</SelectItem>
+                  <SelectItem value="price-asc">Giá thấp-cao</SelectItem>
+                  <SelectItem value="price-desc">Giá cao-thấp</SelectItem>
                 </SelectContent>
               </Select>
             </div>
