@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { OrderCountdown } from "@/components/OrderCountdown";
+// (Đọc từ Context, không đọc từ file .ts)
 import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCard } from "@/components/ProductCard";
@@ -24,8 +25,8 @@ import {
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  // SỬA: Lấy thêm getVariantStock từ context
-  const { addToCart, products, isLoading, getVariantStock } = useCart(); 
+  // (Đọc products và isLoading từ context)
+  const { addToCart, products, isLoading } = useCart();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -37,9 +38,6 @@ export default function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
   
-  // BỔ SUNG: State cho số lượng tồn kho của biến thể hiện tại
-  const [currentStock, setCurrentStock] = useState<number | undefined>(undefined); 
-  
   // useEffect để tìm sản phẩm khi 'products' tải xong
   useEffect(() => {
     if (!isLoading && products.length > 0) {
@@ -49,7 +47,7 @@ export default function ProductDetail() {
     }
   }, [isLoading, products, id]);
 
-  // SỬA: useEffect để cập nhật state, bao gồm currentStock
+  // useEffect để cập nhật state khi 'product' được tìm thấy
   useEffect(() => {
     if (product) {
       setCurrentPrice(product.price);
@@ -59,11 +57,8 @@ export default function ProductDetail() {
         const deadline = new Date(product.orderDeadline);
         if (deadline < new Date()) setIsExpired(true);
       } else if (product.status === "Sẵn") {
-          setIsExpired(false);
+         setIsExpired(false);
       }
-      
-      // BỔ SUNG: Logic tìm tồn kho ban đầu
-      const hasVariants = product.variants && product.variants.length > 0;
       
       if (product.optionGroups && product.optionGroups.length > 0) {
         const initialOptions = product.optionGroups.reduce((acc, group) => {
@@ -71,33 +66,23 @@ export default function ProductDetail() {
             return acc;
         }, {} as { [key: string]: string });
         setSelectedOptions(initialOptions);
-        setCurrentStock(undefined); // Reset stock khi có nhiều option
-      }
-      else if (hasVariants && product.variants.length === 1) {
+      } 
+      else if (product.variants && product.variants.length === 1) {
           const firstVariant = product.variants[0];
           setSelectedVariant(firstVariant.name);
           setCurrentPrice(firstVariant.price);
-          setCurrentStock(firstVariant.stock); // Lấy stock cho 1 variant duy nhất
-          if (firstVariant.stock !== undefined && quantity > firstVariant.stock) {
-             setQuantity(firstVariant.stock > 0 ? firstVariant.stock : 1);
-          }
-      } else if (!hasVariants) {
-        // Sản phẩm không có variants, stock mặc định là undefined (vô hạn)
-        setCurrentStock(undefined);
-      } else {
-        // Có variants nhưng chưa chọn (ví dụ: > 1 variant, chưa có optionGroup)
-        setCurrentStock(undefined);
       }
     }
   }, [product]);
 
-
-  // === (SỬA 2: QUAY LẠI LOGIC GỐC "-" và cập nhật Stock/Price) ===
+  // === (SỬA 2: QUAY LẠI LOGIC GỐC "-") ===
+  // useEffect xử lý 2+ phân loại
   useEffect(() => {
     if (product?.optionGroups && product.optionGroups.length > 0) {
       const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
 
       if (allOptionsSelected) {
+        // Quay lại logic gốc, dùng dấu "-"
         const constructedName = product.optionGroups
             .map(group => selectedOptions[group.name])
             .join("-");
@@ -107,12 +92,7 @@ export default function ProductDetail() {
         if (variant) {
           setCurrentPrice(variant.price);
           setSelectedVariant(variant.name);
-          setCurrentStock(variant.stock); // Cập nhật stock
           
-          if (variant.stock !== undefined && quantity > variant.stock) {
-              setQuantity(variant.stock > 0 ? variant.stock : 1);
-          }
-
           if (carouselApi && product.variantImageMap) {
             const imageIndex = product.variantImageMap[variant.name];
             if (imageIndex !== undefined) {
@@ -122,23 +102,26 @@ export default function ProductDetail() {
         } else {
           setSelectedVariant("");
           setCurrentPrice(product.price);
-          setCurrentStock(undefined);
           console.warn("Tổ hợp không hợp lệ:", constructedName);
         }
-      } else {
-        // Nếu chưa chọn đủ option
-        setCurrentStock(undefined); 
-        setSelectedVariant("");
-        setCurrentPrice(product.price);
       }
     }
-  }, [selectedOptions, product, carouselApi, quantity]);
+  }, [selectedOptions, product, carouselApi]);
 
   // useEffect xử lý cuộn ảnh cho 1 phân loại đơn giản
   useEffect(() => {
+    console.log("Debug carousel scroll:", {
+      hasCarouselApi: !!carouselApi,
+      hasVariantImageMap: !!product?.variantImageMap,
+      selectedVariant,
+      variantImageMap: product?.variantImageMap,
+    });
+    
     if (carouselApi && product?.variantImageMap && selectedVariant) {
       const imageIndex = product.variantImageMap[selectedVariant];
+      console.log(`Image index for ${selectedVariant}:`, imageIndex);
       if (imageIndex !== undefined) {
+        console.log(`Scrolling to image ${imageIndex} for variant: ${selectedVariant}`);
         carouselApi.scrollTo(imageIndex);
       }
     }
@@ -157,29 +140,6 @@ export default function ProductDetail() {
       });
       return;
     }
-    
-    // BỔ SUNG: Kiểm tra tồn kho
-    if (currentStock !== undefined && currentStock === 0) {
-        toast({
-            title: "Sản phẩm đã hết hàng",
-            description: "Phân loại bạn chọn hiện không còn hàng.",
-            variant: "destructive"
-        });
-        return;
-    }
-    
-    // Kiểm tra số lượng mua so với tồn kho
-    const stockLimit = currentStock !== undefined ? currentStock : Infinity;
-    if (quantity > stockLimit) {
-        toast({
-            title: "Vượt quá số lượng tồn kho",
-            description: `Chỉ còn ${stockLimit} sản phẩm cho phân loại này.`,
-            variant: "destructive"
-        });
-        setQuantity(stockLimit);
-        return;
-    }
-
 
     const correctPrice = currentPrice; 
 
@@ -189,8 +149,7 @@ export default function ProductDetail() {
       priceDisplay: `${correctPrice.toLocaleString('vi-VN')}đ`
     };
     
-    // SỬA: Thêm currentStock vào hàm addToCart
-    addToCart(productToAdd, quantity, selectedVariant, currentStock);
+    addToCart(productToAdd, quantity, selectedVariant);
 
     toast({
       title: "Đã thêm vào giỏ hàng!",
@@ -205,18 +164,12 @@ export default function ProductDetail() {
     }));
   };
 
-  // SỬA: Cập nhật currentStock khi handleVariantChange được gọi
+  // === (SỬA 3: CUỘN ẢNH 1 PHÂN LOẠI) ===
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
     const variant = product?.variants.find(v => v.name === variantName);
     if (variant) {
       setCurrentPrice(variant.price);
-      setCurrentStock(variant.stock); // Cập nhật stock
-      
-      // Giới hạn quantity nếu cần
-      if (variant.stock !== undefined && quantity > variant.stock) {
-        setQuantity(variant.stock > 0 ? variant.stock : 1);
-      }
     }
     
     // Thêm logic cuộn ảnh
@@ -228,13 +181,7 @@ export default function ProductDetail() {
     }
   };
   
-  // SỬA: Giới hạn quantity khi tăng theo currentStock
-  const incrementQuantity = () => {
-    setQuantity(prev => {
-      const max = currentStock !== undefined ? currentStock : Infinity;
-      return Math.min(prev + 1, max);
-    });
-  };
+  const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
   // (Xử lý loading)
@@ -338,18 +285,6 @@ export default function ProductDetail() {
               <p className="text-4xl font-bold text-primary">
                 {currentPrice.toLocaleString('vi-VN')}đ
               </p>
-              
-              {/* BỔ SUNG: HIỂN THỊ TỒN KHO */}
-              {(product.variants && product.variants.length > 0) && (
-                <p className={`text-lg font-semibold mt-2 ${currentStock === 0 ? 'text-red-500' : 'text-green-600'}`}>
-                    {currentStock === undefined && selectedVariant === ""
-                        ? "Vui lòng chọn phân loại" 
-                        : currentStock === 0 
-                            ? "Hết hàng!" 
-                            : `Kho: ${currentStock}`}
-                </p>
-              )}
-              
               <p className="text-sm text-muted-foreground mt-2">
                 *{product.feesIncluded ? 'Đã full phí dự kiến' : 'Chưa full phí'}
               </p>
@@ -434,13 +369,7 @@ export default function ProductDetail() {
                 Số lượng
               </Label>
               <div className="flex items-center gap-4 mt-2">
-                <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={decrementQuantity} 
-                    // Vô hiệu hóa nếu quantity <= 1 HOẶC hết hàng
-                    disabled={quantity <= 1 || currentStock === 0}
-                >
+                <Button variant="outline" size="icon" onClick={decrementQuantity} disabled={quantity <= 1}>
                   <Minus className="h-4 w-4" />
                 </Button>
                 <Input
@@ -448,21 +377,10 @@ export default function ProductDetail() {
                   type="number"
                   min="1"
                   value={quantity}
-                  // SỬA: Giới hạn theo currentStock
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value) || 1;
-                    const max = currentStock !== undefined ? currentStock : Infinity;
-                    setQuantity(Math.max(1, Math.min(value, max)));
-                  }}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   className="w-20 text-center"
                 />
-                <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={incrementQuantity}
-                    // Vô hiệu hóa nếu hết hàng HOẶC đã đạt giới hạn tồn kho
-                    disabled={currentStock !== undefined && (currentStock === 0 || quantity >= currentStock)}
-                >
+                <Button variant="outline" size="icon" onClick={incrementQuantity}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -473,17 +391,10 @@ export default function ProductDetail() {
                 onClick={handleAddToCart}
                 className="w-full bg-gradient-primary gap-2"
                 size="lg"
-                // SỬA: Vô hiệu hóa nếu hết hạn order HOẶC hết hàng
-                disabled={isExpired || (currentStock !== undefined && currentStock === 0)}
+                disabled={isExpired}
               >
-                {isExpired || currentStock === 0 
-                    ? <CalendarOff className="h-5 w-4" /> 
-                    : <ShoppingCart className="h-5 w-5" />}
-                {isExpired 
-                    ? "Đã hết hạn order" 
-                    : currentStock === 0 
-                        ? "Hết hàng"
-                        : "Thêm vào giỏ hàng"}
+                {isExpired ? <CalendarOff className="h-5 w-4" /> : <ShoppingCart className="h-5 w-5" />}
+                {isExpired ? "Đã hết hạn order" : "Thêm vào giỏ hàng"}
               </Button>
               <Button 
                 onClick={() => navigate("/products")}
