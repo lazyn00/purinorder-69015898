@@ -49,6 +49,8 @@ CREATE TABLE public.orders (
     payment_type text DEFAULT 'full'::text NOT NULL,
     order_number text,
     second_payment_proof_url text,
+    shipping_provider text,
+    tracking_code text,
     CONSTRAINT check_payment_type CHECK ((payment_type = ANY (ARRAY['full'::text, 'deposit'::text])))
 );
 
