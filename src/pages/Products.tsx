@@ -1,64 +1,222 @@
-// ... (các đoạn import và logic khác giữ nguyên)
+// @/pages/Products.tsx
+
+import { Layout } from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+// (Đọc từ Context)
+import { useCart } from "@/contexts/CartContext"; 
+import { ProductCard } from "@/components/ProductCard"; 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Filter, ArrowUpDown, Search } from "lucide-react";
+import { LoadingPudding } from "@/components/LoadingPudding";
+
+export default function Products() {
+  const { products, isLoading } = useCart();
+  
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  // Đã ĐỔI TÊN: selectedMaster -> selectedArtist
+  const [selectedArtist, setSelectedArtist] = useState<string>("all"); 
+  const [sortBy, setSortBy] = useState<string>("default");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const productsPerPage = 24;
+
+  // Đã ĐỔI TÊN và LỌC: master -> artist
+  const artists = ["all", ...Array.from(new Set(products.map(p => p.artist).filter(Boolean)))];
+
+  // Filter products
+  let filteredProducts = products.filter(product => {
+    const categoryMatch = selectedCategory === "all" || product.category === selectedCategory;
+    // Đã ĐỔI TÊN và SỬA LOGIC LỌC: masterMatch -> artistMatch
+    const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
+    const searchMatch = searchQuery === "" || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // Đã SỬA: master -> artist trong tìm kiếm
+      product.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.toLowerCase().includes(searchQuery.toLowerCase());
+    // Đã SỬA: masterMatch -> artistMatch
+    return categoryMatch && artistMatch && searchMatch;
+  });
+
+  // Sort products
+  if (sortBy === "price-asc") {
+    filteredProducts = [...filteredProducts].sort((a, b) => a.price - b.price);
+  } else if (sortBy === "price-desc") {
+    filteredProducts = [...filteredProducts].sort((a, b) => b.price - a.price);
+  } else if (sortBy === "name") {
+    filteredProducts = [...filteredProducts].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const startIndex = (currentPage - 1) * productsPerPage;
+  const endIndex = startIndex + productsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = () => {
+    setCurrentPage(1);
+  };
+
+  // (Xử lý loading)
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center items-center h-[50vh]">
+          <LoadingPudding />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        {/* ... (phần tiêu đề giữ nguyên) */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">Sản phẩm</h1>
+          <p className="text-muted-foreground">
+            Order sản phẩm K-pop, C-pop, Anime từ Taobao, PDD, Douyin, XHS, 1688
+          </p>
+        </div>
 
-        {/* --- KHỐI THANH TÌM KIẾM, BỘ LỌC VÀ SẮP XẾP --- */}
-        <div className="flex flex-col gap-3 mb-8 max-w-4xl mx-auto">
-          {/* HÀNG 1: Thanh tìm kiếm - ĐÃ TINH GIẢN */}
-          <div className="relative flex-grow w-full">
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              // Đổi placeholder thành "Tìm kiếm..." ngắn gọn hơn
-              placeholder="Tìm kiếm..." 
+              placeholder="Tìm kiếm sản phẩm, artist, danh mục..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-full"
+              className="pl-10"
             />
           </div>
+        </div>
 
-          {/* HÀNG 2: Filters and Sort (Giữ nguyên như phiên bản tối ưu mobile) */}
-          <div className="flex items-center justify-between gap-1 w-full flex-nowrap overflow-x-auto pb-1"> 
+        {/* Filters and Sort */}
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-wrap gap-4">
             
-            {/* Artist Filter */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Select value={selectedArtist} onValueChange={setSelectedArtist}>
-                <SelectTrigger className="w-[110px] sm:w-[150px] h-9 text-xs">
-                  <SelectValue placeholder="Thuộc tính" />
+            {/* Category Dropdown */}
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedCategory} onValueChange={(value) => { setSelectedCategory(value); handleFilterChange(); }}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Danh mục" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả thuộc tính</SelectItem>
-                  {uniqueArtists.map((artist) => (
-                    <SelectItem key={artist} value={artist}>
-                      {artist}
-                    </SelectItem>
+                  <SelectItem value="all">Tất cả danh mục</SelectItem>
+                  <SelectItem value="Outfit & Doll">Outfit & Doll</SelectItem>
+                  <SelectItem value="Merch">Merch</SelectItem>
+                  <SelectItem value="Khác">Khác</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Artist Filter (Đã SỬA từ Master Filter) */}
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              {/* Đã SỬA: selectedMaster -> selectedArtist */}
+              <Select value={selectedArtist} onValueChange={(value) => { setSelectedArtist(value); handleFilterChange(); }}>
+                <SelectTrigger className="w-full">
+                  {/* Đã SỬA: Master -> Artist */}
+                  <SelectValue placeholder="Artist" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Đã SỬA: master -> artist */}
+                  <SelectItem value="all">Tất cả Artist</SelectItem>
+                  {/* Đã SỬA: masters -> artists, master -> artist */}
+                  {artists.slice(1).map(artist => (
+                    <SelectItem key={artist} value={artist}>{artist}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
-            {/* Sort by Price */}
-            <div className="flex items-center gap-1 flex-shrink-0">
+
+            {/* Sort */}
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[110px] sm:w-[150px] h-9 text-xs">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sắp xếp" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="default">Mặc định</SelectItem>
-                  <SelectItem value="price-asc">Giá thấp-cao</SelectItem>
-                  <SelectItem value="price-desc">Giá cao-thấp</SelectItem>
+                  <SelectItem value="price-asc">Giá: Thấp đến cao</SelectItem>
+                  <SelectItem value="price-desc">Giá: Cao đến thấp</SelectItem>
+                  <SelectItem value="name">Tên A-Z</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-        </div>
-        {/* ---------------------------------------------------------------- */}
 
-        {/* ... (phần hiển thị sản phẩm giữ nguyên) */}
+          {/* Active filters */}
+          {/* Đã SỬA: selectedMaster -> selectedArtist */}
+          {(selectedCategory !== "all" || selectedArtist !== "all") && (
+            <div className="flex gap-2 items-center">
+              <span className="text-sm text-muted-foreground">Đang lọc:</span>
+              {selectedCategory !== "all" && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => { setSelectedCategory("all"); handleFilterChange(); }}
+                >
+                  {selectedCategory} ✕
+                </Button>
+              )}
+              {/* Đã SỬA: selectedMaster -> selectedArtist */}
+              {selectedArtist !== "all" && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => { setSelectedArtist("all"); handleFilterChange(); }}
+                >
+                  {/* Đã SỬA: selectedMaster -> selectedArtist */}
+                  {selectedArtist} ✕
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Products Grid */}
+        {paginatedProducts.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {paginatedProducts.map((product) => (
+                <ProductCard key={product.id} product={product as any} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Trước
+                </Button>
+                <span className="text-sm text-muted-foreground px-4">
+                  Trang {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Sau
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Không tìm thấy sản phẩm nào</p>
+          </div>
+        )}
       </div>
     </Layout>
   );
