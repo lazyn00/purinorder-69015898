@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
+import { OrderCountdown } from "@/components/OrderCountdown";
 // (Đọc từ Context, không đọc từ file .ts)
 import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -268,19 +269,15 @@ export default function ProductDetail() {
               <p className="text-sm text-muted-foreground mt-2">
                 *{product.feesIncluded ? 'Đã full phí dự kiến' : 'Chưa full phí'}
               </p>
-              
-              {/* === (SỬA 4: HẠN ORDER) === */}
-              {product.orderDeadline && !isExpired && (
-                 <p className="text-sm text-amber-600 mt-2">
-                   Hạn order: {new Date(product.orderDeadline).toLocaleString('vi-VN')}
-                 </p>
-              )}
-              {isExpired && (
-                 <p className="text-sm text-destructive mt-2">
-                   Đã hết hạn order
-                 </p>
-              )}
             </div>
+
+            {/* Countdown Timer */}
+            {product.orderDeadline && (
+              <OrderCountdown 
+                deadline={product.orderDeadline} 
+                onExpired={() => setIsExpired(true)} 
+              />
+            )}
             
             
             {product.description && product.description.length > 0 && (
