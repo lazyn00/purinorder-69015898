@@ -134,8 +134,7 @@ export default function TrackOrder() {
       const { error: updateError } = await (supabase as any)
         .from('orders')
         .update({ 
-          second_payment_proof_url: publicUrl,
-          status: 'đã thanh toán'
+          second_payment_proof_url: publicUrl
         })
         .eq('id', orderId);
 
@@ -143,13 +142,13 @@ export default function TrackOrder() {
 
       setOrders(orders.map(order => 
         order.id === orderId 
-          ? { ...order, second_payment_proof_url: publicUrl, status: 'đã thanh toán' } 
+          ? { ...order, second_payment_proof_url: publicUrl } 
           : order
       ));
 
       toast({
         title: "Thành công",
-        description: "Đã upload bill thanh toán thành công!",
+        description: "Đã upload bill bổ sung thành công!",
       });
     } catch (error) {
       console.error(error);
@@ -248,15 +247,20 @@ export default function TrackOrder() {
                     </div>
                   </div>
 
-                  {order.payment_type === 'deposit' && order.status === 'đã cọc' && !order.second_payment_proof_url && (
+                  {/* Upload bill box - show for all orders without second payment proof */}
+                  {!order.second_payment_proof_url && (
                     <>
                       <Separator />
                       <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
                         <Label className="font-semibold text-lg mb-3 block">
-                          Thanh toán 50% còn lại
+                          {order.payment_type === 'deposit' && order.status === 'đã cọc' 
+                            ? 'Thanh toán 50% còn lại' 
+                            : 'Đăng bill bổ sung'}
                         </Label>
                         <p className="text-sm text-muted-foreground mb-4">
-                          Vui lòng thanh toán {(order.total_price * 0.5).toLocaleString('vi-VN')}đ và đăng bill chuyển khoản
+                          {order.payment_type === 'deposit' && order.status === 'đã cọc'
+                            ? `Vui lòng thanh toán ${(order.total_price * 0.5).toLocaleString('vi-VN')}đ và đăng bill chuyển khoản`
+                            : 'Dùng để đăng bill hoàn cọc, phụ thu hoặc thanh toán bổ sung'}
                         </p>
                         <Input
                           type="file"
@@ -280,9 +284,16 @@ export default function TrackOrder() {
                   )}
 
                   {order.second_payment_proof_url && (
-                    <div className="text-sm text-green-600 flex items-center gap-2">
-                      <Upload className="h-4 w-4" />
-                      Đã upload bill thanh toán đầy đủ
+                    <div className="text-sm">
+                      <a 
+                        href={order.second_payment_proof_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-green-600 hover:underline flex items-center gap-2"
+                      >
+                        <Upload className="h-4 w-4" />
+                        Xem bill thanh toán bổ sung
+                      </a>
                     </div>
                   )}
                 </CardContent>

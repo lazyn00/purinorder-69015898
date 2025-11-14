@@ -289,12 +289,38 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {product.master && (
-                  <div>
-                    <h3 className="font-semibold mb-1">Master</h3>
-                    <p className="text-muted-foreground">{product.master}</p>
+                {/* Thuộc tính/Properties Section */}
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <h3 className="font-semibold mb-3">Thuộc tính</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Danh mục:</span>
+                      <span className="font-medium">{product.category || 'Chưa phân loại'}</span>
+                    </div>
+                    {product.master && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Artist:</span>
+                        <span className="font-medium">{product.master}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Trạng thái:</span>
+                      <span className="font-medium">{product.status || 'N/A'}</span>
+                    </div>
+                    {product.orderDeadline && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Hạn order:</span>
+                        <span className="font-medium text-red-600">
+                          {new Date(product.orderDeadline).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Đã bao gồm phí:</span>
+                      <span className="font-medium">{product.feesIncluded ? 'Có' : 'Chưa'}</span>
+                    </div>
                   </div>
-                )}
+                </div>
 
               </div>
             ) : null}

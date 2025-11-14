@@ -14,6 +14,7 @@ type Product = {
   price: number;
   images: string[];
   status?: string;
+  orderDeadline?: string;
   variants: ProductVariant[];
 };
 
@@ -55,6 +56,9 @@ export function ProductCard({ product }: { product: Product }) {
   // 2. Chuyển giá trị đó sang định dạng "đ"
   const priceDisplay = formatPrice(minPriceValue);
 
+  // 3. Check if order deadline exists and is upcoming
+  const hasDeadline = product.orderDeadline && new Date(product.orderDeadline) > new Date();
+
   return (
     <Link to={`/product/${product.id}`} className="group block">
       <div className="overflow-hidden rounded-sm bg-card shadow-sm transition-shadow hover:shadow-md">
@@ -80,6 +84,13 @@ export function ProductCard({ product }: { product: Product }) {
           <h3 className="h-10 text-sm font-semibold line-clamp-2">
             {product.name}
           </h3>
+          
+          {/* Order deadline - hiển thị nổi bật */}
+          {hasDeadline && (
+            <p className="mt-1 text-xs font-semibold text-red-600 animate-pulse">
+              ⏰ Hạn order: {new Date(product.orderDeadline!).toLocaleDateString('vi-VN')}
+            </p>
+          )}
           
           {/* (Hiển thị giá rẻ nhất đã định dạng) */}
           <p className="mt-1 truncate text-sm font-bold text-primary md:text-base">

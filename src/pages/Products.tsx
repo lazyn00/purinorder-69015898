@@ -7,7 +7,8 @@ import { useState } from "react";
 import { useCart } from "@/contexts/CartContext"; 
 import { ProductCard } from "@/components/ProductCard"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, ArrowUpDown, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Filter, ArrowUpDown, Loader2, Search } from "lucide-react";
 
 export default function Products() {
   const { products, isLoading } = useCart();
@@ -15,6 +16,7 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedArtist, setSelectedArtist] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const artists = ["all", ...Array.from(new Set(products.map(p => p.artist)))];
 
@@ -22,7 +24,11 @@ export default function Products() {
   let filteredProducts = products.filter(product => {
     const categoryMatch = selectedCategory === "all" || product.category === selectedCategory;
     const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
-    return categoryMatch && artistMatch;
+    const searchMatch = searchQuery === "" || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.toLowerCase().includes(searchQuery.toLowerCase());
+    return categoryMatch && artistMatch && searchMatch;
   });
 
   // Sort products
@@ -53,6 +59,20 @@ export default function Products() {
           <p className="text-muted-foreground">
             Order sản phẩm K-pop, C-pop, Anime từ Taobao, PDD, Douyin, XHS, 1688
           </p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Tìm kiếm sản phẩm, artist, danh mục..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
 
         {/* Filters and Sort */}
