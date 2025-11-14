@@ -14,7 +14,7 @@ export default function Policy() {
           {/* Chính sách đặt hàng */}
           <Card>
             <CardHeader>
-              <CardTitle>1. Chính sách đặt hàng (Pre-order)</CardTitle>
+              <CardTitle>1. Chính sách đặt hàng</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-muted-foreground">
               <p>• Vì đa phần là hàng order, Purin chỉ chấp nhận hình thức thanh toán trước 50-100%.</p>
