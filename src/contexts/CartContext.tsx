@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 // === DÁN URL APPS SCRIPT (ĐỌC SẢN PHẨM) CỦA BẠN VÀO ĐÂY ===
-const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzMAcPL0WRqnTQXc3Os4U6EkCRWL-7nDyZtSaugY_MERdjhPFmxFMC80gspGSWgFS_8XA/exec";
+const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzMAcPL0WRqnTQXc3Os4U6EkCRWL-7nDyZtSaugY_MERdjfPFmxFMC80gspGSWgFS_8XA/exec";
 // ===
 
 // Định nghĩa kiểu Product mới (từ Google Sheet)
@@ -13,23 +13,27 @@ export interface Product {
   images: string[];
   category: string;
   artist: string;
-  variants: { name: string; price: number }[];
+  // BỔ SUNG: Thêm trường stock? number vào variant
+  variants: { name: string; price: number; stock?: number }[]; 
   optionGroups?: { name: string; options: string[] }[];
   variantImageMap?: { [key: string]: number }; 
   feesIncluded?: boolean;
   master?: string;
   status?: string;
   orderDeadline?: string | null;
-  priceDisplay: string; // Giữ lại trường này cho đỡ lỗi
+  priceDisplay: string;
 }
 export interface CartItem extends Product {
   quantity: number;
   selectedVariant: string;
+  // BỔ SUNG: Lưu trữ tồn kho của biến thể đã chọn
+  variantStock?: number; 
 }
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product, quantity: number, variant: string) => void;
+  // BỔ SUNG: Thêm variantStock vào hàm addToCart
+  addToCart: (product: Product, quantity: number, variant: string, variantStock?: number) => void; 
   removeFromCart: (productId: number, variant: string) => void;
   updateQuantity: (productId: number, variant: string, quantity: number) => void;
   clearCart: () => void;
@@ -39,6 +43,8 @@ interface CartContextType {
   // State cho sản phẩm
   products: Product[];
   isLoading: boolean;
+  // BỔ SUNG: Hàm lấy tồn kho của một biến thể cụ thể
+  getVariantStock: (productId: number, variantName: string) => number | undefined; 
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -82,21 +88,46 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     fetchProducts();
   }, []); // Tải 1 lần duy nhất
+  
+  // BỔ SUNG: Hàm tìm số lượng tồn kho của biến thể
+  const getVariantStock = (productId: number, variantName: string): number | undefined => {
+    const product = products.find(p => p.id === productId);
+    if (!product || !product.variants) return undefined;
+    
+    const variant = product.variants.find(v => v.name === variantName);
+    // Trả về stock nếu có, nếu không trả về undefined (không áp dụng tồn kho)
+    return variant?.stock; 
+  };
 
-  // (Các hàm giỏ hàng đã sửa lỗi)
-  const addToCart = (product: Product, quantity: number, variant: string) => {
+
+  // SỬA: Thêm variantStock và logic giới hạn số lượng theo stock
+  const addToCart = (product: Product, quantity: number, variant: string, variantStock?: number) => {
     setCartItems(prev => {
       const existingItem = prev.find(item => 
         item.id === product.id && item.selectedVariant === variant
       );
+      
+      let newQuantity = existingItem ? existingItem.quantity + quantity : quantity;
+      
+      // Kiểm tra giới hạn tồn kho
+      const stockLimit = variantStock !== undefined ? variantStock : Infinity;
+      if (newQuantity > stockLimit) {
+          newQuantity = stockLimit; // Giới hạn ở mức tồn kho
+      }
+      // Không thêm vào nếu tồn kho là 0 và số lượng mới cũng là 0 (tránh lỗi)
+      if (newQuantity === 0 && stockLimit === 0) {
+          return prev; 
+      }
+
       if (existingItem) {
         return prev.map(item =>
           item.id === product.id && item.selectedVariant === variant
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: newQuantity }
             : item
         );
       }
-      return [...prev, { ...product, quantity, selectedVariant: variant }];
+      // Lần đầu thêm vào giỏ hàng
+      return [...prev, { ...product, quantity: newQuantity, selectedVariant: variant, variantStock }]; 
     });
   };
 
@@ -136,7 +167,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalItems,
       totalPrice,
       products, 
-      isLoading
+      isLoading,
+      getVariantStock // Thêm hàm mới
     }}>
       {children}
     </CartContext.Provider>
