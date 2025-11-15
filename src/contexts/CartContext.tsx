@@ -12,6 +12,7 @@ export interface Product {
   description: string[];
   images: string[];
   category: string;
+  subcategory?: string; // Phân loại nhỏ
   artist: string;
   variants: { name: string; price: number }[];
   optionGroups?: { name: string; options: string[] }[];
@@ -20,6 +21,7 @@ export interface Product {
   master?: string;
   status?: string;
   orderDeadline?: string | null;
+  stock?: number; // Số lượng trong kho
   priceDisplay: string; // Giữ lại trường này cho đỡ lỗi
 }
 export interface CartItem extends Product {
