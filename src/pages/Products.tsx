@@ -7,26 +7,35 @@ import { CategoryPreview } from "@/components/CategoryPreview";
 import { useState } from "react";
 
 export default function Products() {
+  // Lấy dữ liệu sản phẩm và trạng thái tải từ CartContext
   const { products, isLoading } = useCart();
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Check if product is available
+  // === HÀM KIỂM TRA TÍNH KHẢ DỤNG CỦA SẢN PHẨM ===
   const isProductAvailable = (product: any) => {
+    // 1. Kiểm tra tồn kho: Có tồn kho hoặc tồn kho > 0
     const hasStock = !product.stock || product.stock > 0;
+    
+    // 2. Kiểm tra hạn đặt hàng: Không có hạn hoặc ngày hiện tại < ngày hết hạn
     const notExpired = !product.orderDeadline || new Date(product.orderDeadline) > new Date();
+    
     return hasStock && notExpired;
   };
 
-  // Sort products - available first
+  // === SẮP XẾP SẢN PHẨM: CÒN HÀNG LÊN TRƯỚC ===
   const sortedProducts = [...products].sort((a, b) => {
     const aAvailable = isProductAvailable(a);
     const bAvailable = isProductAvailable(b);
+    
+    // Sản phẩm còn hàng (true) sẽ được sắp xếp lên trước sản phẩm hết hàng (false)
     if (aAvailable && !bAvailable) return -1;
     if (!aAvailable && bAvailable) return 1;
+    
+    // Giữ nguyên thứ tự nếu cùng trạng thái (hoặc có thể thêm logic sắp xếp phụ ở đây)
     return 0;
   });
 
-  // Filter by search
+  // === LỌC SẢN PHẨM THEO TỪ KHÓA TÌM KIẾM ===
   const filteredProducts = searchQuery
     ? sortedProducts.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -34,13 +43,14 @@ export default function Products() {
         product.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.subcategory?.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : sortedProducts;
+    : sortedProducts; // Sử dụng sản phẩm đã sắp xếp nếu không có tìm kiếm
 
-  // Group by category
+  // === NHÓM SẢN PHẨM THEO DANH MỤC LỚN ===
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll");
   const merch = filteredProducts.filter(p => p.category === "Merch");
   const other = filteredProducts.filter(p => p.category === "Khác");
 
+  // Hiển thị màn hình tải
   if (isLoading) {
     return (
       <Layout>
@@ -51,6 +61,7 @@ export default function Products() {
     );
   }
 
+  // === GIAO DIỆN CHÍNH ===
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -77,21 +88,32 @@ export default function Products() {
 
         {/* Category Previews */}
         <div className="space-y-16">
-          <CategoryPreview
-            title="Outfit & Doll"
-            categorySlug="outfit-doll"
-            products={outfitDoll}
-          />
-          <CategoryPreview
-            title="Merch"
-            categorySlug="merch"
-            products={merch}
-          />
-          <CategoryPreview
-            title="Khác"
-            categorySlug="khac"
-            products={other}
-          />
+          {/* Hiển thị Outfit & Doll nếu có sản phẩm */}
+          {outfitDoll.length > 0 && (
+            <CategoryPreview
+              title="Outfit & Doll"
+              categorySlug="outfit-doll"
+              products={outfitDoll}
+            />
+          )}
+
+          {/* Hiển thị Merch nếu có sản phẩm */}
+          {merch.length > 0 && (
+            <CategoryPreview
+              title="Merch"
+              categorySlug="merch"
+              products={merch}
+            />
+          )}
+
+          {/* Hiển thị Khác nếu có sản phẩm */}
+          {other.length > 0 && (
+            <CategoryPreview
+              title="Khác"
+              categorySlug="khac"
+              products={other}
+            />
+          )}
         </div>
 
         {filteredProducts.length === 0 && (
