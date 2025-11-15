@@ -17,7 +17,7 @@ export default function Products() {
     return hasStock && notExpired;
   };
 
-  // === SẮP XẾP SẢN PHẨM: CÒN HÀNG LÊN TRƯỚC (Giữ nguyên logic này) ===
+  // === SẮP XẾP SẢN PHẨM: CÒN HÀNG LÊN TRƯỚC (Giữ nguyên để đảm bảo thứ tự) ===
   const sortedProducts = [...products].sort((a, b) => {
     const aAvailable = isProductAvailable(a);
     const bAvailable = isProductAvailable(b);
@@ -26,7 +26,7 @@ export default function Products() {
     return 0;
   });
 
-  // === BƯỚC LỌC 1: Lọc theo từ khóa tìm kiếm ===
+  // === BƯỚC LỌC 1: Lọc theo từ khóa tìm kiếm (Áp dụng trên danh sách đã sắp xếp) ===
   const searchMatchedProducts = searchQuery
     ? sortedProducts.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -36,12 +36,11 @@ export default function Products() {
       )
     : sortedProducts; // Sử dụng sản phẩm đã sắp xếp nếu không có tìm kiếm
 
-  // === BƯỚC LỌC 2 (ĐIỀU CHỈNH MỚI): ẨN SẢN PHẨM HẾT HÀNG KHI KHÔNG TÌM KIẾM ===
-  // - Nếu có từ khóa tìm kiếm: Giữ nguyên danh sách (vẫn hiển thị hết hàng ở cuối)
-  // - Nếu KHÔNG có từ khóa tìm kiếm: Chỉ giữ lại sản phẩm CÒN HÀNG/CÒN HẠN (ẨN sản phẩm hết hàng khỏi trang lớn)
+  // === BƯỚC LỌC 2 (QUAN TRỌNG): ẨN SẢN PHẨM HẾT HÀNG KHI KHÔNG CÓ TÌM KIẾM ===
+  // Đây là bước đảm bảo sản phẩm hết hàng/hết hạn không xuất hiện trên trang preview.
   const filteredProducts = searchQuery
-    ? searchMatchedProducts
-    : searchMatchedProducts.filter(isProductAvailable); // Đây là bước ẩn sản phẩm hết hàng khỏi trang preview
+    ? searchMatchedProducts // Khi tìm kiếm: giữ lại tất cả (còn hàng/hết hàng) đã khớp, nhưng đã được sắp xếp
+    : searchMatchedProducts.filter(isProductAvailable); // Khi không tìm kiếm: CHỈ GIỮ LẠI sản phẩm CÒN HÀNG/CÒN HẠN
 
   // === NHÓM SẢN PHẨM THEO DANH MỤC LỚN ===
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll");
@@ -89,21 +88,21 @@ export default function Products() {
             <CategoryPreview
               title="Outfit & Doll"
               categorySlug="outfit-doll"
-              products={outfitDoll}
+              products={outfitDoll} // DANH SÁCH ĐÃ ĐƯỢC LỌC/ẨN HÀNG HẾT KHI KHÔNG TÌM KIẾM
             />
           )}
           {merch.length > 0 && (
             <CategoryPreview
               title="Merch"
               categorySlug="merch"
-              products={merch}
+              products={merch} // DANH SÁCH ĐÃ ĐƯỢC LỌC/ẨN HÀNG HẾT KHI KHÔNG TÌM KIẾM
             />
           )}
           {other.length > 0 && (
             <CategoryPreview
               title="Khác"
               categorySlug="khac"
-              products={other}
+              products={other} // DANH SÁCH ĐÃ ĐƯỢC LỌC/ẨN HÀNG HẾT KHI KHÔNG TÌM KIẾM
             />
           )}
         </div>
