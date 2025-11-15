@@ -17,7 +17,8 @@ interface CategoryPreviewProps {
 }
 
 export function CategoryPreview({ title, categorySlug, products }: CategoryPreviewProps) {
-  const displayProducts = products.slice(0, 12);
+  // Dòng này đảm bảo chỉ hiển thị tối đa 12 sản phẩm trong danh sách đã được lọc.
+  const displayProducts = products.slice(0, 12); 
 
   if (displayProducts.length === 0) {
     return null;
