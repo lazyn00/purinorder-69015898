@@ -14,14 +14,14 @@ export interface Product {
   category: string;
   subcategory?: string; // Phân loại nhỏ
   artist: string;
-  variants: { name: string; price: number }[];
+  variants: { name: string; price: number; stock?: number }[]; // Stock có thể có cho từng variant
   optionGroups?: { name: string; options: string[] }[];
   variantImageMap?: { [key: string]: number }; 
   feesIncluded?: boolean;
   master?: string;
   status?: string;
   orderDeadline?: string | null;
-  stock?: number; // Số lượng trong kho
+  stock?: number; // Stock chung cho tất cả variants (nếu không có stock riêng)
   priceDisplay: string; // Giữ lại trường này cho đỡ lỗi
 }
 export interface CartItem extends Product {

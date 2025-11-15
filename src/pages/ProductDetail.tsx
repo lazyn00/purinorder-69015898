@@ -37,6 +37,7 @@ export default function ProductDetail() {
   const [selectedVariant, setSelectedVariant] = useState<string>(""); 
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
+  const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
   
   // useEffect để tìm sản phẩm khi 'products' tải xong
   useEffect(() => {
@@ -71,6 +72,11 @@ export default function ProductDetail() {
           const firstVariant = product.variants[0];
           setSelectedVariant(firstVariant.name);
           setCurrentPrice(firstVariant.price);
+          // Set stock cho variant duy nhất
+          setAvailableStock(firstVariant.stock !== undefined ? firstVariant.stock : product.stock);
+      } else {
+        // Không có variants, dùng stock chung
+        setAvailableStock(product.stock);
       }
     }
   }, [product]);
@@ -141,7 +147,17 @@ export default function ProductDetail() {
       return;
     }
 
-    const correctPrice = currentPrice; 
+    // Validate stock
+    if (availableStock !== undefined && quantity > availableStock) {
+      toast({
+        title: "Không đủ hàng",
+        description: `Chỉ còn ${availableStock} sản phẩm`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const correctPrice = currentPrice;
 
     const productToAdd = {
       ...product,
@@ -376,14 +392,28 @@ export default function ProductDetail() {
                   id="quantity"
                   type="number"
                   min="1"
+                  max={availableStock}
                   value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => {
+                    const val = Math.max(1, parseInt(e.target.value) || 1);
+                    setQuantity(availableStock !== undefined ? Math.min(val, availableStock) : val);
+                  }}
                   className="w-20 text-center"
                 />
-                <Button variant="outline" size="icon" onClick={incrementQuantity}>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={incrementQuantity}
+                  disabled={availableStock !== undefined && quantity >= availableStock}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+              {availableStock !== undefined && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {availableStock > 0 ? `Còn ${availableStock} sản phẩm` : 'Hết hàng'}
+                </p>
+              )}
             </div>
 
             <div className="border-t pt-4 space-y-3">
