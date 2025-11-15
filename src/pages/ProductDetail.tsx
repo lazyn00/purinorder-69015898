@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { OrderCountdown } from "@/components/OrderCountdown";
+// (Đọc từ Context, không đọc từ file .ts)
 import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCard } from "@/components/ProductCard";
@@ -506,7 +507,6 @@ export default function ProductDetail() {
                   ))}
               </div>
             </div>
-          </div>
         )}
       </div>
     </Layout>
