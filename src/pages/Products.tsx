@@ -17,7 +17,7 @@ export default function Products() {
     return hasStock && notExpired;
   };
 
-  // === SẮP XẾP SẢN PHẨM: CÒN HÀNG LÊN TRƯỚC (áp dụng cho toàn bộ danh sách, kể cả khi tìm kiếm) ===
+  // === SẮP XẾP SẢN PHẨM: CÒN HÀNG LÊN TRƯỚC (Giữ nguyên logic này) ===
   const sortedProducts = [...products].sort((a, b) => {
     const aAvailable = isProductAvailable(a);
     const bAvailable = isProductAvailable(b);
@@ -26,7 +26,7 @@ export default function Products() {
     return 0;
   });
 
-  // === BƯỚC LỌC 1: Lọc theo từ khóa tìm kiếm (giữ lại cả sản phẩm hết hàng nếu khớp) ===
+  // === BƯỚC LỌC 1: Lọc theo từ khóa tìm kiếm ===
   const searchMatchedProducts = searchQuery
     ? sortedProducts.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -34,12 +34,14 @@ export default function Products() {
         product.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.subcategory?.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : sortedProducts;
+    : sortedProducts; // Sử dụng sản phẩm đã sắp xếp nếu không có tìm kiếm
 
-  // === BƯỚC LỌC 2 (ĐIỀU CHỈNH CHÍNH): Ẩn sản phẩm hết hàng khi KHÔNG có từ khóa tìm kiếm ===
+  // === BƯỚC LỌC 2 (ĐIỀU CHỈNH MỚI): ẨN SẢN PHẨM HẾT HÀNG KHI KHÔNG TÌM KIẾM ===
+  // - Nếu có từ khóa tìm kiếm: Giữ nguyên danh sách (vẫn hiển thị hết hàng ở cuối)
+  // - Nếu KHÔNG có từ khóa tìm kiếm: Chỉ giữ lại sản phẩm CÒN HÀNG/CÒN HẠN (ẨN sản phẩm hết hàng khỏi trang lớn)
   const filteredProducts = searchQuery
     ? searchMatchedProducts
-    : searchMatchedProducts.filter(isProductAvailable); // Chỉ giữ lại các sản phẩm CÒN HÀNG/CÒN HẠN
+    : searchMatchedProducts.filter(isProductAvailable); // Đây là bước ẩn sản phẩm hết hàng khỏi trang preview
 
   // === NHÓM SẢN PHẨM THEO DANH MỤC LỚN ===
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll");
@@ -108,7 +110,10 @@ export default function Products() {
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Không tìm thấy sản phẩm nào</p>
+            <p className="text-muted-foreground">
+              Không tìm thấy sản phẩm nào
+              {searchQuery && ' khớp với từ khóa của bạn'}
+            </p>
           </div>
         )}
       </div>
