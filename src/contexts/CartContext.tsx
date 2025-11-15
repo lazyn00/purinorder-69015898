@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 // === DÁN URL APPS SCRIPT (ĐỌC SẢN PHẨM) CỦA BẠN VÀO ĐÂY ===
-const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbwBR9KUNgR8M5VLMGOP8YUUvwYDoTcE9AiSIxHBAhuXuXvwnEKQTapI-nRCLGYEoso5tQ/exec";
+const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
 // ===
 
 // Định nghĩa kiểu Product mới (từ Google Sheet)
