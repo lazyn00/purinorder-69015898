@@ -5,9 +5,9 @@ import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Filter, ArrowUpDown, Search } from "lucide-react";
+import { Filter, ArrowUpDown, Search, ArrowLeft } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 const CATEGORY_MAP: { [key: string]: string } = {
   "outfit-doll": "Outfit & Doll",
@@ -23,6 +23,7 @@ const CATEGORY_TITLES: { [key: string]: string } = {
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>();
+  const navigate = useNavigate();
   const { products, isLoading } = useCart();
   
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
@@ -103,6 +104,16 @@ export default function CategoryPage() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
+        {/* Back Button */}
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/products')}
+          className="mb-6 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Quay lại trang sản phẩm
+        </Button>
+
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">{CATEGORY_TITLES[category || ""]}</h1>
           <p className="text-muted-foreground">
