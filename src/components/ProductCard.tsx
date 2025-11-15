@@ -4,8 +4,9 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
 type ProductVariant = {
-  name: string;
-  price: number;
+  name: string;
+  price: number;
+  stock?: number; // Stock riêng cho variant này
 };
 
 type Product = {
@@ -67,9 +68,25 @@ export function ProductCard({ product }: { product: Product }) {
   const priceDisplay = formatPrice(minPriceValue);
 
   // Check if product is out of stock or expired
-  const isOutOfStock = product.stock !== undefined && product.stock <= 0;
+  // Ưu tiên check stock riêng của variants, nếu không có thì dùng stock chung
+  const hasVariantStock = product.variants?.some(v => v.stock !== undefined);
+  const isOutOfStock = hasVariantStock 
+    ? product.variants?.every(v => v.stock !== undefined && v.stock <= 0)
+    : (product.stock !== undefined && product.stock <= 0);
   const isExpired = product.orderDeadline && new Date(product.orderDeadline) < new Date();
   const isUnavailable = isOutOfStock || isExpired;
+  
+  // Tính stock còn lại để hiển thị
+  let stockDisplay: number | undefined = undefined;
+  if (hasVariantStock) {
+    // Tổng stock từ các variants có stock
+    const totalVariantStock = product.variants
+      ?.filter(v => v.stock !== undefined)
+      .reduce((sum, v) => sum + (v.stock || 0), 0);
+    stockDisplay = totalVariantStock;
+  } else {
+    stockDisplay = product.stock;
+  }
   
   return (
     <Link to={`/product/${product.id}`} className="group block">
@@ -115,10 +132,10 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
           
           {/* Stock indicator */}
-          {!isUnavailable && product.stock !== undefined && product.stock < 10 && (
+          {!isUnavailable && stockDisplay !== undefined && stockDisplay < 10 && (
             <div className="absolute bottom-1.5 right-1.5">
               <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-                Còn {product.stock}
+                Còn {stockDisplay}
               </Badge>
             </div>
           )}
