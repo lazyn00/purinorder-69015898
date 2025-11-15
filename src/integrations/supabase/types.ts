@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_fb: string | null
+          customer_phone: string
+          deleted_at: string | null
+          delivery_address: string
+          delivery_email: string | null
+          delivery_name: string
+          delivery_phone: string
+          id: string
+          items: Json
+          order_number: string | null
+          payment_method: string
+          payment_proof_url: string | null
+          payment_type: string
+          second_payment_proof_url: string | null
+          shipping_provider: string | null
+          status: string | null
+          total_price: number
+          tracking_code: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_fb?: string | null
+          customer_phone: string
+          deleted_at?: string | null
+          delivery_address: string
+          delivery_email?: string | null
+          delivery_name: string
+          delivery_phone: string
+          id?: string
+          items: Json
+          order_number?: string | null
+          payment_method: string
+          payment_proof_url?: string | null
+          payment_type?: string
+          second_payment_proof_url?: string | null
+          shipping_provider?: string | null
+          status?: string | null
+          total_price: number
+          tracking_code?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_fb?: string | null
+          customer_phone?: string
+          deleted_at?: string | null
+          delivery_address?: string
+          delivery_email?: string | null
+          delivery_name?: string
+          delivery_phone?: string
+          id?: string
+          items?: Json
+          order_number?: string | null
+          payment_method?: string
+          payment_proof_url?: string | null
+          payment_type?: string
+          second_payment_proof_url?: string | null
+          shipping_provider?: string | null
+          status?: string | null
+          total_price?: number
+          tracking_code?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
