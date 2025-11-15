@@ -135,19 +135,19 @@ export default function CategoryPage() {
           </div>
         </div>
 
-        {/* Filters and Sort */}
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-wrap gap-4">
+        {/* Filters and Sort - 2 rows layout */}
+        <div className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             
             {/* Subcategory Dropdown */}
             {subcategories.length > 1 && (
-              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                <Filter className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <Select value={selectedSubcategory} onValueChange={(value) => { setSelectedSubcategory(value); handleFilterChange(); }}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Phân loại nhỏ" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-50 bg-popover">
                     <SelectItem value="all">Tất cả phân loại</SelectItem>
                     {subcategories.slice(1).map(sub => (
                       <SelectItem key={sub} value={sub}>{sub}</SelectItem>
@@ -158,14 +158,14 @@ export default function CategoryPage() {
             )}
 
             {/* Artist Filter */}
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <Filter className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <Select value={selectedArtist} onValueChange={(value) => { setSelectedArtist(value); handleFilterChange(); }}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Artist" />
+                  <SelectValue placeholder="Thuộc tính" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả Artist</SelectItem>
+                <SelectContent className="z-50 bg-popover">
+                  <SelectItem value="all">Tất cả Thuộc tính</SelectItem>
                   {artists.slice(1).map(artist => (
                     <SelectItem key={artist} value={artist}>{artist}</SelectItem>
                   ))}
@@ -174,13 +174,13 @@ export default function CategoryPage() {
             </div>
 
             {/* Sort */}
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sắp xếp" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-popover">
                   <SelectItem value="default">Mặc định</SelectItem>
                   <SelectItem value="price-asc">Giá: Thấp đến cao</SelectItem>
                   <SelectItem value="price-desc">Giá: Cao đến thấp</SelectItem>
@@ -192,7 +192,7 @@ export default function CategoryPage() {
 
           {/* Active filters */}
           {(selectedSubcategory !== "all" || selectedArtist !== "all") && (
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center mt-4">
               <span className="text-sm text-muted-foreground">Đang lọc:</span>
               {selectedSubcategory !== "all" && (
                 <Button
