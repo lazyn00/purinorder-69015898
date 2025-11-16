@@ -48,8 +48,13 @@ const getAvailableStock = (product: Product): number => {
             .reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
     } 
 
-    // Dùng stock chung của sản phẩm (0 nếu trống/không nhập)
-    return product.stock || 0;
+    // Nếu không có thông tin stock, coi là không giới hạn (trả về số lớn)
+    // Chỉ trả về 0 nếu stock = 0 (hết hàng rõ ràng)
+    if (product.stock === undefined || product.stock === null) {
+        return 999999; // Không giới hạn
+    }
+    
+    return product.stock;
 }
 // === KẾT THÚC HÀM HELPER MỚI ===
 
