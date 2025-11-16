@@ -13,12 +13,13 @@ import { OrderCountdown } from "@/components/OrderCountdown";
 import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCard } from "@/components/ProductCard";
+import { ProductNotificationForm } from "@/components/ProductNotificationForm";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
 } from "@/components/ui/carousel";
 
 // Hàm helper để xác định stock khả dụng chính xác
@@ -469,25 +470,44 @@ export default function ProductDetail() {
               )}
             </div>
 
-            <div className="border-t pt-4 space-y-3">
-              <Button 
-                onClick={handleAddToCart}
-                className="w-full bg-gradient-primary gap-2"
-                size="lg"
-                disabled={isExpired || availableStock === 0 || (product.variants.length > 0 && !selectedVariant)}
-              >
-                {isExpired ? <CalendarOff className="h-5 w-4" /> : <ShoppingCart className="h-5 w-5" />}
-                {isExpired ? "Đã hết hạn order" : "Thêm vào giỏ hàng"}
-              </Button>
-              <Button 
-                onClick={() => navigate("/products")}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                Tiếp tục mua sắm
-              </Button>
-            </div>
+            <div className="border-t pt-4 space-y-3">
+              {/* Hiển thị form đăng ký thông báo nếu hết hàng hoặc hết hạn */}
+              {(isExpired || availableStock === 0) ? (
+                <>
+                  <Button 
+                    onClick={handleAddToCart}
+                    className="w-full bg-gradient-primary gap-2"
+                    size="lg"
+                    disabled={true}
+                  >
+                    {isExpired ? <CalendarOff className="h-5 w-4" /> : <ShoppingCart className="h-5 w-5" />}
+                    {isExpired ? "Đã hết hạn order" : "Đã hết hàng"}
+                  </Button>
+                  <ProductNotificationForm 
+                    productId={product.id} 
+                    productName={product.name}
+                  />
+                </>
+              ) : (
+                <Button 
+                  onClick={handleAddToCart}
+                  className="w-full bg-gradient-primary gap-2"
+                  size="lg"
+                  disabled={product.variants.length > 0 && !selectedVariant}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Thêm vào giỏ hàng
+                </Button>
+              )}
+              <Button 
+                onClick={() => navigate("/products")}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                Tiếp tục mua sắm
+              </Button>
+            </div>
           </div>
         </div>
 
