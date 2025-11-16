@@ -14,7 +14,7 @@ import { CartItem } from "@/contexts/CartContext"; // Import CartItem
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
-  vietcombank: "BNTY25",
+  vietcombank: "0441000787416",
   momo: "0931146787",
   zalopay: "0931146787"
 };
