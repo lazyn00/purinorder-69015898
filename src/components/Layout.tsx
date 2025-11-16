@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
+import { ThemeToggle } from "./ThemeToggle"; // 👉 thêm import
 
 const menuItems = [
   { path: "/products", label: "Sản phẩm" },
@@ -40,11 +41,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   {item.label}
                 </Link>
               ))}
+
+              {/* 👉 Theme toggle desktop */}
+              <ThemeToggle />
+
               <Cart />
             </div>
 
-            {/* Mobile Menu Button and Cart */}
+            {/* Mobile: Cart + Menu Toggle */}
             <div className="flex items-center gap-2 md:hidden">
+              {/* 👉 Theme toggle mobile */}
+              <ThemeToggle />
+
               <Cart />
               <Button
                 variant="ghost"
@@ -87,7 +95,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </footer>
-      
+
       <ScrollToTop />
     </div>
   );
