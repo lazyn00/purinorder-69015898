@@ -24,6 +24,7 @@ const ORDER_STATUSES = [
   "đang giao",
   "đã hoàn thành",
   "đã huỷ",
+  "đã hoàn cọc",
   "đang xử lý"
 ];
 
@@ -47,6 +48,8 @@ const getStatusColor = (status: string) => {
       return "bg-emerald-100 text-emerald-800 border-emerald-200";
     case "đã huỷ":
       return "bg-gray-100 text-gray-800 border-gray-200";
+    case "đã hoàn cọc":
+      return "bg-pink-100 text-pink-800 border-pink-200";
     case "đang xử lý":
       return "bg-cyan-100 text-cyan-800 border-cyan-200";
     default:
@@ -175,6 +178,39 @@ export default function Admin() {
         .eq('id', orderId);
 
       if (error) throw error;
+
+      // Lấy thông tin đơn hàng để gửi email
+      const order = orders.find(o => o.id === orderId);
+      
+      if (order && order.customer_email) {
+        try {
+          // Xác định loại email
+          const emailType = newStatus === "đã hoàn cọc" ? 'refund' : 'status_change';
+          
+          await supabase.functions.invoke('send-order-email', {
+            body: {
+              email: order.customer_email,
+              orderNumber: order.order_number,
+              customerName: order.delivery_name,
+              items: order.items.map((item: any) => ({
+                name: item.name,
+                variant: item.selectedVariant,
+                quantity: item.quantity,
+                price: item.price
+              })),
+              totalPrice: order.total_price,
+              status: newStatus,
+              type: emailType,
+              trackingCode: updateData.tracking_code || order.tracking_code
+            }
+          });
+          
+          console.log('Email notification sent for order:', order.order_number);
+        } catch (emailError) {
+          console.warn('Failed to send email notification:', emailError);
+          // Không hiển thị lỗi cho admin vì đơn hàng đã cập nhật thành công
+        }
+      }
 
       setOrders(orders.map(order => 
         order.id === orderId ? { ...order, ...updateData } : order
