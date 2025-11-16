@@ -64,7 +64,7 @@ export default function CategoryPage() {
   const [sortBy, setSortBy] = useState<string>("default");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const productsPerPage = 24;
+  const productsPerPage = 50;
 
   const categoryName = category ? CATEGORY_MAP[category] : "";
   
@@ -83,16 +83,17 @@ export default function CategoryPage() {
     return hasStock && notExpired;
   };
 
-  // Filter products
-  let filteredProducts = categoryProducts.filter((product: Product) => {
-    const subcategoryMatch = selectedSubcategory === "all" || product.subcategory === selectedSubcategory;
-    const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
-    const searchMatch = searchQuery === "" || 
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.subcategory?.toLowerCase().includes(searchQuery.toLowerCase());
-    return subcategoryMatch && artistMatch && searchMatch;
-  });
+  // Filter products - LUÔN lọc sản phẩm hết hàng/hết hạn
+  let filteredProducts = categoryProducts.filter((product: Product) => {
+    const subcategoryMatch = selectedSubcategory === "all" || product.subcategory === selectedSubcategory;
+    const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
+    const searchMatch = searchQuery === "" || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.subcategory?.toLowerCase().includes(searchQuery.toLowerCase());
+    const availableMatch = isProductAvailable(product); // Chỉ hiển thị sản phẩm còn hàng/còn hạn
+    return subcategoryMatch && artistMatch && searchMatch && availableMatch;
+  });
 
   // Sort products - Available products first (ĐÃ SỬ DỤNG HÀM MỚI)
   filteredProducts = [...filteredProducts].sort((a, b) => {

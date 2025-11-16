@@ -36,11 +36,9 @@ export default function Products() {
       )
     : sortedProducts; // Sử dụng sản phẩm đã sắp xếp nếu không có tìm kiếm
 
-  // === BƯỚC LỌC 2 (QUAN TRỌNG): ẨN SẢN PHẨM HẾT HÀNG KHI KHÔNG CÓ TÌM KIẾM ===
-  // Đây là bước đảm bảo sản phẩm hết hàng/hết hạn không xuất hiện trên trang preview.
-  const filteredProducts = searchQuery
-    ? searchMatchedProducts // Khi tìm kiếm: giữ lại tất cả (còn hàng/hết hàng) đã khớp, nhưng đã được sắp xếp
-    : searchMatchedProducts.filter(isProductAvailable); // Khi không tìm kiếm: CHỈ GIỮ LẠI sản phẩm CÒN HÀNG/CÒN HẠN
+  // === BƯỚC LỌC 2: LUÔN ẨN SẢN PHẨM HẾT HÀNG/HẾT HẠN ===
+  // Chỉ hiển thị sản phẩm còn hàng và còn hạn, kể cả khi tìm kiếm
+  const filteredProducts = searchMatchedProducts.filter(isProductAvailable);
 
   // === NHÓM SẢN PHẨM THEO DANH MỤC LỚN ===
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll");
