@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Package, Upload } from "lucide-react";
+import { Loader2, Package, Upload, Truck, Save, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea"; // Thêm Textarea cho ghi chú
 
 interface Order {
   id: string;
@@ -20,6 +21,8 @@ interface Order {
   delivery_name: string;
   delivery_phone: string;
   delivery_address: string;
+  // **THÊM TRƯỜNG GHI CHÚ GIAO HÀNG**
+  delivery_note: string; 
   items: any[];
   total_price: number;
   status: string;
@@ -30,6 +33,8 @@ interface Order {
   shipping_provider: string;
   tracking_code: string;
 }
+
+// ... (getStatusColor function remains the same)
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -58,11 +63,19 @@ const getStatusColor = (status: string) => {
   }
 };
 
+
 export default function TrackOrder() {
   const [phone, setPhone] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
+  
+  // **THÊM STATE CHO VIỆC CHỈNH SỬA THÔNG TIN GIAO HÀNG**
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [tempDeliveryData, setTempDeliveryData] = useState<Partial<Order>>({});
+  const [isUpdatingDelivery, setIsUpdatingDelivery] = useState(false);
+  // ----------------------------------------------------------------------
+  
   const { toast } = useToast();
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -117,7 +130,7 @@ export default function TrackOrder() {
 
   const handleUploadSecondPayment = async (orderId: string, file: File) => {
     setUploadingOrderId(orderId);
-    
+    // ... (rest of handleUploadSecondPayment remains the same)
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
@@ -164,6 +177,67 @@ export default function TrackOrder() {
     }
   };
 
+  // **HÀM XỬ LÝ VIỆC CẬP NHẬT THÔNG TIN GIAO HÀNG**
+  const handleUpdateDeliveryInfo = async (order: Order) => {
+    setIsUpdatingDelivery(true);
+    const orderId = order.id;
+
+    // Lấy dữ liệu mới nhất từ tempDeliveryData, fallback về dữ liệu cũ nếu chưa chỉnh sửa
+    const newDeliveryData = {
+      delivery_name: tempDeliveryData.delivery_name || order.delivery_name,
+      delivery_phone: tempDeliveryData.delivery_phone || order.delivery_phone,
+      delivery_address: tempDeliveryData.delivery_address || order.delivery_address,
+      delivery_note: tempDeliveryData.delivery_note || order.delivery_note,
+    };
+
+    try {
+      const { error: updateError } = await (supabase as any)
+        .from('orders')
+        .update(newDeliveryData)
+        .eq('id', orderId);
+
+      if (updateError) throw updateError;
+
+      // Cập nhật state orders với thông tin mới
+      setOrders(orders.map(o => 
+        o.id === orderId 
+          ? { ...o, ...newDeliveryData } 
+          : o
+      ));
+
+      // Đóng chế độ chỉnh sửa
+      setEditingOrderId(null);
+      setTempDeliveryData({}); 
+
+      toast({
+        title: "Thành công",
+        description: "Đã cập nhật thông tin giao hàng.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật thông tin giao hàng. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingDelivery(false);
+    }
+  };
+
+  const startEditing = (order: Order) => {
+    setEditingOrderId(order.id);
+    // Khởi tạo tempDeliveryData với dữ liệu hiện tại của đơn hàng
+    setTempDeliveryData({
+      delivery_name: order.delivery_name,
+      delivery_phone: order.delivery_phone,
+      delivery_address: order.delivery_address,
+      delivery_note: order.delivery_note,
+    });
+  };
+  // ----------------------------------------------------------------------
+
+
   return (
     <Layout>
       <div className="container mx-auto max-w-2xl px-4 py-12">
@@ -173,6 +247,7 @@ export default function TrackOrder() {
           <p className="text-muted-foreground">Nhập số điện thoại để tra cứu đơn hàng của bạn</p>
         </div>
 
+        {/* Search Card remains the same */}
         <Card className="mb-8">
           <CardContent className="pt-6">
             <form onSubmit={handleSearch} className="space-y-4">
@@ -221,6 +296,8 @@ export default function TrackOrder() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  
+                  {/* ... (Total and Payment Info) ... */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Tổng tiền</p>
@@ -236,7 +313,8 @@ export default function TrackOrder() {
                   </div>
 
                   <Separator />
-
+                  
+                  {/* ... (Items List) ... */}
                   <div>
                     <p className="text-muted-foreground text-sm mb-2">Sản phẩm</p>
                     <div className="space-y-2">
@@ -249,7 +327,110 @@ export default function TrackOrder() {
                     </div>
                   </div>
 
-                  {/* Shipping information section */}
+                  <Separator />
+
+                  {/* 🚚 KHUNG CẬP NHẬT THÔNG TIN GIAO HÀNG */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-950/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                        <Truck className="h-5 w-5" /> Thông tin nhận hàng
+                      </h3>
+                      {/* Cho phép chỉnh sửa khi trạng thái là "đang vận chuyển" */}
+                      {order.status === 'đang vận chuyển' && editingOrderId !== order.id && (
+                        <Button variant="ghost" size="sm" onClick={() => startEditing(order)}>
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Chỉnh sửa
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* HIỂN THỊ DẠNG VIEW */}
+                    {editingOrderId !== order.id ? (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Người nhận:</span>
+                            <span className="font-medium text-right">{order.delivery_name || "Chưa có"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">SĐT nhận hàng:</span>
+                            <span className="font-medium text-right">{order.delivery_phone || "Chưa có"}</span>
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground block mb-1">Địa chỉ:</span>
+                            <span className="font-medium block text-right break-words">{order.delivery_address || "Chưa có"}</span>
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground block mb-1">Ghi chú:</span>
+                            <span className="font-medium block text-right italic text-orange-600 dark:text-orange-400">
+                                {order.delivery_note || "Không có ghi chú"}
+                            </span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* HIỂN THỊ DẠNG FORM CHỈNH SỬA */
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label htmlFor={`name-${order.id}`}>Tên người nhận</Label>
+                          <Input
+                            id={`name-${order.id}`}
+                            defaultValue={order.delivery_name}
+                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_name: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`phone-${order.id}`}>SĐT nhận hàng</Label>
+                          <Input
+                            id={`phone-${order.id}`}
+                            type="tel"
+                            defaultValue={order.delivery_phone}
+                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_phone: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`address-${order.id}`}>Địa chỉ nhận hàng</Label>
+                          <Textarea
+                            id={`address-${order.id}`}
+                            defaultValue={order.delivery_address}
+                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_address: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`note-${order.id}`}>Ghi chú (Tùy chọn)</Label>
+                          <Textarea
+                            id={`note-${order.id}`}
+                            defaultValue={order.delivery_note}
+                            placeholder="Ví dụ: Giao ngoài giờ hành chính, gọi trước khi giao..."
+                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_note: e.target.value})}
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setEditingOrderId(null)}
+                            disabled={isUpdatingDelivery}
+                          >
+                            Hủy
+                          </Button>
+                          <Button 
+                            onClick={() => handleUpdateDeliveryInfo(order)}
+                            disabled={isUpdatingDelivery}
+                          >
+                            {isUpdatingDelivery ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Save className="mr-2 h-4 w-4" />
+                            )}
+                            Lưu thay đổi
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                  {/* ---------------------------------------------------------------------- */}
+
+
+                  {/* Shipping information section (Tracking code) */}
                   {order.shipping_provider && order.tracking_code && (
                     <>
                       <Separator />
@@ -271,7 +452,7 @@ export default function TrackOrder() {
                     </>
                   )}
 
-                  {/* Upload bill box - show for all orders without second payment proof */}
+                  {/* ... (Upload bill box) ... */}
                   {!order.second_payment_proof_url && (
                     <>
                       <Separator />
