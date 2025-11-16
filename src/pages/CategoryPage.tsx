@@ -88,7 +88,7 @@ export default function CategoryPage() {
     return hasStock && notExpired;
   };
 
-  // Filter products - LUÔN lọc sản phẩm hết hàng/hết hạn
+  // Filter products - Không lọc theo availability, chỉ lọc theo filters khác
   let filteredProducts = categoryProducts.filter((product: Product) => {
     const subcategoryMatch = selectedSubcategory === "all" || product.subcategory === selectedSubcategory;
     const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
@@ -96,8 +96,7 @@ export default function CategoryPage() {
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.subcategory?.toLowerCase().includes(searchQuery.toLowerCase());
-    const availableMatch = isProductAvailable(product); // Chỉ hiển thị sản phẩm còn hàng/còn hạn
-    return subcategoryMatch && artistMatch && searchMatch && availableMatch;
+    return subcategoryMatch && artistMatch && searchMatch;
   });
 
   // Sort products - Available products first (ĐÃ SỬ DỤNG HÀM MỚI)
