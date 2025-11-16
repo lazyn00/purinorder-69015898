@@ -116,18 +116,18 @@ export function Cart() {
               </div>
               <Separator />
               
-              {/* === (SỬA ĐỔI) DÙNG LINK ĐỂ QUA TRANG CHECKOUT === */}
-              {/* SheetClose sẽ tự động đóng giỏ hàng khi bấm */}
-              <SheetClose asChild>
-                <Link to="/checkout" className="w-full">
-                  <Button 
-                    className="w-full bg-gradient-primary"
-                    size="lg"
-                  >
-                    Đặt hàng ngay
-                  </Button>
-                </Link>
-              </SheetClose>
+              {/* === DÙNG LINK VỚI BUTTON BÊN TRONG === */}
+              <SheetClose asChild>
+                <Button 
+                  className="w-full bg-gradient-primary"
+                  size="lg"
+                  asChild
+                >
+                  <Link to="/checkout">
+                    Đặt hàng ngay
+                  </Link>
+                </Button>
+              </SheetClose>
             </div>
           </>
         )}
