@@ -67,27 +67,34 @@ export function ProductCard({ product }: { product: Product }) {
   const minPriceValue = getMinPrice(product.variants, product.price);
   const priceDisplay = formatPrice(minPriceValue);
 
-  // === LOGIC XÁC ĐỊNH TRẠNG THÁI STOCK (ĐÃ SỬA) ===
-  let availableStock: number = 0;
-  const hasVariantStock = product.variants?.some(v => v.stock !== undefined);
-  
-  if (hasVariantStock) {
-    // Nếu có stock riêng cho variant, tính TỔNG stock từ các variant đó
-    availableStock = product.variants
-      ?.filter(v => v.stock !== undefined)
-      .reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
-  } else {
-    // Nếu không có stock riêng cho variant, dùng stock chung của sản phẩm
-    availableStock = product.stock || 0;
-  }
-  
-  const isOutOfStock = availableStock <= 0;
-  const isExpired = product.orderDeadline && new Date(product.orderDeadline) < new Date();
-  const isUnavailable = isOutOfStock || isExpired;
-  // === KẾT THÚC LOGIC XÁC ĐỊNH TRẠNG THÁI STOCK ===
-  
-  // Sử dụng availableStock để hiển thị số lượng còn lại
-  const stockDisplay = availableStock;
+  // === LOGIC XÁC ĐỊNH TRẠNG THÁI STOCK (ĐÃ SỬA) ===
+  let availableStock: number | undefined;
+  let isOutOfStock: boolean = false;
+  
+  const hasVariantStock = product.variants?.some(v => v.stock !== undefined);
+  
+  if (hasVariantStock) {
+    // Nếu có stock riêng cho variant, tính TỔNG stock từ các variant đó
+    availableStock = product.variants
+      ?.filter(v => v.stock !== undefined)
+      .reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
+    isOutOfStock = availableStock <= 0;
+  } else if (product.stock !== undefined && product.stock !== null) {
+    // Nếu có stock chung của sản phẩm
+    availableStock = product.stock;
+    isOutOfStock = availableStock <= 0;
+  } else {
+    // Không có thông tin stock -> không giới hạn, không hết hàng
+    availableStock = undefined;
+    isOutOfStock = false;
+  }
+  
+  const isExpired = product.orderDeadline && new Date(product.orderDeadline) < new Date();
+  const isUnavailable = isOutOfStock || isExpired;
+  // === KẾT THÚC LOGIC XÁC ĐỊNH TRẠNG THÁI STOCK ===
+  
+  // Sử dụng availableStock để hiển thị số lượng còn lại
+  const stockDisplay = availableStock;
   
   return (
     <Link to={`/product/${product.id}`} className="group block">

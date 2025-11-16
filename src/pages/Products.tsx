@@ -12,8 +12,22 @@ export default function Products() {
 
   // === HÀM KIỂM TRA TÍNH KHẢ DỤNG CỦA SẢN PHẨM ===
   const isProductAvailable = (product: any) => {
-    const hasStock = !product.stock || product.stock > 0;
+    // Kiểm tra deadline
     const notExpired = !product.orderDeadline || new Date(product.orderDeadline) > new Date();
+    
+    // Kiểm tra stock: nếu không có thông tin stock, coi là có hàng
+    let hasStock = true;
+    if (product.stock !== undefined && product.stock !== null) {
+      hasStock = product.stock > 0;
+    } else if (product.variants?.some((v: any) => v.stock !== undefined)) {
+      // Nếu có variant với stock, tính tổng
+      const totalStock = product.variants
+        .filter((v: any) => v.stock !== undefined)
+        .reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
+      hasStock = totalStock > 0;
+    }
+    // Nếu không có thông tin stock nào, coi là có hàng (hasStock = true)
+    
     return hasStock && notExpired;
   };
 
