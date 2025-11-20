@@ -55,7 +55,7 @@ All colors MUST be HSL.
     --primary: 340 70% 70%;
     --primary-foreground: 30 15% 12%;
     --secondary: 40 80% 60%;
-    --secondary-foreground: 45 90% 95%;
+    --secondary-foreground: 30 20% 20%;
     --muted: 30 15% 20%;
     --muted-foreground: 45 30% 65%;
     --accent: 25 50% 35%;
@@ -87,16 +87,5 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
   }
 }
