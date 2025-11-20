@@ -16,6 +16,7 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Checkout from "./pages/Checkout";
 import TrackOrder from "./pages/TrackOrder";
+import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
