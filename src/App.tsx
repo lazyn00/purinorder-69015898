@@ -16,7 +16,6 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Checkout from "./pages/Checkout";
 import TrackOrder from "./pages/TrackOrder";
-import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
@@ -39,7 +38,6 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/track-order" element={<TrackOrder />} />
-              <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
