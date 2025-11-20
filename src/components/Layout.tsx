@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
+import { ThemeToggle } from "./ThemeToggle";
 import { ScrollToTop } from "./ScrollToTop";
 
 const menuItems = [
