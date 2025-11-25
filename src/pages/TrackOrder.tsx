@@ -321,7 +321,7 @@ export default function TrackOrder() {
                       <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
                         <Truck className="h-5 w-5" /> Thông tin nhận hàng
                       </h3>
-                      {order.order_progress === 'đang vận chuyển' && editingOrderId !== order.id && (
+                      {order.order_progress !== 'Đã hoàn thành' && order.order_progress !== 'Đã huỷ' && editingOrderId !== order.id && (
                         <Button variant="ghost" size="sm" onClick={() => startEditing(order)}>
                           <Edit2 className="h-4 w-4 mr-2" />
                           Chỉnh sửa

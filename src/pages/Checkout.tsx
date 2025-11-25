@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Upload } from "lucide-react";
@@ -43,11 +44,12 @@ export default function Checkout() {
     phone: ""
   });
   
-  const [deliveryInfo, setDeliveryInfo] = useState({
-    name: "",
-    phone: "",
-    address: ""
-  });
+  const [deliveryInfo, setDeliveryInfo] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    note: ""
+  });
   
   const [selectedMethod, setSelectedMethod] = useState("Vietcombank");
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
@@ -130,6 +132,7 @@ export default function Checkout() {
           delivery_name: deliveryInfo.name,
           delivery_phone: deliveryInfo.phone,
           delivery_address: deliveryInfo.address,
+          delivery_note: deliveryInfo.note,
           items: cartItems as any,
           total_price: totalPrice,
           payment_method: selectedMethod,
@@ -162,6 +165,7 @@ export default function Checkout() {
               delivery_name: deliveryInfo.name,
               delivery_phone: deliveryInfo.phone,
               delivery_address: deliveryInfo.address,
+              delivery_note: deliveryInfo.note,
               items: cartItems,
               total_price: totalPrice,
               payment_method: selectedMethod,
@@ -281,23 +285,34 @@ export default function Checkout() {
             </div>
           </div>
 
-          <div className="rounded-lg border p-6">
-            <h2 className="text-2xl font-semibold mb-6">Thông tin nhận hàng</h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="delivery-name">Họ và tên người nhận *</Label>
-                <Input id="delivery-name" value={deliveryInfo.name} onChange={(e) => setDeliveryInfo({...deliveryInfo, name: e.target.value})} placeholder="Nguyễn Văn A" required />
-                </div>
-              <div>
-                <Label htmlFor="delivery-phone">Số điện thoại nhận hàng *</Label>
-                <Input id="delivery-phone" type="tel" value={deliveryInfo.phone} onChange={(e) => setDeliveryInfo({...deliveryInfo, phone: e.target.value})} placeholder="090..." required />
-              </div>
-              <div>
-                <Label htmlFor="delivery-address">Địa chỉ nhận hàng *</Label>
-                <Input id="delivery-address" value={deliveryInfo.address} onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})} placeholder="Số nhà, đường, phường, quận, thành phố" required />
-              </div>
-            </div>
-          </div>
+          <div className="rounded-lg border p-6">
+            <h2 className="text-2xl font-semibold mb-6">Thông tin nhận hàng</h2>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="delivery-name">Họ và tên người nhận *</Label>
+                <Input id="delivery-name" value={deliveryInfo.name} onChange={(e) => setDeliveryInfo({...deliveryInfo, name: e.target.value})} placeholder="Nguyễn Văn A" required />
+                </div>
+              <div>
+                <Label htmlFor="delivery-phone">Số điện thoại nhận hàng *</Label>
+                <Input id="delivery-phone" type="tel" value={deliveryInfo.phone} onChange={(e) => setDeliveryInfo({...deliveryInfo, phone: e.target.value})} placeholder="090..." required />
+              </div>
+              <div>
+                <Label htmlFor="delivery-address">Địa chỉ nhận hàng *</Label>
+                <Input id="delivery-address" value={deliveryInfo.address} onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})} placeholder="Số nhà, đường, phường, quận, thành phố" required />
+              </div>
+              <div>
+                <Label htmlFor="delivery-note">Ghi chú (Tùy chọn)</Label>
+                <Textarea 
+                  id="delivery-note" 
+                  value={deliveryInfo.note} 
+                  onChange={(e) => setDeliveryInfo({...deliveryInfo, note: e.target.value})} 
+                  placeholder="Ví dụ: Giao ngoài giờ hành chính, gọi trước khi giao..."
+                  className="resize-none"
+                  rows={3}
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thanh toán</h2>

@@ -82,6 +82,7 @@ interface Order {
   delivery_name: string;
   delivery_phone: string;
   delivery_address: string;
+  delivery_note: string;
   items: any[];
   total_price: number;
   payment_status: string;
@@ -819,6 +820,11 @@ export default function Admin() {
                             <div className="text-xs text-muted-foreground max-w-[200px] truncate">
                               {order.delivery_address}
                             </div>
+                            {order.delivery_note && (
+                              <div className="text-xs italic text-orange-600 dark:text-orange-400 mt-1">
+                                📝 {order.delivery_note}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
 
