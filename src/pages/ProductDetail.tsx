@@ -267,14 +267,14 @@ export default function ProductDetail() {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/products")}
-          className="mb-6 gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Quay lại trang sản phẩm
-        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Quay lại
+        </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Image Carousel (Giữ định dạng ảnh gốc, giới hạn 500px) */}

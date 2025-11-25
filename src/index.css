@@ -52,21 +52,21 @@ All colors MUST be HSL.
     --card-foreground: 45 90% 95%;
     --popover: 30 15% 15%;
     --popover-foreground: 45 90% 95%;
-    --primary: 340 70% 70%;
-    --primary-foreground: 30 15% 12%;
-    --secondary: 40 80% 60%;
-    --secondary-foreground: 45 90% 95%;
+    --primary: 340 75% 75%;
+    --primary-foreground: 30 20% 20%;
+    --secondary: 40 85% 70%;
+    --secondary-foreground: 30 20% 20%;
     --muted: 30 15% 20%;
     --muted-foreground: 45 30% 65%;
-    --accent: 25 50% 35%;
-    --accent-foreground: 45 90% 95%;
+    --accent: 25 55% 55%;
+    --accent-foreground: 30 20% 20%;
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 98%;
     --border: 30 15% 25%;
     --input: 30 15% 25%;
-    --ring: 340 70% 70%;
+    --ring: 340 75% 75%;
     
-    --gradient-primary: linear-gradient(135deg, hsl(340 70% 70%), hsl(340 65% 75%));
+    --gradient-primary: linear-gradient(135deg, hsl(340 75% 75%), hsl(340 70% 80%));
     --gradient-soft: linear-gradient(180deg, hsl(30 15% 12%), hsl(340 80% 20%));
 
     --sidebar-background: 30 15% 10%;
