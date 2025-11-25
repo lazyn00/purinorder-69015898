@@ -565,6 +565,69 @@ SĐT: ${order.delivery_phone}
     });
   };
 
+  const sendBulkEmails = async () => {
+    const selectedOrders = orders.filter(order => selectedOrderIds.has(order.id));
+    
+    if (selectedOrders.length === 0) {
+      toast({
+        title: "Chưa chọn đơn hàng",
+        description: "Vui lòng chọn ít nhất 1 đơn hàng",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const ordersWithEmail = selectedOrders.filter(order => order.customer_email);
+    
+    if (ordersWithEmail.length === 0) {
+      toast({
+        title: "Không có email",
+        description: "Các đơn hàng đã chọn không có email khách hàng",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Đang gửi email...",
+      description: `Đang gửi email cho ${ordersWithEmail.length} đơn hàng`,
+    });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const order of ordersWithEmail) {
+      try {
+        await supabase.functions.invoke('send-order-email', {
+          body: {
+            email: order.customer_email,
+            orderNumber: order.order_number,
+            customerName: order.delivery_name,
+            items: order.items.map((item: any) => ({
+              name: item.name,
+              variant: item.selectedVariant,
+              quantity: item.quantity,
+              price: item.price
+            })),
+            totalPrice: order.total_price,
+            status: `${order.payment_status} - ${order.order_progress}`,
+            type: 'status_change',
+            trackingCode: order.tracking_code
+          }
+        });
+        successCount++;
+      } catch (error) {
+        console.error('Failed to send email for order:', order.id, error);
+        failCount++;
+      }
+    }
+
+    toast({
+      title: "Hoàn thành",
+      description: `Đã gửi ${successCount} email thành công${failCount > 0 ? `, ${failCount} thất bại` : ''}`,
+    });
+  };
+
   const fetchNotifications = async () => {
     setLoadingNotifications(true);
     try {
@@ -956,10 +1019,16 @@ SĐT: ${order.delivery_phone}
               </p>
 
               {selectedOrderIds.size > 0 && (
-                <Button onClick={exportToExcel} className="gap-2">
-                  <FileDown className="h-4 w-4" />
-                  Xuất Excel ({selectedOrderIds.size} đơn)
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={exportToExcel} className="gap-2" variant="outline">
+                    <FileDown className="h-4 w-4" />
+                    Xuất Excel ({selectedOrderIds.size} đơn)
+                  </Button>
+                  <Button onClick={sendBulkEmails} className="gap-2">
+                    <Mail className="h-4 w-4" />
+                    Gửi email ({selectedOrderIds.size} đơn)
+                  </Button>
+                </div>
               )}
               
               <div className="border rounded-lg overflow-hidden">
