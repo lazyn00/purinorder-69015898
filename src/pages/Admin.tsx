@@ -566,17 +566,9 @@ SĐT: ${order.delivery_phone}
   };
 
   const generateEmailContent = (order: Order) => {
-    const itemsHtml = order.items.map((item: any) => `
-      <tr style="border-bottom: 1px solid #f0f0f0;">
-        <td style="padding: 12px 0; color: #333;">
-          <strong>x${item.quantity}</strong> ${item.name}
-          ${item.selectedVariant ? `<br/><span style="color: #666; font-size: 14px;">${item.selectedVariant}</span>` : ''}
-        </td>
-        <td style="padding: 12px 0; text-align: right; color: #FF6B9D; font-weight: bold;">
-          ${item.price.toLocaleString('vi-VN')}đ
-        </td>
-      </tr>
-    `).join('');
+    const itemsList = order.items.map((item: any) => 
+      `• ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''} x${item.quantity}`
+    ).join('\n');
 
     return `
 <!DOCTYPE html>
@@ -584,119 +576,63 @@ SĐT: ${order.delivery_phone}
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cập nhật đơn hàng #${order.order_number}</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #FFF9FB;">
   <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
     <!-- Header -->
-    <div style="background: linear-gradient(135deg, #FF6B9D 0%, #FEC6A1 100%); padding: 40px 30px; text-align: center;">
-      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        🎉 Cập nhật đơn hàng
+    <div style="background: linear-gradient(135deg, #FF6B9D 0%, #FEC6A1 100%); padding: 30px 20px; text-align: center;">
+      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">
+        🍮 Purin Order
       </h1>
-      <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;">
-        Đơn hàng #${order.order_number}
-      </p>
     </div>
 
     <!-- Content -->
-    <div style="padding: 30px;">
-      <!-- Greeting -->
-      <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
-        Kính gửi <strong style="color: #FF6B9D;">${order.delivery_name}</strong>,
+    <div style="padding: 30px 20px;">
+      <p style="font-size: 16px; color: #333; margin: 0 0 20px 0; line-height: 1.6;">
+        Hi bạn iu 🍮
       </p>
-      <p style="font-size: 15px; color: #666; margin: 0 0 30px 0; line-height: 1.6;">
-        Đơn hàng của bạn đã được cập nhật. Dưới đây là thông tin chi tiết:
+      <p style="font-size: 15px; color: #666; margin: 0 0 25px 0; line-height: 1.6;">
+        Đây là email cập nhật tiến độ đơn hàng <strong style="color: #FF6B9D;">#${order.order_number}</strong> của bạn:
       </p>
 
-      <!-- Order Status -->
-      <div style="background-color: #FFF9FB; border-left: 4px solid #FF6B9D; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
-        <h2 style="color: #FF6B9D; margin: 0 0 15px 0; font-size: 18px;">
-          📦 Trạng thái đơn hàng
-        </h2>
+      <!-- Products -->
+      <div style="background-color: #FFF9FB; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #FF6B9D;">
+        <h3 style="color: #FF6B9D; margin: 0 0 15px 0; font-size: 16px;">📦 Sản phẩm</h3>
+        <div style="color: #333; line-height: 1.8; white-space: pre-line;">${itemsList}</div>
+      </div>
+
+      <!-- Status -->
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
-            <td style="padding: 8px 0; color: #666; font-size: 14px;">Thanh toán:</td>
-            <td style="padding: 8px 0; text-align: right; color: #333; font-weight: bold;">${order.payment_status}</td>
+            <td style="padding: 8px 0; color: #666;">💰 Trạng thái thanh toán:</td>
+            <td style="padding: 8px 0; text-align: right; color: #FF6B9D; font-weight: bold;">${order.payment_status}</td>
           </tr>
           <tr>
-            <td style="padding: 8px 0; color: #666; font-size: 14px;">Tiến độ:</td>
-            <td style="padding: 8px 0; text-align: right; color: #333; font-weight: bold;">${order.order_progress}</td>
+            <td style="padding: 8px 0; color: #666;">🚀 Tiến độ đơn hàng:</td>
+            <td style="padding: 8px 0; text-align: right; color: #FF6B9D; font-weight: bold;">${order.order_progress}</td>
           </tr>
           ${order.tracking_code ? `
           <tr>
-            <td style="padding: 8px 0; color: #666; font-size: 14px;">Mã vận đơn:</td>
+            <td style="padding: 8px 0; color: #666;">📍 Mã vận đơn:</td>
             <td style="padding: 8px 0; text-align: right; color: #FF6B9D; font-weight: bold;">${order.tracking_code}</td>
           </tr>
           ` : ''}
         </table>
       </div>
 
-      <!-- Order Items -->
-      <div style="margin-bottom: 25px;">
-        <h2 style="color: #333; margin: 0 0 15px 0; font-size: 18px; border-bottom: 2px solid #FF6B9D; padding-bottom: 10px;">
-          🛍️ Chi tiết sản phẩm
-        </h2>
-        <table style="width: 100%; border-collapse: collapse;">
-          ${itemsHtml}
-        </table>
-      </div>
-
-      <!-- Total -->
-      <div style="background: linear-gradient(135deg, #FF6B9D 0%, #FEC6A1 100%); padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center;">
-        <p style="color: #ffffff; margin: 0; font-size: 14px; opacity: 0.9;">TỔNG CỘNG</p>
-        <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          ${order.total_price.toLocaleString('vi-VN')}đ
-        </p>
-      </div>
-
-      <!-- Delivery Info -->
-      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-        <h2 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">
-          📍 Thông tin giao hàng
-        </h2>
-        <p style="color: #666; margin: 0 0 10px 0; line-height: 1.6;">
-          <strong style="color: #333;">Địa chỉ:</strong><br/>
-          ${order.delivery_address}
-        </p>
-        <p style="color: #666; margin: 0; line-height: 1.6;">
-          <strong style="color: #333;">📞 Điện thoại:</strong> ${order.delivery_phone}
-        </p>
-      </div>
-
-      <!-- Customer Contact -->
-      <div style="background-color: #FFF9FB; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-        <h2 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">
-          👤 Thông tin liên hệ
-        </h2>
-        <p style="color: #666; margin: 0 0 8px 0;">
-          <strong style="color: #333;">📧 Email:</strong> ${order.customer_email || 'Không có'}
-        </p>
-        <p style="color: #666; margin: 0 0 8px 0;">
-          <strong style="color: #333;">📞 SĐT:</strong> ${order.customer_phone}
-        </p>
-        ${order.customer_fb ? `
-        <p style="color: #666; margin: 0;">
-          <strong style="color: #333;">👥 Facebook/Instagram:</strong> 
-          <a href="${order.customer_fb}" style="color: #FF6B9D; text-decoration: none;">${order.customer_fb}</a>
-        </p>
-        ` : ''}
-      </div>
-
-      <!-- Footer Message -->
-      <div style="text-align: center; padding: 20px 0; border-top: 2px solid #f0f0f0;">
-        <p style="color: #FF6B9D; margin: 0 0 10px 0; font-size: 18px; font-weight: bold;">
-          ✨ Cảm ơn bạn đã đặt hàng! ✨
-        </p>
-        <p style="color: #666; margin: 0; font-size: 14px;">
-          Nếu có thắc mắc, vui lòng liên hệ với chúng tôi
+      <!-- Thank you -->
+      <div style="text-align: center; padding: 20px 0; border-top: 2px solid #FFF9FB;">
+        <p style="color: #FF6B9D; margin: 0 0 5px 0; font-size: 18px; font-weight: bold;">
+          Cảm ơn bạn đã tin tưởng và ủng hộ Purin 🍮💖
         </p>
       </div>
     </div>
 
     <!-- Footer -->
-    <div style="background-color: #f9f9f9; padding: 20px 30px; text-align: center; border-top: 1px solid #e0e0e0;">
+    <div style="background-color: #FFF9FB; padding: 15px 20px; text-align: center;">
       <p style="color: #999; margin: 0; font-size: 12px;">
-        © 2024 Purin Order. All rights reserved.
+        © 2024 Purin Order
       </p>
     </div>
   </div>
@@ -1227,6 +1163,16 @@ ${generateEmailContent(order)}
                                 className="text-xs text-primary hover:underline block"
                               >
                                 ✉️ {order.customer_email}
+                              </a>
+                            )}
+                            {order.customer_fb && (
+                              <a 
+                                href={order.customer_fb} 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline block"
+                              >
+                                👥 {order.customer_fb}
                               </a>
                             )}
                             <div className="text-xs text-muted-foreground max-w-[200px]">
