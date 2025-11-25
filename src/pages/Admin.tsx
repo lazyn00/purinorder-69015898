@@ -109,6 +109,7 @@ export default function Admin() {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [orderProgressFilter, setOrderProgressFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -830,13 +831,29 @@ export default function Admin() {
 
                         <TableCell>
                           <div className="space-y-1 max-w-[250px]">
-                            {order.items && order.items.slice(0, 2).map((item: any, index: number) => (
+                            {order.items && order.items.slice(0, expandedOrderIds.has(order.id) ? order.items.length : 2).map((item: any, index: number) => (
                               <div key={index} className="text-xs">
-                                {item.name} {item.selectedVariant && `(${item.selectedVariant})`} x{item.quantity}
+                                x{item.quantity} {item.name} {item.selectedVariant && `(${item.selectedVariant})`}
                               </div>
                             ))}
                             {order.items && order.items.length > 2 && (
-                              <div className="text-xs text-muted-foreground">+{order.items.length - 2} sản phẩm</div>
+                              <button
+                                onClick={() => {
+                                  const newExpanded = new Set(expandedOrderIds);
+                                  if (expandedOrderIds.has(order.id)) {
+                                    newExpanded.delete(order.id);
+                                  } else {
+                                    newExpanded.add(order.id);
+                                  }
+                                  setExpandedOrderIds(newExpanded);
+                                }}
+                                className="text-xs text-primary hover:underline cursor-pointer"
+                              >
+                                {expandedOrderIds.has(order.id) 
+                                  ? 'Thu gọn' 
+                                  : `+${order.items.length - 2} sản phẩm`
+                                }
+                              </button>
                             )}
                           </div>
                         </TableCell>
