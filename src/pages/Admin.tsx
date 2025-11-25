@@ -565,6 +565,45 @@ SĐT: ${order.delivery_phone}
     });
   };
 
+  const generateEmailContent = (order: Order) => {
+    const itemsHtml = order.items.map((item: any) => `
+      • x${item.quantity} ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''} - ${item.price.toLocaleString('vi-VN')}đ
+    `).join('\n');
+
+    return `
+Kính gửi ${order.delivery_name},
+
+Đơn hàng #${order.order_number} của bạn đã được cập nhật.
+
+━━━━━━━━━━━━━━━━━━━━━━
+📦 THÔNG TIN ĐỚN HÀNG
+━━━━━━━━━━━━━━━━━━━━━━
+
+Mã đơn hàng: ${order.order_number}
+Trạng thái thanh toán: ${order.payment_status}
+Tiến độ đơn hàng: ${order.order_progress}
+${order.tracking_code ? `Mã vận đơn: ${order.tracking_code}` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━
+🛍️ CHI TIẾT SẢN PHẨM
+━━━━━━━━━━━━━━━━━━━━━━
+
+${itemsHtml}
+
+━━━━━━━━━━━━━━━━━━━━━━
+💰 TỔNG CỘNG: ${order.total_price.toLocaleString('vi-VN')}đ
+━━━━━━━━━━━━━━━━━━━━━━
+
+📍 Địa chỉ giao hàng:
+${order.delivery_address}
+
+📞 Số điện thoại: ${order.delivery_phone}
+
+Cảm ơn bạn đã đặt hàng!
+Đội ngũ hỗ trợ
+    `.trim();
+  };
+
   const sendBulkEmails = async () => {
     const selectedOrders = orders.filter(order => selectedOrderIds.has(order.id));
     
@@ -588,44 +627,35 @@ SĐT: ${order.delivery_phone}
       return;
     }
 
-    toast({
-      title: "Đang gửi email...",
-      description: `Đang gửi email cho ${ordersWithEmail.length} đơn hàng`,
-    });
+    // Tạo nội dung email cho tất cả đơn hàng
+    const allEmailsContent = ordersWithEmail.map(order => {
+      return `
+════════════════════════════════════════
+📧 Email cho: ${order.customer_email}
+Tiêu đề: Cập nhật đơn hàng #${order.order_number}
+════════════════════════════════════════
 
-    let successCount = 0;
-    let failCount = 0;
+${generateEmailContent(order)}
 
-    for (const order of ordersWithEmail) {
-      try {
-        await supabase.functions.invoke('send-order-email', {
-          body: {
-            email: order.customer_email,
-            orderNumber: order.order_number,
-            customerName: order.delivery_name,
-            items: order.items.map((item: any) => ({
-              name: item.name,
-              variant: item.selectedVariant,
-              quantity: item.quantity,
-              price: item.price
-            })),
-            totalPrice: order.total_price,
-            status: `${order.payment_status} - ${order.order_progress}`,
-            type: 'status_change',
-            trackingCode: order.tracking_code
-          }
-        });
-        successCount++;
-      } catch (error) {
-        console.error('Failed to send email for order:', order.id, error);
-        failCount++;
-      }
+`;
+    }).join('\n\n');
+
+    try {
+      await navigator.clipboard.writeText(allEmailsContent);
+      
+      toast({
+        title: "Đã copy vào clipboard!",
+        description: `Nội dung ${ordersWithEmail.length} email đã được copy. Bạn có thể paste vào email client để gửi.`,
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể copy vào clipboard. Vui lòng thử lại.",
+        variant: "destructive"
+      });
     }
-
-    toast({
-      title: "Hoàn thành",
-      description: `Đã gửi ${successCount} email thành công${failCount > 0 ? `, ${failCount} thất bại` : ''}`,
-    });
   };
 
   const fetchNotifications = async () => {
