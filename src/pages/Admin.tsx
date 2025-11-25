@@ -567,33 +567,28 @@ SĐT: ${order.delivery_phone}
 
   const generateEmailContent = (order: Order) => {
     const itemsList = order.items.map((item: any) => 
-      `  • ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''} x${item.quantity}`
+      `• ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''} x${item.quantity}`
     ).join('\n');
+
+    const paymentStatusDisplay = order.payment_status?.toLowerCase() || '';
+    const orderProgressDisplay = order.order_progress?.toLowerCase() || '';
 
     return `Hi bạn iu 🍮
 
-Đây là email cập nhật tiến độ đơn hàng #${order.order_number} của bạn:
+Purin gửi bạn cập nhật tiến độ đơn hàng #${order.order_number} nè:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 SẢN PHẨM
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+📦 Sản phẩm
 ${itemsList}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 TRẠNG THÁI
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 Trạng thái thanh toán: ${paymentStatusDisplay}
+🚀 Tiến độ: ${orderProgressDisplay}${order.tracking_code ? `\n📍 Mã vận đơn: ${order.tracking_code}` : ''}
 
-💰 Thanh toán: ${order.payment_status}
-🚀 Tiến độ: ${order.order_progress}${order.tracking_code ? `\n📍 Mã vận đơn: ${order.tracking_code}` : ''}
+Cảm ơn bạn đã luôn tin tưởng Purin 🍮💖
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Nếu cần hỗ trợ gì, bạn cứ nhắn Purin liền nha!
 
-Cảm ơn bạn đã tin tưởng và ủng hộ Purin 🍮💖
-
----
-Purin Order
-`.trim();
+—
+Purin Order`.trim();
   };
 
   const sendBulkEmails = async () => {
@@ -769,7 +764,7 @@ ${generateEmailContent(order)}
 
             <TabsContent value="stats" className="space-y-6">
               {/* Tổng quan */}
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
@@ -817,22 +812,22 @@ ${generateEmailContent(order)}
               </div>
 
               {/* Biểu đồ */}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Doanh thu 7 ngày gần nhất</CardTitle>
+                    <CardTitle className="text-sm sm:text-base">Doanh thu 7 ngày gần nhất</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <CardContent className="px-2 sm:px-6">
+                    <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={statistics.revenueByDay}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
+                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
                         <Tooltip 
                           formatter={(value: number) => `${(value * 1000).toLocaleString('vi-VN')}đ`}
                           labelFormatter={(label) => `Ngày ${label}`}
                         />
-                        <Legend />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
                         <Bar dataKey="revenue" fill="hsl(var(--primary))" name="Doanh thu (k)" />
                       </BarChart>
                     </ResponsiveContainer>
@@ -841,10 +836,10 @@ ${generateEmailContent(order)}
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Phân bố trạng thái thanh toán</CardTitle>
+                    <CardTitle className="text-sm sm:text-base">Phân bố trạng thái thanh toán</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <CardContent className="px-2 sm:px-6">
+                    <ResponsiveContainer width="100%" height={250}>
                       <PieChart>
                         <Pie
                           data={statistics.paymentDistribution}
@@ -869,10 +864,10 @@ ${generateEmailContent(order)}
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Phân bố tiến độ đơn hàng</CardTitle>
+                  <CardTitle className="text-sm sm:text-base">Phân bố tiến độ đơn hàng</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                <CardContent className="px-2 sm:px-6">
+                  <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
                       <Pie
                         data={statistics.progressDistribution}
@@ -880,7 +875,7 @@ ${generateEmailContent(order)}
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                        outerRadius={100}
+                        outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -896,7 +891,7 @@ ${generateEmailContent(order)}
             </TabsContent>
 
             <TabsContent value="products" className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng sản phẩm đã bán</CardTitle>
@@ -937,13 +932,13 @@ ${generateEmailContent(order)}
                 <CardContent>
                   <div className="space-y-2">
                     {productStats.map((product) => (
-                      <div key={product.name} className="flex justify-between items-center p-2 border rounded">
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">{product.productName}</p>
+                      <div key={product.name} className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 p-3 border rounded">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm sm:text-base break-words">{product.name}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground break-words">{product.productName}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold">{product.count} sản phẩm</p>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-sm sm:text-base">{product.count} sp</p>
                         </div>
                       </div>
                     ))}
@@ -993,49 +988,49 @@ ${generateEmailContent(order)}
               </p>
 
               {selectedOrderIds.size > 0 && (
-                <div className="flex gap-2">
-                  <Button onClick={exportToExcel} className="gap-2" variant="outline">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button onClick={exportToExcel} className="gap-2 w-full sm:w-auto" variant="outline" size="sm">
                     <FileDown className="h-4 w-4" />
-                    Xuất Excel ({selectedOrderIds.size} đơn)
+                    <span className="hidden xs:inline">Xuất Excel</span> ({selectedOrderIds.size})
                   </Button>
-                  <Button onClick={sendBulkEmails} className="gap-2">
+                  <Button onClick={sendBulkEmails} className="gap-2 w-full sm:w-auto" size="sm">
                     <Mail className="h-4 w-4" />
-                    Gửi email ({selectedOrderIds.size} đơn)
+                    <span className="hidden xs:inline">Gửi email</span> ({selectedOrderIds.size})
                   </Button>
                 </div>
               )}
               
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50px]">
+                      <TableHead className="w-[50px] sticky left-0 bg-background z-10">
                         <Checkbox
                           checked={selectedOrderIds.size === paginatedOrders.length && paginatedOrders.length > 0}
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      <TableHead className="w-[100px]">Mã đơn</TableHead>
-                      <TableHead>Khách hàng</TableHead>
-                      <TableHead>Sản phẩm</TableHead>
-                      <TableHead className="text-right">Tổng tiền</TableHead>
-                      <TableHead>Thanh toán</TableHead>
-                      <TableHead>Tiến độ</TableHead>
-                      <TableHead>Vận chuyển</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
+                      <TableHead className="min-w-[100px] sticky left-[50px] bg-background z-10">Mã đơn</TableHead>
+                      <TableHead className="min-w-[200px]">Khách hàng</TableHead>
+                      <TableHead className="min-w-[200px]">Sản phẩm</TableHead>
+                      <TableHead className="text-right min-w-[100px]">Tổng tiền</TableHead>
+                      <TableHead className="min-w-[120px]">Thanh toán</TableHead>
+                      <TableHead className="min-w-[120px]">Tiến độ</TableHead>
+                      <TableHead className="min-w-[150px]">Vận chuyển</TableHead>
+                      <TableHead className="text-right min-w-[100px]">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedOrders.map((order) => (
+                      {paginatedOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell>
+                        <TableCell className="sticky left-0 bg-background">
                           <Checkbox
                             checked={selectedOrderIds.has(order.id)}
                             onCheckedChange={() => toggleSelectOrder(order.id)}
                           />
                         </TableCell>
                         
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium sticky left-[50px] bg-background">
                           <div className="space-y-1">
                             <div className="text-sm">#{order.order_number || order.id.slice(0, 8)}</div>
                             <div className="text-xs text-muted-foreground">
@@ -1066,7 +1061,9 @@ ${generateEmailContent(order)}
                             </a>
                             {order.customer_email && (
                               <a 
-                                href={`mailto:${order.customer_email}`} 
+                                href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(order.customer_email)}&su=${encodeURIComponent(`Cập nhật đơn hàng #${order.order_number}`)}&body=${encodeURIComponent(generateEmailContent(order))}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="text-xs text-primary hover:underline block"
                               >
                                 ✉️ {order.customer_email}
