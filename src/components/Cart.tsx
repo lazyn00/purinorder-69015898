@@ -117,15 +117,14 @@ export function Cart() {
               <Separator />
               
               <SheetClose asChild>
-                <Button 
-                  className="w-full bg-gradient-primary"
-                  size="lg"
-                  asChild
-                >
-                  <Link to="/checkout">
+                <Link to="/checkout">
+                  <Button 
+                    className="w-full bg-gradient-primary"
+                    size="lg"
+                  >
                     Đặt hàng ngay
-                  </Link>
-                </Button>
+                  </Button>
+                </Link>
               </SheetClose>
             </div>
           </>

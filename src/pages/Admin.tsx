@@ -1152,16 +1152,12 @@ ${generateEmailContent(order)}
               {selectedOrderIds.size > 0 && (
                 <div className="flex gap-2">
                   <Button onClick={exportToExcel} className="gap-2" variant="outline">
-                    <>
-                      <FileDown className="h-4 w-4" />
-                      Xuất Excel ({selectedOrderIds.size} đơn)
-                    </>
+                    <FileDown className="h-4 w-4" />
+                    Xuất Excel ({selectedOrderIds.size} đơn)
                   </Button>
                   <Button onClick={sendBulkEmails} className="gap-2">
-                    <>
-                      <Mail className="h-4 w-4" />
-                      Gửi email ({selectedOrderIds.size} đơn)
-                    </>
+                    <Mail className="h-4 w-4" />
+                    Gửi email ({selectedOrderIds.size} đơn)
                   </Button>
                 </div>
               )}
