@@ -1,33 +1,20 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, User } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, X } from "lucide-react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
-import { ThemeToggle } from "./ThemeToggle";
-import { supabase } from "@/integrations/supabase/client";
+import { ScrollToTop } from "./ScrollToTop";
 
 const menuItems = [
   { path: "/products", label: "Sản phẩm" },
   { path: "/policy", label: "Chính sách" },
   { path: "/contact", label: "Liên hệ" },
-  { path: "/trackorder", label: "Tra đơn" },
+  { path: "/track-order", label: "Tra đơn" },
 ];
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -53,27 +40,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   {item.label}
                 </Link>
               ))}
-              <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate(user ? "/profile" : "/auth")}
-              >
-                <User className="h-5 w-5" />
-              </Button>
               <Cart />
             </div>
 
             {/* Mobile Menu Button and Cart */}
             <div className="flex items-center gap-2 md:hidden">
-              <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate(user ? "/profile" : "/auth")}
-              >
-                <User className="h-5 w-5" />
-              </Button>
               <Cart />
               <Button
                 variant="ghost"
@@ -116,6 +87,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </footer>
+      
+      <ScrollToTop />
     </div>
   );
 };
