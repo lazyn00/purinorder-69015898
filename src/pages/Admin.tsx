@@ -158,7 +158,7 @@ export default function Admin() {
 
   // Product statistics by variant
   const productStats = useMemo(() => {
-    const stats: { [key: string]: { count: number; productName: string } } = {};
+    const stats: { [key: string]: { count: number; productName: string; hasVariant: boolean } } = {};
     
     orders.forEach(order => {
       if (order.order_progress === 'Đã huỷ') return;
@@ -171,7 +171,8 @@ export default function Admin() {
         if (!stats[variantKey]) {
           stats[variantKey] = {
             count: 0,
-            productName: item.name
+            productName: item.name,
+            hasVariant: !!item.selectedVariant
           };
         }
         stats[variantKey].count += item.quantity;
@@ -179,7 +180,7 @@ export default function Admin() {
     });
 
     return Object.entries(stats)
-      .map(([name, data]) => ({ name, count: data.count, productName: data.productName }))
+      .map(([name, data]) => ({ name, count: data.count, productName: data.productName, hasVariant: data.hasVariant }))
       .sort((a, b) => b.count - a.count);
   }, [orders]);
 
@@ -935,7 +936,9 @@ ${generateEmailContent(order)}
                       <div key={product.name} className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 p-3 border rounded">
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm sm:text-base break-words">{product.name}</p>
-                          <p className="text-xs sm:text-sm text-muted-foreground break-words">{product.productName}</p>
+                          {product.hasVariant && (
+                            <p className="text-xs sm:text-sm text-muted-foreground break-words">{product.productName}</p>
+                          )}
                         </div>
                         <div className="text-right shrink-0">
                           <p className="font-bold text-sm sm:text-base">{product.count} sp</p>
@@ -1060,14 +1063,9 @@ ${generateEmailContent(order)}
                               📞 {order.customer_phone}
                             </a>
                             {order.customer_email && (
-                              <a 
-                                href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(order.customer_email)}&su=${encodeURIComponent(`Cập nhật đơn hàng #${order.order_number}`)}&body=${encodeURIComponent(generateEmailContent(order))}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline block"
-                              >
+                              <div className="text-xs text-muted-foreground">
                                 ✉️ {order.customer_email}
-                              </a>
+                              </div>
                             )}
                             {order.customer_fb && (
                               <a 
