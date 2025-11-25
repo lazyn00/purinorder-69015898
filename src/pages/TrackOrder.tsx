@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Package, Upload, Truck, Save, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea"; // Thêm Textarea cho ghi chú
+import { Textarea } from "@/components/ui/textarea";
 
 interface Order {
   id: string;
@@ -21,7 +21,6 @@ interface Order {
   delivery_name: string;
   delivery_phone: string;
   delivery_address: string;
-  // **THÊM TRƯỜNG GHI CHÚ GIAO HÀNG**
   delivery_note: string; 
   items: any[];
   total_price: number;
@@ -33,8 +32,6 @@ interface Order {
   shipping_provider: string;
   tracking_code: string;
 }
-
-// ... (getStatusColor function remains the same)
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -63,18 +60,14 @@ const getStatusColor = (status: string) => {
   }
 };
 
-
 export default function TrackOrder() {
   const [phone, setPhone] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
-  
-  // **THÊM STATE CHO VIỆC CHỈNH SỬA THÔNG TIN GIAO HÀNG**
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [tempDeliveryData, setTempDeliveryData] = useState<Partial<Order>>({});
   const [isUpdatingDelivery, setIsUpdatingDelivery] = useState(false);
-  // ----------------------------------------------------------------------
   
   const { toast } = useToast();
 
@@ -130,7 +123,6 @@ export default function TrackOrder() {
 
   const handleUploadSecondPayment = async (orderId: string, file: File) => {
     setUploadingOrderId(orderId);
-    // ... (rest of handleUploadSecondPayment remains the same)
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
@@ -177,12 +169,10 @@ export default function TrackOrder() {
     }
   };
 
-  // **HÀM XỬ LÝ VIỆC CẬP NHẬT THÔNG TIN GIAO HÀNG**
   const handleUpdateDeliveryInfo = async (order: Order) => {
     setIsUpdatingDelivery(true);
     const orderId = order.id;
 
-    // Lấy dữ liệu mới nhất từ tempDeliveryData, fallback về dữ liệu cũ nếu chưa chỉnh sửa
     const newDeliveryData = {
       delivery_name: tempDeliveryData.delivery_name || order.delivery_name,
       delivery_phone: tempDeliveryData.delivery_phone || order.delivery_phone,
@@ -198,14 +188,12 @@ export default function TrackOrder() {
 
       if (updateError) throw updateError;
 
-      // Cập nhật state orders với thông tin mới
       setOrders(orders.map(o => 
         o.id === orderId 
           ? { ...o, ...newDeliveryData } 
           : o
       ));
 
-      // Đóng chế độ chỉnh sửa
       setEditingOrderId(null);
       setTempDeliveryData({}); 
 
@@ -227,7 +215,6 @@ export default function TrackOrder() {
 
   const startEditing = (order: Order) => {
     setEditingOrderId(order.id);
-    // Khởi tạo tempDeliveryData với dữ liệu hiện tại của đơn hàng
     setTempDeliveryData({
       delivery_name: order.delivery_name,
       delivery_phone: order.delivery_phone,
@@ -235,8 +222,6 @@ export default function TrackOrder() {
       delivery_note: order.delivery_note,
     });
   };
-  // ----------------------------------------------------------------------
-
 
   return (
     <Layout>
@@ -247,7 +232,6 @@ export default function TrackOrder() {
           <p className="text-muted-foreground">Nhập số điện thoại để tra cứu đơn hàng của bạn</p>
         </div>
 
-        {/* Search Card remains the same */}
         <Card className="mb-8">
           <CardContent className="pt-6">
             <form onSubmit={handleSearch} className="space-y-4">
@@ -286,9 +270,6 @@ export default function TrackOrder() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {new Date(order.created_at).toLocaleString('vi-VN')}
-                      </p>
                     </div>
                     <Badge variant="outline" className={`${getStatusColor(order.status)} border font-medium`}>
                       {order.status}
@@ -297,7 +278,6 @@ export default function TrackOrder() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   
-                  {/* ... (Total and Payment Info) ... */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Tổng tiền</p>
@@ -314,7 +294,6 @@ export default function TrackOrder() {
 
                   <Separator />
                   
-                  {/* ... (Items List) ... */}
                   <div>
                     <p className="text-muted-foreground text-sm mb-2">Sản phẩm</p>
                     <div className="space-y-2">
@@ -329,13 +308,11 @@ export default function TrackOrder() {
 
                   <Separator />
 
-                  {/* 🚚 KHUNG CẬP NHẬT THÔNG TIN GIAO HÀNG */}
                   <div className="p-4 bg-gray-50 dark:bg-gray-950/20 rounded-lg border border-gray-200 dark:border-gray-800">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
                         <Truck className="h-5 w-5" /> Thông tin nhận hàng
                       </h3>
-                      {/* Cho phép chỉnh sửa khi trạng thái là "đang vận chuyển" */}
                       {order.status === 'đang vận chuyển' && editingOrderId !== order.id && (
                         <Button variant="ghost" size="sm" onClick={() => startEditing(order)}>
                           <Edit2 className="h-4 w-4 mr-2" />
@@ -344,7 +321,6 @@ export default function TrackOrder() {
                       )}
                     </div>
                     
-                    {/* HIỂN THỊ DẠNG VIEW */}
                     {editingOrderId !== order.id ? (
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
@@ -367,7 +343,6 @@ export default function TrackOrder() {
                         </div>
                       </div>
                     ) : (
-                      /* HIỂN THỊ DẠNG FORM CHỈNH SỬA */
                       <div className="space-y-3">
                         <div className="space-y-1">
                           <Label htmlFor={`name-${order.id}`}>Tên người nhận</Label>
@@ -425,12 +400,8 @@ export default function TrackOrder() {
                         </div>
                       </div>
                     )}
-
                   </div>
-                  {/* ---------------------------------------------------------------------- */}
 
-
-                  {/* Shipping information section (Tracking code) */}
                   {order.shipping_provider && order.tracking_code && (
                     <>
                       <Separator />
@@ -452,7 +423,6 @@ export default function TrackOrder() {
                     </>
                   )}
 
-                  {/* ... (Upload bill box) ... */}
                   {!order.second_payment_proof_url && (
                     <>
                       <Separator />
