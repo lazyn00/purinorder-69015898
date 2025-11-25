@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { ThemeToggle } from "./ThemeToggle";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
 
