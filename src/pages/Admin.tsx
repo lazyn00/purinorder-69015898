@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square } from "lucide-react";
+import * as XLSX from 'xlsx';
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -98,6 +100,15 @@ interface Order {
 const COLORS = ['#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#60a5fa', '#fb923c'];
 const ORDERS_PER_PAGE = 20;
 
+interface ProductNotification {
+  id: string;
+  product_id: number;
+  product_name: string;
+  email: string;
+  notified: boolean;
+  created_at: string;
+}
+
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
@@ -110,6 +121,10 @@ export default function Admin() {
   const [orderProgressFilter, setOrderProgressFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [expandedAddresses, setExpandedAddresses] = useState<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<ProductNotification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -440,6 +455,142 @@ export default function Admin() {
     }
   };
 
+  const copyDeliveryInfo = (order: Order) => {
+    const info = `Tên: ${order.delivery_name}
+SĐT: ${order.delivery_phone}
+Địa chỉ: ${order.delivery_address}${order.delivery_note ? `\nGhi chú: ${order.delivery_note}` : ''}`;
+    
+    navigator.clipboard.writeText(info).then(() => {
+      toast({
+        title: "Đã sao chép",
+        description: "Thông tin giao hàng đã được copy",
+      });
+    }).catch(() => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể sao chép",
+        variant: "destructive"
+      });
+    });
+  };
+
+  const toggleSelectOrder = (orderId: string) => {
+    const newSelected = new Set(selectedOrderIds);
+    if (newSelected.has(orderId)) {
+      newSelected.delete(orderId);
+    } else {
+      newSelected.add(orderId);
+    }
+    setSelectedOrderIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.size === paginatedOrders.length) {
+      setSelectedOrderIds(new Set());
+    } else {
+      setSelectedOrderIds(new Set(paginatedOrders.map(o => o.id)));
+    }
+  };
+
+  const exportToExcel = () => {
+    const selectedOrders = orders.filter(o => selectedOrderIds.has(o.id));
+    
+    if (selectedOrders.length === 0) {
+      toast({
+        title: "Chưa chọn đơn hàng",
+        description: "Vui lòng chọn ít nhất 1 đơn hàng để xuất",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const exportData = selectedOrders.map(order => ({
+      'Mã đơn': order.order_number || order.id.slice(0, 8),
+      'Ngày đặt': new Date(order.created_at).toLocaleDateString('vi-VN'),
+      'Tên khách': order.delivery_name,
+      'SĐT liên lạc': order.customer_phone,
+      'Email': order.customer_email || '',
+      'SĐT nhận hàng': order.delivery_phone,
+      'Địa chỉ': order.delivery_address,
+      'Ghi chú': order.delivery_note || '',
+      'Sản phẩm': order.items.map((item: any) => 
+        `x${item.quantity} ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''}`
+      ).join(', '),
+      'Tổng tiền': order.total_price,
+      'Thanh toán': order.payment_status,
+      'Tiến độ': order.order_progress,
+      'Hình thức': order.payment_type,
+      'Phương thức': order.payment_method,
+      'Vận chuyển': order.shipping_provider || '',
+      'Mã vận đơn': order.tracking_code || ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Đơn hàng");
+    
+    const fileName = `don-hang-${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    
+    toast({
+      title: "Xuất thành công",
+      description: `Đã xuất ${selectedOrders.length} đơn hàng`,
+    });
+  };
+
+  const fetchNotifications = async () => {
+    setLoadingNotifications(true);
+    try {
+      const { data, error } = await supabase
+        .from('product_notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách thông báo",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const sendProductNotification = async (productId: number, productName: string) => {
+    try {
+      const productUrl = `${window.location.origin}/product/${productId}`;
+      
+      const { error } = await supabase.functions.invoke('notify-product-available', {
+        body: {
+          productId,
+          productName,
+          productUrl
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Đã gửi thông báo",
+        description: `Đã gửi email cho khách hàng đăng ký sản phẩm ${productName}`,
+      });
+
+      // Refresh notifications
+      fetchNotifications();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể gửi thông báo",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <Layout>
@@ -497,10 +648,11 @@ export default function Admin() {
           </div>
         ) : (
           <Tabs defaultValue="stats" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-3">
+            <TabsList className="grid w-full max-w-2xl grid-cols-4">
               <TabsTrigger value="stats">Thống kê doanh thu</TabsTrigger>
               <TabsTrigger value="products">Thống kê sản phẩm</TabsTrigger>
               <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
+              <TabsTrigger value="notifications" onClick={fetchNotifications}>Thông báo hàng</TabsTrigger>
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
@@ -773,12 +925,26 @@ export default function Admin() {
 
               <p className="text-sm text-muted-foreground">
                 Hiển thị {paginatedOrders.length} / {filteredOrders.length} đơn hàng
+                {selectedOrderIds.size > 0 && ` • Đã chọn ${selectedOrderIds.size} đơn`}
               </p>
+
+              {selectedOrderIds.size > 0 && (
+                <Button onClick={exportToExcel} className="gap-2">
+                  <FileDown className="h-4 w-4" />
+                  Xuất Excel ({selectedOrderIds.size} đơn)
+                </Button>
+              )}
               
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox
+                          checked={selectedOrderIds.size === paginatedOrders.length && paginatedOrders.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead className="w-[100px]">Mã đơn</TableHead>
                       <TableHead>Khách hàng</TableHead>
                       <TableHead>Sản phẩm</TableHead>
@@ -792,6 +958,13 @@ export default function Admin() {
                   <TableBody>
                     {paginatedOrders.map((order) => (
                       <TableRow key={order.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedOrderIds.has(order.id)}
+                            onCheckedChange={() => toggleSelectOrder(order.id)}
+                          />
+                        </TableCell>
+                        
                         <TableCell className="font-medium">
                           <div className="space-y-1">
                             <div className="text-sm">#{order.order_number || order.id.slice(0, 8)}</div>
@@ -803,7 +976,18 @@ export default function Admin() {
                         
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="font-medium text-sm">{order.delivery_name}</div>
+                            <div className="font-medium text-sm flex items-center gap-2">
+                              {order.delivery_name}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => copyDeliveryInfo(order)}
+                                title="Sao chép thông tin giao hàng"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
                             <a 
                               href={`tel:${order.customer_phone}`} 
                               className="text-xs text-primary hover:underline block"
@@ -818,8 +1002,42 @@ export default function Admin() {
                                 ✉️ {order.customer_email}
                               </a>
                             )}
-                            <div className="text-xs text-muted-foreground max-w-[200px] truncate">
-                              {order.delivery_address}
+                            <div className="text-xs text-muted-foreground max-w-[200px]">
+                              {expandedAddresses.has(order.id) ? (
+                                <div>
+                                  {order.delivery_address}
+                                  <button
+                                    onClick={() => {
+                                      const newExpanded = new Set(expandedAddresses);
+                                      newExpanded.delete(order.id);
+                                      setExpandedAddresses(newExpanded);
+                                    }}
+                                    className="text-primary hover:underline ml-1"
+                                  >
+                                    Thu gọn
+                                  </button>
+                                </div>
+                              ) : (
+                                <div>
+                                  {order.delivery_address.length > 50 ? (
+                                    <>
+                                      {order.delivery_address.substring(0, 50)}...
+                                      <button
+                                        onClick={() => {
+                                          const newExpanded = new Set(expandedAddresses);
+                                          newExpanded.add(order.id);
+                                          setExpandedAddresses(newExpanded);
+                                        }}
+                                        className="text-primary hover:underline ml-1"
+                                      >
+                                        Xem thêm
+                                      </button>
+                                    </>
+                                  ) : (
+                                    order.delivery_address
+                                  )}
+                                </div>
+                              )}
                             </div>
                             {order.delivery_note && (
                               <div className="text-xs italic text-orange-600 dark:text-orange-400 mt-1">
@@ -997,6 +1215,100 @@ export default function Admin() {
                   </PaginationContent>
                 </Pagination>
               )}
+            </TabsContent>
+
+            <TabsContent value="notifications" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    Quản lý thông báo sản phẩm có hàng
+                  </CardTitle>
+                  <CardDescription>
+                    Danh sách khách hàng đăng ký nhận thông báo khi sản phẩm có hàng trở lại
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingNotifications ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Chưa có đăng ký thông báo nào
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Group notifications by product */}
+                      {Object.entries(
+                        notifications.reduce((acc, notif) => {
+                          if (!acc[notif.product_id]) {
+                            acc[notif.product_id] = [];
+                          }
+                          acc[notif.product_id].push(notif);
+                          return acc;
+                        }, {} as Record<number, ProductNotification[]>)
+                      ).map(([productId, productNotifs]) => {
+                        const unnotifiedCount = productNotifs.filter(n => !n.notified).length;
+                        return (
+                          <Card key={productId}>
+                            <CardHeader>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <CardTitle className="text-lg">{productNotifs[0].product_name}</CardTitle>
+                                  <CardDescription>
+                                    {productNotifs.length} đăng ký • {unnotifiedCount} chưa thông báo
+                                  </CardDescription>
+                                </div>
+                                {unnotifiedCount > 0 && (
+                                  <Button
+                                    onClick={() => sendProductNotification(Number(productId), productNotifs[0].product_name)}
+                                    className="gap-2"
+                                  >
+                                    <Mail className="h-4 w-4" />
+                                    Gửi thông báo ({unnotifiedCount})
+                                  </Button>
+                                )}
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                {productNotifs.map((notif) => (
+                                  <div
+                                    key={notif.id}
+                                    className="flex items-center justify-between p-2 rounded-lg border bg-card text-sm"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <Mail className="h-4 w-4 text-muted-foreground" />
+                                      <div>
+                                        <div className="font-medium">{notif.email}</div>
+                                        <div className="text-xs text-muted-foreground">
+                                          Đăng ký: {new Date(notif.created_at).toLocaleDateString('vi-VN')}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {notif.notified ? (
+                                      <Badge variant="secondary" className="gap-1">
+                                        <CheckSquare className="h-3 w-3" />
+                                        Đã gửi
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="gap-1">
+                                        <Square className="h-3 w-3" />
+                                        Chưa gửi
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         )}
