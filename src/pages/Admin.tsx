@@ -334,6 +334,33 @@ export default function Admin() {
 
       if (error) throw error;
 
+      const order = orders.find(o => o.id === orderId);
+      
+      if (order && order.customer_email) {
+        try {
+          await supabase.functions.invoke('send-order-email', {
+            body: {
+              email: order.customer_email,
+              orderNumber: order.order_number,
+              customerName: order.delivery_name,
+              items: order.items.map((item: any) => ({
+                name: item.name,
+                variant: item.selectedVariant,
+                quantity: item.quantity,
+                price: item.price
+              })),
+              totalPrice: order.total_price,
+              status: `${newStatus} - ${order.order_progress}`,
+              type: 'status_change'
+            }
+          });
+          
+          console.log('Payment status email notification sent');
+        } catch (emailError) {
+          console.warn('Failed to send payment status email:', emailError);
+        }
+      }
+
       setOrders(orders.map(order => 
         order.id === orderId ? { ...order, payment_status: newStatus } : order
       ));
