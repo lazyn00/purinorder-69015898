@@ -307,8 +307,7 @@ export default function TrackOrder() {
                     <div className="space-y-2">
                       {order.items && order.items.map((item: any, index: number) => (
                         <div key={index} className="flex justify-between text-sm">
-                          <span>{item.name} {item.selectedVariant && `(${item.selectedVariant})`}</span>
-                          <span>x{item.quantity}</span>
+                          <span>x{item.quantity} {item.name} {item.selectedVariant && `(${item.selectedVariant})`}</span>
                         </div>
                       ))}
                     </div>

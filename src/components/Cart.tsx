@@ -63,13 +63,13 @@ export function Cart() {
                       alt={item.name}
                       className="w-20 h-20 object-cover rounded"
                     />
-                    <div className="flex-1 space-y-2">
-                      <h4 className="font-semibold text-sm line-clamp-1">{item.name}</h4>
-                      {item.selectedVariant && (
-                        <p className="text-xs text-muted-foreground">
-                          Phân loại: {item.selectedVariant}
-                        </p>
-                      )}
+                    <div className="flex-1 space-y-2">
+                      <h4 className="font-semibold text-sm line-clamp-1">x{item.quantity} {item.name}</h4>
+                      {item.selectedVariant && (
+                        <p className="text-xs text-muted-foreground">
+                          Phân loại: {item.selectedVariant}
+                        </p>
+                      )}
                       {/* Sửa lại: hiển thị tổng tiền của line item */}
                       <p className="text-sm font-bold text-primary">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</p>
                       <div className="flex items-center justify-between">

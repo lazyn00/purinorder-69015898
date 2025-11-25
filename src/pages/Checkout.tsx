@@ -61,26 +61,50 @@ export default function Checkout() {
     }
   };
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!contactInfo.fb || !contactInfo.email || !contactInfo.phone) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng điền đầy đủ tất cả thông tin liên hệ.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!deliveryInfo.name || !deliveryInfo.phone || !deliveryInfo.address) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng điền đầy đủ thông tin nhận hàng.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleSubmitOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!contactInfo.fb || !contactInfo.email || !contactInfo.phone) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng điền đầy đủ tất cả thông tin liên hệ.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Nếu số điện thoại nhận hàng khác với số liên lạc thì phải điền
+    if (deliveryInfo.phone && deliveryInfo.phone !== contactInfo.phone) {
+      // Có điền số khác -> kiểm tra đầy đủ thông tin nhận hàng
+      if (!deliveryInfo.name || !deliveryInfo.address) {
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng điền đầy đủ thông tin nhận hàng.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (!deliveryInfo.phone) {
+      // Không điền số nhận hàng -> dùng số liên lạc, nhưng vẫn cần tên và địa chỉ
+      if (!deliveryInfo.name || !deliveryInfo.address) {
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng điền đầy đủ thông tin nhận hàng.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else {
+      // deliveryInfo.phone === contactInfo.phone -> dùng chung, cần tên và địa chỉ
+      if (!deliveryInfo.name || !deliveryInfo.address) {
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng điền đầy đủ thông tin nhận hàng.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
 
     if (!paymentProof) {
       toast({
@@ -122,6 +146,9 @@ export default function Checkout() {
       const orderNumber = `PO${dateStr}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
 
 
+      // Sử dụng số điện thoại liên lạc nếu không điền số nhận hàng
+      const finalDeliveryPhone = deliveryInfo.phone || contactInfo.phone;
+
       const { error: insertError } = await (supabase as any)
         .from('orders')
         .insert({
@@ -130,7 +157,7 @@ export default function Checkout() {
           customer_email: contactInfo.email,
           customer_phone: contactInfo.phone,
           delivery_name: deliveryInfo.name,
-          delivery_phone: deliveryInfo.phone,
+          delivery_phone: finalDeliveryPhone,
           delivery_address: deliveryInfo.address,
           delivery_note: deliveryInfo.note,
           items: cartItems as any,
@@ -163,7 +190,7 @@ export default function Checkout() {
               customer_email: contactInfo.email,
               customer_phone: contactInfo.phone,
               delivery_name: deliveryInfo.name,
-              delivery_phone: deliveryInfo.phone,
+              delivery_phone: finalDeliveryPhone,
               delivery_address: deliveryInfo.address,
               delivery_note: deliveryInfo.note,
               items: cartItems,
@@ -196,9 +223,9 @@ export default function Checkout() {
               price: item.price
             })),
             totalPrice: totalPrice,
-            status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán',
-            paymentStatus: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán',
-            orderProgress: 'đang xử lý',
+            status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
+            paymentStatus: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
+            orderProgress: 'Đang xử lý',
             type: 'new_order',
             deliveryAddress: deliveryInfo.address
           }
@@ -293,8 +320,14 @@ export default function Checkout() {
                 <Input id="delivery-name" value={deliveryInfo.name} onChange={(e) => setDeliveryInfo({...deliveryInfo, name: e.target.value})} placeholder="Nguyễn Văn A" required />
                 </div>
               <div>
-                <Label htmlFor="delivery-phone">Số điện thoại nhận hàng *</Label>
-                <Input id="delivery-phone" type="tel" value={deliveryInfo.phone} onChange={(e) => setDeliveryInfo({...deliveryInfo, phone: e.target.value})} placeholder="090..." required />
+                <Label htmlFor="delivery-phone">Số điện thoại nhận hàng {contactInfo.phone && "(Bỏ trống nếu giống SĐT liên lạc)"}</Label>
+                <Input 
+                  id="delivery-phone" 
+                  type="tel" 
+                  value={deliveryInfo.phone} 
+                  onChange={(e) => setDeliveryInfo({...deliveryInfo, phone: e.target.value})} 
+                  placeholder={contactInfo.phone || "090..."} 
+                />
               </div>
               <div>
                 <Label htmlFor="delivery-address">Địa chỉ nhận hàng *</Label>
@@ -412,19 +445,18 @@ export default function Checkout() {
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Giỏ hàng</h2>
             <div className="space-y-4">
-              {cartItems.map((item) => (
-                <div key={`${item.id}-${item.selectedVariant}`} className="flex items-center gap-4">
-                  <img src={getVariantImage(item)} alt={item.name} className="w-16 h-16 object-cover rounded" />
-                  <div className="flex-1">
-                    <p className="font-medium">{item.name}</p>
-                    {item.selectedVariant && <p className="text-sm text-muted-foreground">{item.selectedVariant}</p>}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</p>
-                    <p className="text-sm text-muted-foreground">SL: {item.quantity}</p>
-                  </div>
-                </div>
-              ))}
+              {cartItems.map((item) => (
+                <div key={`${item.id}-${item.selectedVariant}`} className="flex items-center gap-4">
+                  <img src={getVariantImage(item)} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                  <div className="flex-1">
+                    <p className="font-medium">x{item.quantity} {item.name}</p>
+                    {item.selectedVariant && <p className="text-sm text-muted-foreground">{item.selectedVariant}</p>}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
