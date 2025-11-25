@@ -36,25 +36,27 @@ interface Order {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "chưa thanh toán":
+    case "Chưa thanh toán":
       return "bg-red-100 text-red-800 border-red-200";
-    case "đã thanh toán":
+    case "Đã thanh toán":
       return "bg-green-100 text-green-800 border-green-200";
-    case "đã cọc":
+    case "Đã cọc":
       return "bg-amber-100 text-amber-800 border-amber-200";
-    case "Purin đã đặt hàng":
+    case "Đã hoàn cọc":
+      return "bg-pink-100 text-pink-800 border-pink-200";
+    case "Đã đặt hàng":
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "Đang sản xuất":
       return "bg-purple-100 text-purple-800 border-purple-200";
-    case "đang vận chuyển":
+    case "Đang vận chuyển":
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "đang giao":
+    case "Đang giao":
       return "bg-orange-100 text-orange-800 border-orange-200";
-    case "đã hoàn thành":
+    case "Đã hoàn thành":
       return "bg-emerald-100 text-emerald-800 border-emerald-200";
-    case "đã huỷ":
+    case "Đã huỷ":
       return "bg-gray-100 text-gray-800 border-gray-200";
-    case "đang xử lý":
+    case "Đang xử lý":
       return "bg-cyan-100 text-cyan-800 border-cyan-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";

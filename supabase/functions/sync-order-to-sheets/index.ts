@@ -41,7 +41,8 @@ serve(async (req) => {
       totalPrice: order.total_price,
       paymentMethod: order.payment_method || '',
       paymentType: order.payment_type || 'full',
-      status: order.status || 'chưa thanh toán',
+      paymentStatus: order.payment_status || 'Chưa thanh toán',
+      orderProgress: order.order_progress || 'Đang xử lý',
       paymentProofUrl: order.payment_proof_url || '',
       secondPaymentProofUrl: order.second_payment_proof_url || ''
     }

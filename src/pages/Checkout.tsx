@@ -135,8 +135,8 @@ export default function Checkout() {
           payment_method: selectedMethod,
           payment_type: paymentType,
           payment_proof_url: paymentProofUrl,
-          payment_status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán',
-          order_progress: 'đang xử lý'
+          payment_status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
+          order_progress: 'Đang xử lý'
         } as any);
 
       if (insertError) {
@@ -167,8 +167,8 @@ export default function Checkout() {
               payment_method: selectedMethod,
               payment_type: paymentType,
               payment_proof_url: paymentProofUrl,
-              payment_status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán',
-              order_progress: 'đang xử lý'
+              payment_status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
+              order_progress: 'Đang xử lý'
             }
           })
         }).catch(err => {
