@@ -10,6 +10,7 @@ const menuItems = [
   { path: "/products", label: "Sản phẩm" },
   { path: "/policy", label: "Chính sách" },
   { path: "/contact", label: "Liên hệ" },
+  { path: "/trackorder", label: "Tra đơn" },
 ];
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
