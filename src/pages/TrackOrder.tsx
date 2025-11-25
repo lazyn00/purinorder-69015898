@@ -24,7 +24,8 @@ interface Order {
   delivery_note: string; 
   items: any[];
   total_price: number;
-  status: string;
+  payment_status: string;
+  order_progress: string;
   payment_method: string;
   payment_type: string;
   payment_proof_url: string;
@@ -267,13 +268,18 @@ export default function TrackOrder() {
             {orders.map((order) => (
               <Card key={order.id}>
                 <CardHeader>
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start flex-wrap gap-2">
                     <div>
                       <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
                     </div>
-                    <Badge variant="outline" className={`${getStatusColor(order.status)} border font-medium`}>
-                      {order.status}
-                    </Badge>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium`}>
+                        {order.payment_status}
+                      </Badge>
+                      <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium`}>
+                        {order.order_progress}
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -313,7 +319,7 @@ export default function TrackOrder() {
                       <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
                         <Truck className="h-5 w-5" /> Thông tin nhận hàng
                       </h3>
-                      {order.status === 'đang vận chuyển' && editingOrderId !== order.id && (
+                      {order.order_progress === 'đang vận chuyển' && editingOrderId !== order.id && (
                         <Button variant="ghost" size="sm" onClick={() => startEditing(order)}>
                           <Edit2 className="h-4 w-4 mr-2" />
                           Chỉnh sửa
@@ -428,12 +434,12 @@ export default function TrackOrder() {
                       <Separator />
                       <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
                         <Label className="font-semibold text-lg mb-3 block">
-                          {order.payment_type === 'deposit' && order.status === 'đã cọc' 
+                          {order.payment_type === 'deposit' && order.payment_status === 'đã cọc' 
                             ? 'Thanh toán 50% còn lại' 
                             : 'Đăng bill bổ sung'}
                         </Label>
                         <p className="text-sm text-muted-foreground mb-4">
-                          {order.payment_type === 'deposit' && order.status === 'đã cọc'
+                          {order.payment_type === 'deposit' && order.payment_status === 'đã cọc'
                             ? `Vui lòng thanh toán ${(order.total_price * 0.5).toLocaleString('vi-VN')}đ và đăng bill chuyển khoản`
                             : 'Dùng để đăng bill hoàn cọc, phụ thu hoặc thanh toán bổ sung'}
                         </p>

@@ -28,8 +28,10 @@ export type Database = {
           id: string
           items: Json
           order_number: string | null
+          order_progress: string | null
           payment_method: string
           payment_proof_url: string | null
+          payment_status: string | null
           payment_type: string
           second_payment_proof_url: string | null
           shipping_provider: string | null
@@ -50,8 +52,10 @@ export type Database = {
           id?: string
           items: Json
           order_number?: string | null
+          order_progress?: string | null
           payment_method: string
           payment_proof_url?: string | null
+          payment_status?: string | null
           payment_type?: string
           second_payment_proof_url?: string | null
           shipping_provider?: string | null
@@ -72,8 +76,10 @@ export type Database = {
           id?: string
           items?: Json
           order_number?: string | null
+          order_progress?: string | null
           payment_method?: string
           payment_proof_url?: string | null
+          payment_status?: string | null
           payment_type?: string
           second_payment_proof_url?: string | null
           shipping_provider?: string | null
