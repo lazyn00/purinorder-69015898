@@ -567,78 +567,33 @@ SĐT: ${order.delivery_phone}
 
   const generateEmailContent = (order: Order) => {
     const itemsList = order.items.map((item: any) => 
-      `• ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''} x${item.quantity}`
+      `  • ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''} x${item.quantity}`
     ).join('\n');
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #FFF9FB;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-    <!-- Header -->
-    <div style="background: linear-gradient(135deg, #FF6B9D 0%, #FEC6A1 100%); padding: 30px 20px; text-align: center;">
-      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">
-        🍮 Purin Order
-      </h1>
-    </div>
+    return `Hi bạn iu 🍮
 
-    <!-- Content -->
-    <div style="padding: 30px 20px;">
-      <p style="font-size: 16px; color: #333; margin: 0 0 20px 0; line-height: 1.6;">
-        Hi bạn iu 🍮
-      </p>
-      <p style="font-size: 15px; color: #666; margin: 0 0 25px 0; line-height: 1.6;">
-        Đây là email cập nhật tiến độ đơn hàng <strong style="color: #FF6B9D;">#${order.order_number}</strong> của bạn:
-      </p>
+Đây là email cập nhật tiến độ đơn hàng #${order.order_number} của bạn:
 
-      <!-- Products -->
-      <div style="background-color: #FFF9FB; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #FF6B9D;">
-        <h3 style="color: #FF6B9D; margin: 0 0 15px 0; font-size: 16px;">📦 Sản phẩm</h3>
-        <div style="color: #333; line-height: 1.8; white-space: pre-line;">${itemsList}</div>
-      </div>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 SẢN PHẨM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-      <!-- Status -->
-      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="padding: 8px 0; color: #666;">💰 Trạng thái thanh toán:</td>
-            <td style="padding: 8px 0; text-align: right; color: #FF6B9D; font-weight: bold;">${order.payment_status}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #666;">🚀 Tiến độ đơn hàng:</td>
-            <td style="padding: 8px 0; text-align: right; color: #FF6B9D; font-weight: bold;">${order.order_progress}</td>
-          </tr>
-          ${order.tracking_code ? `
-          <tr>
-            <td style="padding: 8px 0; color: #666;">📍 Mã vận đơn:</td>
-            <td style="padding: 8px 0; text-align: right; color: #FF6B9D; font-weight: bold;">${order.tracking_code}</td>
-          </tr>
-          ` : ''}
-        </table>
-      </div>
+${itemsList}
 
-      <!-- Thank you -->
-      <div style="text-align: center; padding: 20px 0; border-top: 2px solid #FFF9FB;">
-        <p style="color: #FF6B9D; margin: 0 0 5px 0; font-size: 18px; font-weight: bold;">
-          Cảm ơn bạn đã tin tưởng và ủng hộ Purin 🍮💖
-        </p>
-      </div>
-    </div>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 TRẠNG THÁI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    <!-- Footer -->
-    <div style="background-color: #FFF9FB; padding: 15px 20px; text-align: center;">
-      <p style="color: #999; margin: 0; font-size: 12px;">
-        © 2024 Purin Order
-      </p>
-    </div>
-  </div>
-</body>
-</html>
-    `.trim();
+💰 Thanh toán: ${order.payment_status}
+🚀 Tiến độ: ${order.order_progress}${order.tracking_code ? `\n📍 Mã vận đơn: ${order.tracking_code}` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cảm ơn bạn đã tin tưởng và ủng hộ Purin 🍮💖
+
+---
+Purin Order
+`.trim();
   };
 
   const sendBulkEmails = async () => {
