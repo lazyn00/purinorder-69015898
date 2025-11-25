@@ -4,15 +4,17 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { productsData } from "@/data/products";
 
 const ADMIN_USERNAME = "Admin";
 const ADMIN_PASSWORD = "Nhuy7890";
@@ -93,6 +95,7 @@ interface Order {
 }
 
 const COLORS = ['#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#60a5fa', '#fb923c'];
+const ORDERS_PER_PAGE = 20;
 
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -101,10 +104,81 @@ export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [shippingInfo, setShippingInfo] = useState<{[key: string]: {provider: string, code: string}}>({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
+  const [orderProgressFilter, setOrderProgressFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Tính toán thống kê
+  // Filter orders based on search and filters
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const matchesSearch = searchTerm === "" || 
+        order.delivery_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.delivery_phone.includes(searchTerm) ||
+        order.customer_phone.includes(searchTerm) ||
+        (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesPaymentStatus = paymentStatusFilter === "all" || order.payment_status === paymentStatusFilter;
+      const matchesOrderProgress = orderProgressFilter === "all" || order.order_progress === orderProgressFilter;
+      
+      return matchesSearch && matchesPaymentStatus && matchesOrderProgress;
+    });
+  }, [orders, searchTerm, paymentStatusFilter, orderProgressFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
+    return filteredOrders.slice(startIndex, startIndex + ORDERS_PER_PAGE);
+  }, [filteredOrders, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, paymentStatusFilter, orderProgressFilter]);
+
+  // Product statistics
+  const productStats = useMemo(() => {
+    const stats: { [key: string]: { count: number; category: string } } = {};
+    
+    orders.forEach(order => {
+      if (order.order_progress === 'đã huỷ') return;
+      const items = order.items as any[];
+      items.forEach(item => {
+        if (!stats[item.name]) {
+          const product = productsData.find(p => p.name === item.name);
+          stats[item.name] = {
+            count: 0,
+            category: product?.category || "Khác"
+          };
+        }
+        stats[item.name].count += item.quantity;
+      });
+    });
+
+    return Object.entries(stats)
+      .map(([name, data]) => ({ name, count: data.count, category: data.category }))
+      .sort((a, b) => b.count - a.count);
+  }, [orders]);
+
+  const categoryStats = useMemo(() => {
+    const stats: { [key: string]: number } = {};
+    
+    productStats.forEach(product => {
+      if (!stats[product.category]) {
+        stats[product.category] = 0;
+      }
+      stats[product.category] += product.count;
+    });
+
+    return Object.entries(stats)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [productStats]);
+
+  // Tính toán thống kê doanh thu
   const statistics = useMemo(() => {
     const totalRevenue = orders.reduce((sum, order) => {
       if (order.order_progress !== 'đã huỷ') {
@@ -143,7 +217,15 @@ export default function Admin() {
       };
     });
 
-    // Phân bố tiến độ (chỉ các tiến độ có đơn)
+    // Phân bố thanh toán
+    const paymentDistribution = Object.entries(paymentStatusCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([status, count]) => ({
+        name: status,
+        value: count
+      }));
+
+    // Phân bố tiến độ
     const progressDistribution = Object.entries(progressCounts)
       .filter(([_, count]) => count > 0)
       .map(([progress, count]) => ({
@@ -157,6 +239,7 @@ export default function Admin() {
       paymentStatusCounts,
       progressCounts,
       revenueByDay,
+      paymentDistribution,
       progressDistribution
     };
   }, [orders]);
@@ -409,8 +492,9 @@ export default function Admin() {
           </div>
         ) : (
           <Tabs defaultValue="stats" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="stats">Thống kê</TabsTrigger>
+            <TabsList className="grid w-full max-w-2xl grid-cols-3">
+              <TabsTrigger value="stats">Thống kê doanh thu</TabsTrigger>
+              <TabsTrigger value="products">Thống kê sản phẩm</TabsTrigger>
               <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
             </TabsList>
 
@@ -488,13 +572,13 @@ export default function Admin() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Phân bố tiến độ đơn hàng</CardTitle>
+                    <CardTitle>Phân bố trạng thái thanh toán</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
-                          data={statistics.progressDistribution}
+                          data={statistics.paymentDistribution}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
@@ -503,7 +587,7 @@ export default function Admin() {
                           fill="#8884d8"
                           dataKey="value"
                         >
-                          {statistics.progressDistribution.map((entry, index) => (
+                          {statistics.paymentDistribution.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -514,48 +598,177 @@ export default function Admin() {
                 </Card>
               </div>
 
-              {/* Trạng thái */}
-              <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Phân bố tiến độ đơn hàng</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={statistics.progressDistribution}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {statistics.progressDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="products" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Trạng thái thanh toán</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng sản phẩm đã bán</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      {PAYMENT_STATUSES.map((status) => (
-                        <div key={status} className="space-y-1">
-                          <Badge className={getPaymentStatusColor(status)} variant="outline">
-                            {status}
-                          </Badge>
-                          <p className="text-2xl font-bold">{statistics.paymentStatusCounts[status] || 0}</p>
-                        </div>
-                      ))}
+                    <div className="text-2xl font-bold">
+                      {productStats.reduce((sum, p) => sum + p.count, 0)}
                     </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Số loại sản phẩm</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{productStats.length}</div>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Tiến độ đơn hàng</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Số danh mục</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      {ORDER_PROGRESS.map((progress) => (
-                        <div key={progress} className="space-y-1">
-                          <Badge className={getProgressColor(progress)} variant="outline">
-                            {progress}
-                          </Badge>
-                          <p className="text-2xl font-bold">{statistics.progressCounts[progress] || 0}</p>
-                        </div>
-                      ))}
-                    </div>
+                    <div className="text-2xl font-bold">{categoryStats.length}</div>
                   </CardContent>
                 </Card>
               </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top sản phẩm bán chạy</CardTitle>
+                    <CardDescription>Số lượng sản phẩm đã bán</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={productStats.slice(0, 10)}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#8b5cf6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Phân bố theo danh mục</CardTitle>
+                    <CardDescription>Số lượng sản phẩm bán theo từng danh mục</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <PieChart>
+                        <Pie
+                          data={categoryStats}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {categoryStats.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Danh sách sản phẩm đã bán</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {productStats.map((product) => (
+                      <div key={product.name} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-sm text-muted-foreground">{product.category}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">{product.count} sản phẩm</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="orders" className="space-y-4">
-              <p className="text-muted-foreground mb-4">Tổng số đơn hàng: {orders.length}</p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Tìm theo tên, SĐT hoặc mã đơn..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Lọc thanh toán" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả thanh toán</SelectItem>
+                    {PAYMENT_STATUSES.map(status => (
+                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={orderProgressFilter} onValueChange={setOrderProgressFilter}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Lọc tiến độ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả tiến độ</SelectItem>
+                    {ORDER_PROGRESS.map(progress => (
+                      <SelectItem key={progress} value={progress}>{progress}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Hiển thị {paginatedOrders.length} / {filteredOrders.length} đơn hàng
+              </p>
               
               <div className="border rounded-lg overflow-hidden">
                 <Table>
@@ -572,7 +785,7 @@ export default function Admin() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.map((order) => (
+                    {paginatedOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
                           <div className="space-y-1">
@@ -703,6 +916,48 @@ export default function Admin() {
                   </TableBody>
                 </Table>
               </div>
+
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(pageNum)}
+                            isActive={currentPage === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
             </TabsContent>
           </Tabs>
         )}
