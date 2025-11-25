@@ -120,23 +120,24 @@ export default function Checkout() {
       const orderNumber = `PO${dateStr}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
 
 
-      const { error: insertError } = await (supabase as any)
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          customer_fb: contactInfo.fb,
-          customer_email: contactInfo.email,
-          customer_phone: contactInfo.phone,
-          delivery_name: deliveryInfo.name,
-          delivery_phone: deliveryInfo.phone,
-          delivery_address: deliveryInfo.address,
-          items: cartItems as any,
-          total_price: totalPrice,
-          payment_method: selectedMethod,
-          payment_type: paymentType,
-          payment_proof_url: paymentProofUrl,
-          status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán'
-        } as any);
+      const { error: insertError } = await (supabase as any)
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          customer_fb: contactInfo.fb,
+          customer_email: contactInfo.email,
+          customer_phone: contactInfo.phone,
+          delivery_name: deliveryInfo.name,
+          delivery_phone: deliveryInfo.phone,
+          delivery_address: deliveryInfo.address,
+          items: cartItems as any,
+          total_price: totalPrice,
+          payment_method: selectedMethod,
+          payment_type: paymentType,
+          payment_proof_url: paymentProofUrl,
+          payment_status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán',
+          order_progress: 'đang xử lý'
+        } as any);
 
       if (insertError) {
         throw insertError;
@@ -166,7 +167,8 @@ export default function Checkout() {
               payment_method: selectedMethod,
               payment_type: paymentType,
               payment_proof_url: paymentProofUrl,
-              status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán'
+              payment_status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán',
+              order_progress: 'đang xử lý'
             }
           })
         }).catch(err => {
@@ -191,6 +193,8 @@ export default function Checkout() {
             })),
             totalPrice: totalPrice,
             status: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán',
+            paymentStatus: paymentType === 'deposit' ? 'đã cọc' : 'chưa thanh toán',
+            orderProgress: 'đang xử lý',
             type: 'new_order',
             deliveryAddress: deliveryInfo.address
           }
