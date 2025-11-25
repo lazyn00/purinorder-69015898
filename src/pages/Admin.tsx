@@ -20,31 +20,31 @@ const ADMIN_USERNAME = "Admin";
 const ADMIN_PASSWORD = "Nhuy7890";
 
 const PAYMENT_STATUSES = [
-  "chưa thanh toán",
-  "đã thanh toán",
-  "đã cọc",
-  "đã hoàn cọc"
+  "Chưa thanh toán",
+  "Đã thanh toán",
+  "Đã cọc",
+  "Đã hoàn cọc"
 ];
 
 const ORDER_PROGRESS = [
-  "đang xử lý",
-  "Purin đã đặt hàng",
+  "Đang xử lý",
+  "Đã đặt hàng",
   "Đang sản xuất",
-  "đang vận chuyển",
-  "đang giao",
-  "đã hoàn thành",
-  "đã huỷ"
+  "Đang vận chuyển",
+  "Đang giao",
+  "Đã hoàn thành",
+  "Đã huỷ"
 ];
 
 const getPaymentStatusColor = (status: string) => {
   switch (status) {
-    case "chưa thanh toán":
+    case "Chưa thanh toán":
       return "bg-red-100 text-red-800 border-red-200";
-    case "đã thanh toán":
+    case "Đã thanh toán":
       return "bg-green-100 text-green-800 border-green-200";
-    case "đã cọc":
+    case "Đã cọc":
       return "bg-amber-100 text-amber-800 border-amber-200";
-    case "đã hoàn cọc":
+    case "Đã hoàn cọc":
       return "bg-pink-100 text-pink-800 border-pink-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
@@ -53,19 +53,19 @@ const getPaymentStatusColor = (status: string) => {
 
 const getProgressColor = (progress: string) => {
   switch (progress) {
-    case "đang xử lý":
+    case "Đang xử lý":
       return "bg-cyan-100 text-cyan-800 border-cyan-200";
-    case "Purin đã đặt hàng":
+    case "Đã đặt hàng":
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "Đang sản xuất":
       return "bg-purple-100 text-purple-800 border-purple-200";
-    case "đang vận chuyển":
+    case "Đang vận chuyển":
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "đang giao":
+    case "Đang giao":
       return "bg-orange-100 text-orange-800 border-orange-200";
-    case "đã hoàn thành":
+    case "Đã hoàn thành":
       return "bg-emerald-100 text-emerald-800 border-emerald-200";
-    case "đã huỷ":
+    case "Đã huỷ":
       return "bg-gray-100 text-gray-800 border-gray-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
@@ -139,27 +139,30 @@ export default function Admin() {
     setCurrentPage(1);
   }, [searchTerm, paymentStatusFilter, orderProgressFilter]);
 
-  // Product statistics
+  // Product statistics by variant
   const productStats = useMemo(() => {
-    const stats: { [key: string]: { count: number; category: string } } = {};
+    const stats: { [key: string]: { count: number; productName: string } } = {};
     
     orders.forEach(order => {
-      if (order.order_progress === 'đã huỷ') return;
+      if (order.order_progress === 'Đã huỷ') return;
       const items = order.items as any[];
       items.forEach(item => {
-        if (!stats[item.name]) {
-          const product = productsData.find(p => p.name === item.name);
-          stats[item.name] = {
+        const variantKey = item.selectedVariant 
+          ? `${item.name} - ${item.selectedVariant}`
+          : item.name;
+        
+        if (!stats[variantKey]) {
+          stats[variantKey] = {
             count: 0,
-            category: product?.category || "Khác"
+            productName: item.name
           };
         }
-        stats[item.name].count += item.quantity;
+        stats[variantKey].count += item.quantity;
       });
     });
 
     return Object.entries(stats)
-      .map(([name, data]) => ({ name, count: data.count, category: data.category }))
+      .map(([name, data]) => ({ name, count: data.count, productName: data.productName }))
       .sort((a, b) => b.count - a.count);
   }, [orders]);
 
@@ -167,10 +170,10 @@ export default function Admin() {
     const stats: { [key: string]: number } = {};
     
     productStats.forEach(product => {
-      if (!stats[product.category]) {
-        stats[product.category] = 0;
+      if (!stats[product.productName]) {
+        stats[product.productName] = 0;
       }
-      stats[product.category] += product.count;
+      stats[product.productName] += product.count;
     });
 
     return Object.entries(stats)
@@ -181,7 +184,7 @@ export default function Admin() {
   // Tính toán thống kê doanh thu
   const statistics = useMemo(() => {
     const totalRevenue = orders.reduce((sum, order) => {
-      if (order.order_progress !== 'đã huỷ') {
+      if (order.order_progress !== 'Đã huỷ') {
         return sum + order.total_price;
       }
       return sum;
@@ -207,7 +210,7 @@ export default function Admin() {
     const revenueByDay = last7Days.map(date => {
       const dayOrders = orders.filter(order => {
         const orderDate = new Date(order.created_at).toISOString().split('T')[0];
-        return orderDate === date && order.order_progress !== 'đã huỷ';
+        return orderDate === date && order.order_progress !== 'Đã huỷ';
       });
       const revenue = dayOrders.reduce((sum, order) => sum + order.total_price, 0);
       return {
@@ -333,7 +336,7 @@ export default function Admin() {
   };
 
   const updateOrderProgress = async (orderId: string, newProgress: string) => {
-    if (newProgress === "đang giao") {
+    if (newProgress === "Đang giao") {
       const shipping = shippingInfo[orderId];
       if (!shipping || !shipping.provider || !shipping.code) {
         toast({
@@ -348,7 +351,7 @@ export default function Admin() {
     try {
       const updateData: any = { order_progress: newProgress };
       
-      if (newProgress === "đang giao" && shippingInfo[orderId]) {
+      if (newProgress === "Đang giao" && shippingInfo[orderId]) {
         updateData.shipping_provider = shippingInfo[orderId].provider;
         updateData.tracking_code = shippingInfo[orderId].code;
       }
@@ -364,7 +367,7 @@ export default function Admin() {
       
       if (order && order.customer_email) {
         try {
-          const emailType = newProgress === "đã hoàn cọc" ? 'refund' : 'status_change';
+          const emailType = newProgress === "Đã hoàn cọc" ? 'refund' : 'status_change';
           
           await supabase.functions.invoke('send-order-email', {
             body: {
@@ -537,11 +540,11 @@ export default function Admin() {
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-primary">
-                      {statistics.progressCounts['đã hoàn thành'] || 0}
+                  <div className="text-2xl font-bold text-primary">
+                      {statistics.progressCounts['Đã hoàn thành'] || 0}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {((statistics.progressCounts['đã hoàn thành'] || 0) / statistics.totalOrders * 100).toFixed(1)}% tổng đơn
+                      {((statistics.progressCounts['Đã hoàn thành'] || 0) / statistics.totalOrders * 100).toFixed(1)}% tổng đơn
                     </p>
                   </CardContent>
                 </Card>
@@ -680,33 +683,33 @@ export default function Admin() {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Phân bố theo danh mục</CardTitle>
-                    <CardDescription>Số lượng sản phẩm bán theo từng danh mục</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <PieChart>
-                        <Pie
-                          data={categoryStats}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={120}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {categoryStats.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Phân bố theo sản phẩm</CardTitle>
+                  <CardDescription>Số lượng bán theo từng sản phẩm</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <PieChart>
+                      <Pie
+                        data={categoryStats}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={120}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {categoryStats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
               </div>
 
               <Card>
@@ -719,7 +722,7 @@ export default function Admin() {
                       <div key={product.name} className="flex justify-between items-center p-2 border rounded">
                         <div>
                           <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">{product.category}</p>
+                          <p className="text-sm text-muted-foreground">{product.productName}</p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold">{product.count} sản phẩm</p>
@@ -799,7 +802,20 @@ export default function Admin() {
                         <TableCell>
                           <div className="space-y-1">
                             <div className="font-medium text-sm">{order.delivery_name}</div>
-                            <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
+                            <a 
+                              href={`tel:${order.customer_phone}`} 
+                              className="text-xs text-primary hover:underline block"
+                            >
+                              📞 {order.customer_phone}
+                            </a>
+                            {order.customer_email && (
+                              <a 
+                                href={`mailto:${order.customer_email}`} 
+                                className="text-xs text-primary hover:underline block"
+                              >
+                                ✉️ {order.customer_email}
+                              </a>
+                            )}
                             <div className="text-xs text-muted-foreground max-w-[200px] truncate">
                               {order.delivery_address}
                             </div>
