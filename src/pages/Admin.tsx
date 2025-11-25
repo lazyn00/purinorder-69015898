@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2 } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const ADMIN_USERNAME = "Admin";
 const ADMIN_PASSWORD = "Nhuy7890";
@@ -78,6 +80,8 @@ interface Order {
   tracking_code: string;
 }
 
+const COLORS = ['#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#60a5fa', '#fb923c'];
+
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
@@ -87,6 +91,57 @@ export default function Admin() {
   const [shippingInfo, setShippingInfo] = useState<{[key: string]: {provider: string, code: string}}>({});
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Tính toán thống kê
+  const statistics = useMemo(() => {
+    const totalRevenue = orders.reduce((sum, order) => {
+      if (order.status !== 'đã huỷ') {
+        return sum + order.total_price;
+      }
+      return sum;
+    }, 0);
+
+    const statusCounts = ORDER_STATUSES.reduce((acc, status) => {
+      acc[status] = orders.filter(o => o.status === status).length;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Doanh thu theo ngày (7 ngày gần nhất)
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return date.toISOString().split('T')[0];
+    });
+
+    const revenueByDay = last7Days.map(date => {
+      const dayOrders = orders.filter(order => {
+        const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+        return orderDate === date && order.status !== 'đã huỷ';
+      });
+      const revenue = dayOrders.reduce((sum, order) => sum + order.total_price, 0);
+      return {
+        date: new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+        revenue: revenue / 1000, // Chuyển sang nghìn đồng
+        orders: dayOrders.length
+      };
+    });
+
+    // Phân bố trạng thái (chỉ các trạng thái có đơn)
+    const statusDistribution = Object.entries(statusCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([status, count]) => ({
+        name: status,
+        value: count
+      }));
+
+    return {
+      totalRevenue,
+      totalOrders: orders.length,
+      statusCounts,
+      revenueByDay,
+      statusDistribution
+    };
+  }, [orders]);
 
   useEffect(() => {
     const adminSession = sessionStorage.getItem('admin_logged_in');
@@ -311,7 +366,7 @@ export default function Admin() {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Quản lý đơn hàng</h1>
+          <h1 className="text-4xl font-bold">Quản lý Admin</h1>
           <Button onClick={handleLogout} variant="outline">
             <LogOut className="h-4 w-4 mr-2" />
             Đăng xuất
@@ -323,8 +378,136 @@ export default function Admin() {
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="space-y-4">
-            <p className="text-muted-foreground">Tổng số đơn hàng: {orders.length}</p>
+          <Tabs defaultValue="stats" className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="stats">Thống kê</TabsTrigger>
+              <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="stats" className="space-y-6">
+              {/* Tổng quan */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-primary">
+                      {statistics.totalRevenue.toLocaleString('vi-VN')}đ
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Không tính đơn đã huỷ
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng đơn hàng</CardTitle>
+                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-primary">
+                      {statistics.totalOrders}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Tất cả đơn hàng
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Đơn hoàn thành</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-primary">
+                      {statistics.statusCounts['đã hoàn thành'] || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {((statistics.statusCounts['đã hoàn thành'] || 0) / statistics.totalOrders * 100).toFixed(1)}% tổng đơn
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Biểu đồ */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Doanh thu 7 ngày */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Doanh thu 7 ngày gần nhất</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={statistics.revenueByDay}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value: number) => `${(value * 1000).toLocaleString('vi-VN')}đ`}
+                          labelFormatter={(label) => `Ngày ${label}`}
+                        />
+                        <Legend />
+                        <Bar dataKey="revenue" fill="hsl(var(--primary))" name="Doanh thu (k)" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Phân bố trạng thái */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Phân bố trạng thái đơn hàng</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={statistics.statusDistribution}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {statistics.statusDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Số lượng đơn theo trạng thái */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Chi tiết trạng thái đơn hàng</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {ORDER_STATUSES.map((status) => (
+                      <div key={status} className="space-y-1">
+                        <Badge className={getStatusColor(status)} variant="outline">
+                          {status}
+                        </Badge>
+                        <p className="text-2xl font-bold">{statistics.statusCounts[status] || 0}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="orders" className="space-y-4">
+              <p className="text-muted-foreground">Tổng số đơn hàng: {orders.length}</p>
             
             {orders.map((order) => (
               <Card key={order.id}>
@@ -471,7 +654,8 @@ export default function Admin() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </Layout>
