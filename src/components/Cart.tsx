@@ -116,18 +116,17 @@ export function Cart() {
               </div>
               <Separator />
               
-              {/* === DÙNG BUTTON VỚI LINK === */}
-              <Button 
-                className="w-full bg-gradient-primary"
-                size="lg"
-                asChild
-              >
-                <Link to="/checkout" onClick={() => {
-                  // SheetContent will auto-close via Sheet's built-in behavior when clicking inside
-                }}>
-                  Đặt hàng ngay
-                </Link>
-              </Button>
+              <SheetClose asChild>
+                <Button 
+                  className="w-full bg-gradient-primary"
+                  size="lg"
+                  asChild
+                >
+                  <Link to="/checkout">
+                    Đặt hàng ngay
+                  </Link>
+                </Button>
+              </SheetClose>
             </div>
           </>
         )}
