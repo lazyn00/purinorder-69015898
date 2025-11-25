@@ -760,11 +760,11 @@ ${generateEmailContent(order)}
           </div>
         ) : (
           <Tabs defaultValue="stats" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-4">
-              <TabsTrigger value="stats">Thống kê doanh thu</TabsTrigger>
-              <TabsTrigger value="products">Thống kê sản phẩm</TabsTrigger>
-              <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
-              <TabsTrigger value="notifications" onClick={fetchNotifications}>Thông báo hàng</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-full sm:max-w-2xl gap-1">
+              <TabsTrigger value="stats" className="text-xs sm:text-sm">Doanh thu</TabsTrigger>
+              <TabsTrigger value="products" className="text-xs sm:text-sm">Sản phẩm</TabsTrigger>
+              <TabsTrigger value="orders" className="text-xs sm:text-sm">Đơn hàng</TabsTrigger>
+              <TabsTrigger value="notifications" onClick={fetchNotifications} className="text-xs sm:text-sm">Thông báo</TabsTrigger>
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
@@ -928,54 +928,6 @@ ${generateEmailContent(order)}
                     <div className="text-2xl font-bold">{categoryStats.length}</div>
                   </CardContent>
                 </Card>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Top sản phẩm bán chạy</CardTitle>
-                    <CardDescription>Số lượng sản phẩm đã bán</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <BarChart data={productStats.slice(0, 10)}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#8b5cf6" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Phân bố theo sản phẩm</CardTitle>
-                  <CardDescription>Số lượng bán theo từng sản phẩm</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <PieChart>
-                      <Pie
-                        data={categoryStats}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={120}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {categoryStats.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
               </div>
 
               <Card>
