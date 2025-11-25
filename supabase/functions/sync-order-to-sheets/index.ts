@@ -37,6 +37,7 @@ serve(async (req) => {
       deliveryName: order.delivery_name || '',
       deliveryPhone: order.delivery_phone || '',
       deliveryAddress: order.delivery_address || '',
+      deliveryNote: order.delivery_note || '',
       items: JSON.stringify(order.items),
       totalPrice: order.total_price,
       paymentMethod: order.payment_method || '',
