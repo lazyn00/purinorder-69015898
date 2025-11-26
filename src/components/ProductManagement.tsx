@@ -540,11 +540,14 @@ export default function ProductManagement() {
                 <div className="space-y-2">
                   {imageUrls.map((url, index) => (
                     <div key={index} className="flex gap-2 items-center">
-                      <Input
-                        placeholder="https://example.com/image.jpg"
-                        value={url}
-                        onChange={(e) => updateImageUrl(index, e.target.value)}
-                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-sm font-medium text-muted-foreground w-8">{index}</span>
+                        <Input
+                          placeholder="https://example.com/image.jpg"
+                          value={url}
+                          onChange={(e) => updateImageUrl(index, e.target.value)}
+                        />
+                      </div>
                       {url && (
                         <div className="w-12 h-12 border rounded overflow-hidden shrink-0">
                           <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => e.currentTarget.src = '/placeholder.svg'} />
@@ -624,7 +627,7 @@ export default function ProductManagement() {
                         {/* Variant Image Mapping */}
                         {variant.name && imageUrls.filter(url => url).length > 1 && (
                           <div className="pt-2 border-t">
-                            <Label className="text-xs">Chọn ảnh cho phân loại này</Label>
+                            <Label className="text-xs">Chọn ảnh cho phân loại này (số thứ tự)</Label>
                             <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
                               {imageUrls.map((url, imgIndex) => 
                                 url ? (
@@ -639,6 +642,9 @@ export default function ProductManagement() {
                                     }`}
                                   >
                                     <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => e.currentTarget.src = '/placeholder.svg'} />
+                                    <div className="absolute top-0 left-0 bg-black/60 text-white text-xs px-1.5 py-0.5 font-medium">
+                                      {imgIndex}
+                                    </div>
                                     {variantImageMap[variant.name] === imgIndex && (
                                       <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
                                         <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">✓</div>
