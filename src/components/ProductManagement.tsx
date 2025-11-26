@@ -404,8 +404,8 @@ export default function ProductManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Sẵn">Sẵn</SelectItem>
-                      <SelectItem value="Đặt hàng">Đặt hàng</SelectItem>
-                      <SelectItem value="Hết hàng">Hết hàng</SelectItem>
+                      <SelectItem value="Order">Order</SelectItem>
+                      <SelectItem value="Pre-order">Pre-order</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
