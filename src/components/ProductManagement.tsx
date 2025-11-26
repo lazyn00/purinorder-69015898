@@ -55,6 +55,17 @@ export default function ProductManagement() {
   const [variants, setVariants] = useState<{ name: string; price: number }[]>([]);
   const [variantImageMap, setVariantImageMap] = useState<{ [key: string]: number }>({});
 
+  // Auto-calculate R-V when te or rate changes
+  useEffect(() => {
+    const teNum = formData.te || 0;
+    const rateNum = formData.rate || 0;
+    if (teNum > 0 && rateNum > 0) {
+      setFormData(prev => ({ ...prev, r_v: teNum * rateNum }));
+    } else if (teNum === 0 || rateNum === 0) {
+      setFormData(prev => ({ ...prev, r_v: 0 }));
+    }
+  }, [formData.te, formData.rate]);
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -377,12 +388,13 @@ export default function ProductManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="r_v">R-V</Label>
+                  <Label htmlFor="r_v">R-V (Tự động: Tệ × Rate)</Label>
                   <Input
                     id="r_v"
                     type="number"
                     value={formData.r_v}
-                    onChange={(e) => handleInputChange('r_v', parseFloat(e.target.value) || 0)}
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
 
@@ -516,12 +528,13 @@ export default function ProductManagement() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Mô tả</Label>
+                <Label htmlFor="description">Mô tả (mỗi dòng sẽ là 1 gạch đầu dòng)</Label>
                 <Textarea
                   id="description"
+                  placeholder="Nhập mô tả, mỗi dòng là 1 gạch đầu dòng"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={3}
+                  rows={5}
                 />
               </div>
 

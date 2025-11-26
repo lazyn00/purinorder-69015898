@@ -9,7 +9,7 @@ export interface Product {
   id: number;
   name: string;
   price: number;
-  description: string[];
+  description: string | string[];
   images: string[];
   category: string;
   subcategory?: string; // Phân loại nhỏ
