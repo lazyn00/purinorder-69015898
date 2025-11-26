@@ -220,10 +220,12 @@ export default function ProductDetail() {
     
     addToCart(productToAdd, quantity, selectedVariant || product.name);
 
-    toast({
-      title: "Đã thêm vào giỏ hàng!",
-      description: `${product.name}${selectedVariant ? ` (${selectedVariant})` : ''} x${quantity}`,
-    });
+    toast({
+      title: "Đã thêm vào giỏ hàng!",
+      description: selectedVariant 
+        ? `${product.name} (${selectedVariant}) x${quantity}`
+        : `${product.name} x${quantity}`,
+    });
   };
 
   const incrementQuantity = () => {
