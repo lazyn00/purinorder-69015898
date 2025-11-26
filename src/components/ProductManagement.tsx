@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, X, Image as ImageIcon, DollarSign } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Tables } from "@/integrations/supabase/types";
@@ -50,6 +50,10 @@ export default function ProductManagement() {
     link_order: "",
     proof: ""
   });
+
+  const [imageUrls, setImageUrls] = useState<string[]>([""]);
+  const [variants, setVariants] = useState<{ name: string; price: number }[]>([]);
+  const [variantImageMap, setVariantImageMap] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     fetchProducts();
@@ -99,12 +103,21 @@ export default function ProductManagement() {
       return;
     }
 
+    // Prepare data with images, variants, and variant_image_map
+    const filteredImages = imageUrls.filter(url => url.trim() !== "");
+    const dataToSave = {
+      ...formData,
+      images: filteredImages,
+      variants: variants.length > 0 ? variants : [],
+      variant_image_map: Object.keys(variantImageMap).length > 0 ? variantImageMap : {}
+    };
+
     setIsLoading(true);
     try {
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
-          .update(formData as any)
+          .update(dataToSave as any)
           .eq('id', editingProduct.id);
 
         if (error) throw error;
@@ -112,7 +125,7 @@ export default function ProductManagement() {
       } else {
         const { error } = await supabase
           .from('products')
-          .insert([formData as any]);
+          .insert([dataToSave as any]);
 
         if (error) throw error;
         toast({ title: "Thêm sản phẩm thành công" });
@@ -136,6 +149,29 @@ export default function ProductManagement() {
   const handleEdit = (product: DBProduct) => {
     setEditingProduct(product);
     setFormData(product);
+    
+    // Parse existing data
+    const productImages = Array.isArray(product.images) 
+      ? product.images 
+      : typeof product.images === 'string' 
+        ? JSON.parse(product.images as string)
+        : [];
+    setImageUrls(productImages.length > 0 ? productImages : [""]);
+    
+    const productVariants = Array.isArray(product.variants)
+      ? product.variants
+      : typeof product.variants === 'string'
+        ? JSON.parse(product.variants as string)
+        : [];
+    setVariants(productVariants.length > 0 ? productVariants : []);
+    
+    const productVariantImageMap = typeof product.variant_image_map === 'object'
+      ? product.variant_image_map
+      : typeof product.variant_image_map === 'string'
+        ? JSON.parse(product.variant_image_map as string)
+        : {};
+    setVariantImageMap(productVariantImageMap || {});
+    
     setIsDialogOpen(true);
   };
 
@@ -191,7 +227,65 @@ export default function ProductManagement() {
       link_order: "",
       proof: ""
     });
+    setImageUrls([""]);
+    setVariants([]);
+    setVariantImageMap({});
     setEditingProduct(null);
+  };
+
+  // Image management
+  const addImageUrl = () => {
+    setImageUrls([...imageUrls, ""]);
+  };
+
+  const updateImageUrl = (index: number, value: string) => {
+    const newUrls = [...imageUrls];
+    newUrls[index] = value;
+    setImageUrls(newUrls);
+  };
+
+  const removeImageUrl = (index: number) => {
+    setImageUrls(imageUrls.filter((_, i) => i !== index));
+  };
+
+  // Variant management
+  const addVariant = () => {
+    setVariants([...variants, { name: "", price: formData.price || 0 }]);
+  };
+
+  const updateVariant = (index: number, field: 'name' | 'price', value: string | number) => {
+    const newVariants = [...variants];
+    if (field === 'price') {
+      newVariants[index][field] = typeof value === 'number' ? value : parseInt(value as string) || 0;
+    } else {
+      newVariants[index][field] = value as string;
+    }
+    setVariants(newVariants);
+  };
+
+  const removeVariant = (index: number) => {
+    const variantName = variants[index].name;
+    setVariants(variants.filter((_, i) => i !== index));
+    
+    // Remove variant from image map
+    const newMap = { ...variantImageMap };
+    delete newMap[variantName];
+    setVariantImageMap(newMap);
+  };
+
+  const setSamePriceForAll = () => {
+    if (variants.length === 0) return;
+    const price = formData.price || 0;
+    setVariants(variants.map(v => ({ ...v, price })));
+    toast({ title: "Đã đồng giá tất cả phân loại" });
+  };
+
+  // Variant image mapping
+  const updateVariantImageMap = (variantName: string, imageIndex: number) => {
+    setVariantImageMap({
+      ...variantImageMap,
+      [variantName]: imageIndex
+    });
   };
 
   const handleDialogClose = () => {
@@ -429,6 +523,142 @@ export default function ProductManagement() {
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={3}
                 />
+              </div>
+
+              {/* Images Section */}
+              <div className="space-y-3 border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Ảnh sản phẩm (Link URL)
+                  </Label>
+                  <Button type="button" size="sm" onClick={addImageUrl}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Thêm ảnh
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {imageUrls.map((url, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <Input
+                        placeholder="https://example.com/image.jpg"
+                        value={url}
+                        onChange={(e) => updateImageUrl(index, e.target.value)}
+                      />
+                      {url && (
+                        <div className="w-12 h-12 border rounded overflow-hidden shrink-0">
+                          <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => e.currentTarget.src = '/placeholder.svg'} />
+                        </div>
+                      )}
+                      {imageUrls.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeImageUrl(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Variants Section */}
+              <div className="space-y-3 border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Phân loại sản phẩm</Label>
+                  <div className="flex gap-2">
+                    {variants.length > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={setSamePriceForAll}
+                      >
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        Đồng giá
+                      </Button>
+                    )}
+                    <Button type="button" size="sm" onClick={addVariant}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Thêm phân loại
+                    </Button>
+                  </div>
+                </div>
+                {variants.length > 0 && (
+                  <div className="space-y-3">
+                    {variants.map((variant, index) => (
+                      <div key={index} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs">Tên phân loại</Label>
+                              <Input
+                                placeholder="VD: Size M, Màu đỏ"
+                                value={variant.name}
+                                onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Giá</Label>
+                              <Input
+                                type="number"
+                                value={variant.price}
+                                onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="mt-5"
+                            onClick={() => removeVariant(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        {/* Variant Image Mapping */}
+                        {variant.name && imageUrls.filter(url => url).length > 1 && (
+                          <div className="pt-2 border-t">
+                            <Label className="text-xs">Chọn ảnh cho phân loại này</Label>
+                            <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
+                              {imageUrls.map((url, imgIndex) => 
+                                url ? (
+                                  <button
+                                    key={imgIndex}
+                                    type="button"
+                                    onClick={() => updateVariantImageMap(variant.name, imgIndex)}
+                                    className={`relative w-16 h-16 border-2 rounded overflow-hidden shrink-0 transition-all ${
+                                      variantImageMap[variant.name] === imgIndex
+                                        ? 'border-primary ring-2 ring-primary'
+                                        : 'border-muted hover:border-primary/50'
+                                    }`}
+                                  >
+                                    <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => e.currentTarget.src = '/placeholder.svg'} />
+                                    {variantImageMap[variant.name] === imgIndex && (
+                                      <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                        <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">✓</div>
+                                      </div>
+                                    )}
+                                  </button>
+                                ) : null
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {variants.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Chưa có phân loại. Nhấn "Thêm phân loại" để thêm.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
