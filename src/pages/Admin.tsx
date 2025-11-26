@@ -17,6 +17,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { productsData } from "@/data/products";
+import ProductManagement from "@/components/ProductManagement";
 
 const ADMIN_USERNAME = "Admin";
 const ADMIN_PASSWORD = "Nhuy7890";
@@ -755,9 +756,10 @@ ${generateEmailContent(order)}
           </div>
         ) : (
           <Tabs defaultValue="stats" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-full sm:max-w-2xl gap-1">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 max-w-full sm:max-w-3xl gap-1">
               <TabsTrigger value="stats" className="text-xs sm:text-sm">Doanh thu</TabsTrigger>
               <TabsTrigger value="products" className="text-xs sm:text-sm">Sản phẩm</TabsTrigger>
+              <TabsTrigger value="manage-products" className="text-xs sm:text-sm">QL SP</TabsTrigger>
               <TabsTrigger value="orders" className="text-xs sm:text-sm">Đơn hàng</TabsTrigger>
               <TabsTrigger value="notifications" onClick={fetchNotifications} className="text-xs sm:text-sm">Thông báo</TabsTrigger>
             </TabsList>
@@ -945,6 +947,10 @@ ${generateEmailContent(order)}
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="manage-products" className="space-y-4">
+              <ProductManagement />
             </TabsContent>
 
             <TabsContent value="orders" className="space-y-4">
