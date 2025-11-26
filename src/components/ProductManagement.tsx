@@ -595,7 +595,7 @@ export default function ProductManagement() {
                     {variants.map((variant, index) => (
                       <div key={index} className="border rounded-lg p-3 space-y-2">
                         <div className="flex items-start gap-2">
-                          <div className="flex-1 grid grid-cols-2 gap-2">
+                          <div className="flex-1 grid grid-cols-3 gap-2">
                             <div>
                               <Label className="text-xs">Tên phân loại</Label>
                               <Input
@@ -610,6 +610,27 @@ export default function ProductManagement() {
                                 type="number"
                                 value={variant.price}
                                 onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Số ảnh (0,1,2...)</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="VD: 0"
+                                value={variant.name && variantImageMap[variant.name] !== undefined ? variantImageMap[variant.name] : ''}
+                                onChange={(e) => {
+                                  if (variant.name) {
+                                    const value = e.target.value;
+                                    if (value === '') {
+                                      const newMap = { ...variantImageMap };
+                                      delete newMap[variant.name];
+                                      setVariantImageMap(newMap);
+                                    } else {
+                                      updateVariantImageMap(variant.name, parseInt(value) || 0);
+                                    }
+                                  }
+                                }}
                               />
                             </div>
                           </div>
@@ -627,7 +648,7 @@ export default function ProductManagement() {
                         {/* Variant Image Mapping */}
                         {variant.name && imageUrls.filter(url => url).length > 1 && (
                           <div className="pt-2 border-t">
-                            <Label className="text-xs">Chọn ảnh cho phân loại này (số thứ tự)</Label>
+                            <Label className="text-xs">Hoặc chọn ảnh bằng cách click</Label>
                             <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
                               {imageUrls.map((url, imgIndex) => 
                                 url ? (
