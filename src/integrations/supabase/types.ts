@@ -122,6 +122,105 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          actual_can: number | null
+          actual_pack: number | null
+          actual_rate: number | null
+          artist: string | null
+          can_weight: number | null
+          category: string | null
+          cong: number | null
+          created_at: string | null
+          description: string | null
+          fees_included: boolean | null
+          id: number
+          images: Json | null
+          link_order: string | null
+          master: string | null
+          name: string
+          option_groups: Json | null
+          order_deadline: string | null
+          pack: number | null
+          price: number
+          proof: string | null
+          r_v: number | null
+          rate: number | null
+          status: string | null
+          stock: number | null
+          subcategory: string | null
+          te: number | null
+          total: number | null
+          updated_at: string | null
+          variant_image_map: Json | null
+          variants: Json | null
+        }
+        Insert: {
+          actual_can?: number | null
+          actual_pack?: number | null
+          actual_rate?: number | null
+          artist?: string | null
+          can_weight?: number | null
+          category?: string | null
+          cong?: number | null
+          created_at?: string | null
+          description?: string | null
+          fees_included?: boolean | null
+          id?: number
+          images?: Json | null
+          link_order?: string | null
+          master?: string | null
+          name: string
+          option_groups?: Json | null
+          order_deadline?: string | null
+          pack?: number | null
+          price: number
+          proof?: string | null
+          r_v?: number | null
+          rate?: number | null
+          status?: string | null
+          stock?: number | null
+          subcategory?: string | null
+          te?: number | null
+          total?: number | null
+          updated_at?: string | null
+          variant_image_map?: Json | null
+          variants?: Json | null
+        }
+        Update: {
+          actual_can?: number | null
+          actual_pack?: number | null
+          actual_rate?: number | null
+          artist?: string | null
+          can_weight?: number | null
+          category?: string | null
+          cong?: number | null
+          created_at?: string | null
+          description?: string | null
+          fees_included?: boolean | null
+          id?: number
+          images?: Json | null
+          link_order?: string | null
+          master?: string | null
+          name?: string
+          option_groups?: Json | null
+          order_deadline?: string | null
+          pack?: number | null
+          price?: number
+          proof?: string | null
+          r_v?: number | null
+          rate?: number | null
+          status?: string | null
+          stock?: number | null
+          subcategory?: string | null
+          te?: number | null
+          total?: number | null
+          updated_at?: string | null
+          variant_image_map?: Json | null
+          variants?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
