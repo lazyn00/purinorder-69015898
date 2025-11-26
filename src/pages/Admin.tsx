@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Settings } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -756,12 +756,22 @@ ${generateEmailContent(order)}
           </div>
         ) : (
           <Tabs defaultValue="stats" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 max-w-full sm:max-w-3xl gap-1">
-              <TabsTrigger value="stats" className="text-xs sm:text-sm">Doanh thu</TabsTrigger>
-              <TabsTrigger value="products" className="text-xs sm:text-sm">Sản phẩm</TabsTrigger>
-              <TabsTrigger value="manage-products" className="text-xs sm:text-sm">QL SP</TabsTrigger>
-              <TabsTrigger value="orders" className="text-xs sm:text-sm">Đơn hàng</TabsTrigger>
-              <TabsTrigger value="notifications" onClick={fetchNotifications} className="text-xs sm:text-sm">Thông báo</TabsTrigger>
+            <TabsList className="inline-flex h-12 items-center justify-start gap-2 bg-muted p-1">
+              <TabsTrigger value="stats" className="h-10 w-10 p-0" title="Doanh thu">
+                <BarChart3 className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="products" className="h-10 w-10 p-0" title="Thống kê sản phẩm">
+                <Package className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="manage-products" className="h-10 w-10 p-0" title="Quản lý sản phẩm">
+                <Settings className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="h-10 w-10 p-0" title="Đơn hàng">
+                <ShoppingCart className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="notifications" onClick={fetchNotifications} className="h-10 w-10 p-0" title="Thông báo">
+                <Bell className="h-5 w-5" />
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
