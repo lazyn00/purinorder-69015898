@@ -542,7 +542,9 @@ SĐT: ${order.delivery_phone}
       'Địa chỉ': order.delivery_address,
       'Ghi chú': order.delivery_note || '',
       'Sản phẩm': order.items.map((item: any) => 
-        `x${item.quantity} ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''}`
+        item.selectedVariant 
+          ? `x${item.quantity} ${item.name} (${item.selectedVariant})`
+          : `x${item.quantity} ${item.name}`
       ).join(', '),
       'Tổng tiền': order.total_price,
       'Thanh toán': order.payment_status,
@@ -568,7 +570,9 @@ SĐT: ${order.delivery_phone}
 
   const generateEmailContent = (order: Order) => {
     const itemsList = order.items.map((item: any) => 
-      `• ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''} x${item.quantity}`
+      item.selectedVariant
+        ? `• ${item.name} (${item.selectedVariant}) x${item.quantity}`
+        : `• ${item.name} x${item.quantity}`
     ).join('\n');
 
     const paymentStatusDisplay = order.payment_status?.toLowerCase() || '';
@@ -1144,7 +1148,7 @@ ${generateEmailContent(order)}
                           <div className="space-y-1 max-w-[250px]">
                             {order.items && order.items.slice(0, expandedOrderIds.has(order.id) ? order.items.length : 2).map((item: any, index: number) => (
                               <div key={index} className="text-xs">
-                                x{item.quantity} {item.name} {item.selectedVariant && `(${item.selectedVariant})`}
+                                x{item.quantity} {item.name}{item.selectedVariant && ` (${item.selectedVariant})`}
                               </div>
                             ))}
                             {order.items && order.items.length > 2 && (
