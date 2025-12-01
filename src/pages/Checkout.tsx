@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload } from "lucide-react";
+import { Loader2, ArrowLeft, Upload, Facebook } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext"; // Import CartItem
@@ -458,9 +458,29 @@ export default function Checkout() {
                 </div>
               ))}
             </div>
-          </div>
+          </div>
 
-          <div className="rounded-lg border p-6 space-y-4">
+          <div className="rounded-lg border p-6 bg-accent/10">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Facebook className="h-5 w-5 text-primary" />
+              Theo dõi đơn hàng của bạn
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              Tham gia group Facebook để cập nhật tiến độ đơn hàng, nhận thông báo mới nhất và kết nối với cộng đồng!
+            </p>
+            <a 
+              href="https://www.facebook.com/groups/1142581477955556/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button type="button" variant="outline" className="w-full gap-2">
+                <Facebook className="h-4 w-4" />
+                Tham gia group theo dõi đơn hàng
+              </Button>
+            </a>
+          </div>
+
+          <div className="rounded-lg border p-6 space-y-4">
             <div className="flex justify-between items-center text-lg font-medium">
               <span>Tổng cộng:</span>
               <span className="text-2xl font-bold text-primary">

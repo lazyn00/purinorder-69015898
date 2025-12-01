@@ -1,6 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Facebook, Instagram, MessageSquare, Music2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, Phone, MapPin, Facebook, Instagram, MessageSquare, Music2, Users } from "lucide-react";
 
 export default function Contact() {
   return (
@@ -91,9 +92,34 @@ export default function Contact() {
                   <span>TikTok: @purin_order</span>
                 </a>
               </CardContent>
-            </Card>
+            </Card>
 
-            {/* MỤC GIỜ LÀM VIỆC ĐÃ BỊ LOẠI BỎ Ở ĐÂY */}
+            {/* 3. GROUP THEO DÕI ĐƠN HÀNG */}
+            <Card className="bg-accent/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Group theo dõi đơn hàng
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  Tham gia group Facebook để cập nhật tiến độ đơn hàng, nhận thông báo mới nhất và kết nối với cộng đồng Purin Order!
+                </p>
+                <a 
+                  href="https://www.facebook.com/groups/1142581477955556/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button className="w-full gap-2">
+                    <Facebook className="h-4 w-4" />
+                    Tham gia group theo dõi đơn hàng
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+
+            {/* MỤC GIỜ LÀM VIỆC ĐÃ BỊ LOẠI BỎ Ở ĐÂY */}
           </div>
         </div>
       </div>
