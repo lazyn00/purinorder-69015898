@@ -23,17 +23,17 @@ export default function ProductManagement() {
 
   const [formData, setFormData] = useState<Partial<DBProduct>>({
     name: "",
-    te: 0,
-    rate: 0,
-    r_v: 0,
-    can_weight: 0,
-    pack: 0,
-    cong: 0,
-    total: 0,
+    te: null,
+    rate: null,
+    r_v: null,
+    can_weight: null,
+    pack: null,
+    cong: null,
+    total: null,
     price: 0,
-    actual_rate: 0,
-    actual_can: 0,
-    actual_pack: 0,
+    actual_rate: null,
+    actual_can: null,
+    actual_pack: null,
     fees_included: true,
     category: "",
     subcategory: "",
@@ -46,7 +46,7 @@ export default function ProductManagement() {
     variants: [],
     option_groups: [],
     variant_image_map: {},
-    stock: 0,
+    stock: null,
     link_order: "",
     proof: ""
   });
@@ -57,12 +57,12 @@ export default function ProductManagement() {
 
   // Auto-calculate R-V when te or rate changes
   useEffect(() => {
-    const teNum = formData.te || 0;
-    const rateNum = formData.rate || 0;
+    const teNum = formData.te ?? 0;
+    const rateNum = formData.rate ?? 0;
     if (teNum > 0 && rateNum > 0) {
       setFormData(prev => ({ ...prev, r_v: teNum * rateNum }));
-    } else if (teNum === 0 || rateNum === 0) {
-      setFormData(prev => ({ ...prev, r_v: 0 }));
+    } else {
+      setFormData(prev => ({ ...prev, r_v: null }));
     }
   }, [formData.te, formData.rate]);
 
@@ -97,8 +97,8 @@ export default function ProductManagement() {
   };
 
   const calculateTotal = () => {
-    const { te = 0, rate = 0, can_weight = 0, pack = 0, cong = 0 } = formData;
-    const total = (te || 0) * (rate || 0) + (can_weight || 0) + (pack || 0) + (cong || 0);
+    const { te, rate, can_weight, pack, cong } = formData;
+    const total = (te ?? 0) * (rate ?? 0) + (can_weight ?? 0) + (pack ?? 0) + (cong ?? 0);
     setFormData(prev => ({ ...prev, total }));
   };
 
@@ -119,16 +119,16 @@ export default function ProductManagement() {
     const dataToSave = {
       name: formData.name,
       price: formData.price,
-      te: formData.te || 0,
-      rate: formData.rate || 0,
-      r_v: formData.r_v || 0,
-      can_weight: formData.can_weight || 0,
-      pack: formData.pack || 0,
-      cong: formData.cong || 0,
-      total: formData.total || 0,
-      actual_rate: formData.actual_rate || 0,
-      actual_can: formData.actual_can || 0,
-      actual_pack: formData.actual_pack || 0,
+      te: formData.te ?? null,
+      rate: formData.rate ?? null,
+      r_v: formData.r_v ?? null,
+      can_weight: formData.can_weight ?? null,
+      pack: formData.pack ?? null,
+      cong: formData.cong ?? null,
+      total: formData.total ?? null,
+      actual_rate: formData.actual_rate ?? null,
+      actual_can: formData.actual_can ?? null,
+      actual_pack: formData.actual_pack ?? null,
       fees_included: formData.fees_included ?? true,
       category: formData.category || null,
       subcategory: formData.subcategory || null,
@@ -137,7 +137,7 @@ export default function ProductManagement() {
       order_deadline: formData.order_deadline || null,
       description: formData.description || null,
       master: formData.master || null,
-      stock: formData.stock || null,
+      stock: formData.stock ?? null,
       link_order: formData.link_order || null,
       proof: formData.proof || null,
       images: filteredImages.length > 0 ? filteredImages : [],
@@ -240,17 +240,17 @@ export default function ProductManagement() {
   const resetForm = () => {
     setFormData({
       name: "",
-      te: 0,
-      rate: 0,
-      r_v: 0,
-      can_weight: 0,
-      pack: 0,
-      cong: 0,
-      total: 0,
+      te: null,
+      rate: null,
+      r_v: null,
+      can_weight: null,
+      pack: null,
+      cong: null,
+      total: null,
       price: 0,
-      actual_rate: 0,
-      actual_can: 0,
-      actual_pack: 0,
+      actual_rate: null,
+      actual_can: null,
+      actual_pack: null,
       fees_included: true,
       category: "",
       subcategory: "",
@@ -263,7 +263,7 @@ export default function ProductManagement() {
       variants: [],
       option_groups: [],
       variant_image_map: {},
-      stock: 0,
+      stock: null,
       link_order: "",
       proof: ""
     });
@@ -395,9 +395,10 @@ export default function ProductManagement() {
                   <Input
                     id="te"
                     type="number"
-                    value={formData.te}
+                    value={formData.te ?? ""}
                     onChange={(e) => {
-                      handleInputChange('te', parseFloat(e.target.value) || 0);
+                      const value = e.target.value;
+                      handleInputChange('te', value === "" ? null : parseFloat(value));
                       setTimeout(calculateTotal, 0);
                     }}
                   />
@@ -408,9 +409,10 @@ export default function ProductManagement() {
                   <Input
                     id="rate"
                     type="number"
-                    value={formData.rate}
+                    value={formData.rate ?? ""}
                     onChange={(e) => {
-                      handleInputChange('rate', parseFloat(e.target.value) || 0);
+                      const value = e.target.value;
+                      handleInputChange('rate', value === "" ? null : parseFloat(value));
                       setTimeout(calculateTotal, 0);
                     }}
                   />
@@ -421,7 +423,7 @@ export default function ProductManagement() {
                   <Input
                     id="r_v"
                     type="number"
-                    value={formData.r_v}
+                    value={formData.r_v ?? ""}
                     readOnly
                     className="bg-muted"
                   />
@@ -432,9 +434,10 @@ export default function ProductManagement() {
                   <Input
                     id="can_weight"
                     type="number"
-                    value={formData.can_weight}
+                    value={formData.can_weight ?? ""}
                     onChange={(e) => {
-                      handleInputChange('can_weight', parseFloat(e.target.value) || 0);
+                      const value = e.target.value;
+                      handleInputChange('can_weight', value === "" ? null : parseFloat(value));
                       setTimeout(calculateTotal, 0);
                     }}
                   />
@@ -445,9 +448,10 @@ export default function ProductManagement() {
                   <Input
                     id="pack"
                     type="number"
-                    value={formData.pack}
+                    value={formData.pack ?? ""}
                     onChange={(e) => {
-                      handleInputChange('pack', parseFloat(e.target.value) || 0);
+                      const value = e.target.value;
+                      handleInputChange('pack', value === "" ? null : parseFloat(value));
                       setTimeout(calculateTotal, 0);
                     }}
                   />
@@ -458,9 +462,10 @@ export default function ProductManagement() {
                   <Input
                     id="cong"
                     type="number"
-                    value={formData.cong}
+                    value={formData.cong ?? ""}
                     onChange={(e) => {
-                      handleInputChange('cong', parseFloat(e.target.value) || 0);
+                      const value = e.target.value;
+                      handleInputChange('cong', value === "" ? null : parseFloat(value));
                       setTimeout(calculateTotal, 0);
                     }}
                   />
@@ -471,7 +476,7 @@ export default function ProductManagement() {
                   <Input
                     id="total"
                     type="number"
-                    value={formData.total}
+                    value={formData.total ?? ""}
                     readOnly
                     className="bg-muted"
                   />
@@ -493,8 +498,11 @@ export default function ProductManagement() {
                   <Input
                     id="actual_rate"
                     type="number"
-                    value={formData.actual_rate}
-                    onChange={(e) => handleInputChange('actual_rate', parseFloat(e.target.value) || 0)}
+                    value={formData.actual_rate ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleInputChange('actual_rate', value === "" ? null : parseFloat(value));
+                    }}
                   />
                 </div>
 
@@ -503,8 +511,11 @@ export default function ProductManagement() {
                   <Input
                     id="actual_can"
                     type="number"
-                    value={formData.actual_can}
-                    onChange={(e) => handleInputChange('actual_can', parseFloat(e.target.value) || 0)}
+                    value={formData.actual_can ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleInputChange('actual_can', value === "" ? null : parseFloat(value));
+                    }}
                   />
                 </div>
 
@@ -513,8 +524,11 @@ export default function ProductManagement() {
                   <Input
                     id="actual_pack"
                     type="number"
-                    value={formData.actual_pack}
-                    onChange={(e) => handleInputChange('actual_pack', parseFloat(e.target.value) || 0)}
+                    value={formData.actual_pack ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleInputChange('actual_pack', value === "" ? null : parseFloat(value));
+                    }}
                   />
                 </div>
 
