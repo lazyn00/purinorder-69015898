@@ -234,15 +234,15 @@ export default function Checkout() {
         console.warn('Failed to send confirmation email:', emailError);
       }
 
-      setIsSubmitting(false);
-      clearCart();
-      
-      toast({
-        title: "Đặt hàng thành công!",
-        description: "Chúng tôi sẽ liên hệ với bạn sớm nhất.",
-      });
-      
-      navigate("/");
+      setIsSubmitting(false);
+      clearCart();
+      
+      toast({
+        title: "Đặt hàng thành công!",
+        description: "Chúng tôi sẽ liên hệ với bạn sớm nhất.",
+      });
+      
+      navigate(`/order-success?orderNumber=${orderNumber}`);
 
     } catch (error) {
       console.error("Error submitting order:", error);

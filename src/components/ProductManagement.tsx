@@ -218,6 +218,7 @@ export default function ProductManagement() {
   const handleDelete = async (id: number) => {
     if (!confirm("Bạn có chắc muốn xóa sản phẩm này?")) return;
 
+    setIsLoading(true);
     try {
       const { error } = await supabase
         .from('products')
@@ -226,7 +227,7 @@ export default function ProductManagement() {
 
       if (error) throw error;
       toast({ title: "Đã xóa sản phẩm" });
-      fetchProducts();
+      await fetchProducts();
     } catch (error) {
       console.error(error);
       toast({
@@ -234,6 +235,8 @@ export default function ProductManagement() {
         description: "Không thể xóa sản phẩm",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
