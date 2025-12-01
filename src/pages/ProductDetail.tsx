@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft } from "lucide-react";
+import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Share2 } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { OrderCountdown } from "@/components/OrderCountdown";
 import { useCart, Product } from "@/contexts/CartContext";
@@ -237,9 +237,33 @@ export default function ProductDetail() {
         });
     }
 
-  const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
+  const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
-  // --- RENDER ---
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = `${product?.name} - ${currentPrice.toLocaleString('vi-VN')}đ`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product?.name,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (error) {
+        console.log('Share cancelled or failed');
+      }
+    } else {
+      // Fallback: copy link
+      navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Đã copy link",
+        description: "Link sản phẩm đã được copy vào clipboard",
+      });
+    }
+  };
+
+  // --- RENDER ---
 
   // (Xử lý loading)
   if (isLoading) {
@@ -323,20 +347,33 @@ export default function ProductDetail() {
 
           {/* Product Info */}
           <div className="space-y-6">
-            <div>
-              {/* (Đọc tag động) */}
-              {product.status && (
-                <Badge variant="secondary" className="mb-3">
-                  {product.status}
-                </Badge>
-              )}
-              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-              {product.master && (
-                <p className="text-muted-foreground text-sm">
-                  Master: {product.master}
-                </p>
-              )}
-            </div>
+            <div>
+              {/* (Đọc tag động) */}
+              {product.status && (
+                <Badge variant="secondary" className="mb-3">
+                  {product.status}
+                </Badge>
+              )}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+                  {product.master && (
+                    <p className="text-muted-foreground text-sm">
+                      Master: {product.master}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleShare}
+                  className="flex-shrink-0"
+                  title="Chia sẻ sản phẩm"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
             <div className="border-t pt-4">
               <p className={`text-4xl font-bold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
