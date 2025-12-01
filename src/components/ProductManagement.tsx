@@ -114,12 +114,35 @@ export default function ProductManagement() {
       return;
     }
 
-    // Prepare data with images, variants, and variant_image_map
+    // Prepare data with proper formatting for JSON fields
     const filteredImages = imageUrls.filter(url => url.trim() !== "");
     const dataToSave = {
-      ...formData,
-      images: filteredImages,
+      name: formData.name,
+      price: formData.price,
+      te: formData.te || 0,
+      rate: formData.rate || 0,
+      r_v: formData.r_v || 0,
+      can_weight: formData.can_weight || 0,
+      pack: formData.pack || 0,
+      cong: formData.cong || 0,
+      total: formData.total || 0,
+      actual_rate: formData.actual_rate || 0,
+      actual_can: formData.actual_can || 0,
+      actual_pack: formData.actual_pack || 0,
+      fees_included: formData.fees_included ?? true,
+      category: formData.category || null,
+      subcategory: formData.subcategory || null,
+      artist: formData.artist || null,
+      status: formData.status || "Sẵn",
+      order_deadline: formData.order_deadline || null,
+      description: formData.description || null,
+      master: formData.master || null,
+      stock: formData.stock || null,
+      link_order: formData.link_order || null,
+      proof: formData.proof || null,
+      images: filteredImages.length > 0 ? filteredImages : [],
       variants: variants.length > 0 ? variants : [],
+      option_groups: [],
       variant_image_map: Object.keys(variantImageMap).length > 0 ? variantImageMap : {}
     };
 
@@ -128,28 +151,34 @@ export default function ProductManagement() {
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
-          .update(dataToSave as any)
+          .update(dataToSave)
           .eq('id', editingProduct.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         toast({ title: "Cập nhật thành công" });
       } else {
         const { error } = await supabase
           .from('products')
-          .insert([dataToSave as any]);
+          .insert([dataToSave]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         toast({ title: "Thêm sản phẩm thành công" });
       }
 
       setIsDialogOpen(false);
       resetForm();
       fetchProducts();
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('Submit error:', error);
       toast({
         title: "Lỗi",
-        description: "Không thể lưu sản phẩm",
+        description: error?.message || "Không thể lưu sản phẩm",
         variant: "destructive"
       });
     } finally {
