@@ -132,11 +132,16 @@ export default function Admin() {
   // Filter orders based on search and filters
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
+      // Tìm kiếm trong tên, SĐT, mã đơn VÀ tên sản phẩm
       const matchesSearch = searchTerm === "" || 
         order.delivery_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.delivery_phone.includes(searchTerm) ||
         order.customer_phone.includes(searchTerm) ||
-        (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase()));
+        (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        order.items.some((item: any) => 
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.selectedVariant && item.selectedVariant.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
       
       const matchesPaymentStatus = paymentStatusFilter === "all" || order.payment_status === paymentStatusFilter;
       const matchesOrderProgress = orderProgressFilter === "all" || order.order_progress === orderProgressFilter;
@@ -972,7 +977,7 @@ ${generateEmailContent(order)}
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Tìm theo tên, SĐT hoặc mã đơn..."
+                    placeholder="Tìm theo tên, SĐT, mã đơn, hoặc sản phẩm..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -1178,7 +1183,12 @@ ${generateEmailContent(order)}
                             <div className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</div>
                             {order.payment_proof_url && (
                               <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
-                                Bill <ExternalLink className="h-3 w-3" />
+                                Bill 1 <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                            {order.second_payment_proof_url && (
+                              <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline flex items-center justify-end gap-1">
+                                Bill 2 <ExternalLink className="h-3 w-3" />
                               </a>
                             )}
                           </div>
