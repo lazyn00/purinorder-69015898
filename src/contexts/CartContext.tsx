@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
 
-// Fallback Google Sheet URL (optional)
+// === DÁN URL APPS SCRIPT (ĐỌC SẢN PHẨM) CỦA BẠN VÀO ĐÂY ===
 const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
+// ===
 
 // Định nghĩa kiểu Product mới (từ Google Sheet)
 export interface Product {
@@ -55,72 +55,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // Fetch từ backend Supabase
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        if (data) {
-          // Transform data từ DB format sang Product format
-          const transformedProducts = data.map((dbProduct: any) => ({
-            id: dbProduct.id,
-            name: dbProduct.name,
-            price: dbProduct.price,
-            description: dbProduct.description || '',
-            images: Array.isArray(dbProduct.images) ? dbProduct.images : [],
-            category: dbProduct.category || '',
-            subcategory: dbProduct.subcategory || '',
-            artist: dbProduct.artist || '',
-            variants: Array.isArray(dbProduct.variants) ? dbProduct.variants : [],
-            optionGroups: Array.isArray(dbProduct.option_groups) ? dbProduct.option_groups : [],
-            variantImageMap: typeof dbProduct.variant_image_map === 'object' 
-              ? dbProduct.variant_image_map 
-              : {},
-            feesIncluded: dbProduct.fees_included ?? true,
-            master: dbProduct.master || '',
-            status: dbProduct.status || 'Sẵn',
-            orderDeadline: dbProduct.order_deadline,
-            stock: dbProduct.stock,
-            priceDisplay: `${dbProduct.price.toLocaleString('vi-VN')}đ`
-          }));
-          
-          setProducts(transformedProducts);
+        const response = await fetch(GAS_PRODUCTS_URL);
+        const data = await response.json();
+        
+        if (data.products) {
+          // Parse variantImageMap nếu nó là string
+          const parsedProducts = data.products.map((product: any) => {
+            if (product.variantImageMap && typeof product.variantImageMap === 'string') {
+              try {
+                product.variantImageMap = JSON.parse(product.variantImageMap);
+              } catch (e) {
+                console.error(`Lỗi parse variantImageMap cho sản phẩm ${product.id}:`, e);
+                product.variantImageMap = {};
+              }
+            }
+            return product;
+          });
+          setProducts(parsedProducts);
+        } else {
+          console.error("Lỗi tải products:", data.error);
         }
       } catch (error) {
-        console.error("Không thể tải sản phẩm từ backend:", error);
-        
-        // Fallback to Google Sheet if backend fails
-        try {
-          const response = await fetch(GAS_PRODUCTS_URL);
-          const data = await response.json();
-          
-          if (data.products) {
-            const parsedProducts = data.products.map((product: any) => {
-              if (product.variantImageMap && typeof product.variantImageMap === 'string') {
-                try {
-                  product.variantImageMap = JSON.parse(product.variantImageMap);
-                } catch (e) {
-                  console.error(`Lỗi parse variantImageMap cho sản phẩm ${product.id}:`, e);
-                  product.variantImageMap = {};
-                }
-              }
-              return product;
-            });
-            setProducts(parsedProducts);
-          }
-        } catch (fallbackError) {
-          console.error("Fallback Google Sheet cũng thất bại:", fallbackError);
-        }
+        console.error("Không thể tải sản phẩm từ Google Sheet:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProducts();
-  }, []);
+  }, []); // Tải 1 lần duy nhất
 
   // (Các hàm giỏ hàng đã sửa lỗi)
   const addToCart = (product: Product, quantity: number, variant: string) => {
