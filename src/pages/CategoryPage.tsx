@@ -28,14 +28,12 @@ interface Product {
 const CATEGORY_MAP: { [key: string]: string } = {
   "outfit-doll": "Outfit & Doll",
   "merch": "Merch",
-  "fashion": "Thời Trang",
   "khac": "Khác"
 };
 
 const CATEGORY_TITLES: { [key: string]: string } = {
   "outfit-doll": "Outfit & Doll",
   "merch": "Merch",
-  "fashion": "Thời Trang",
   "khac": "Khác"
 };
 
