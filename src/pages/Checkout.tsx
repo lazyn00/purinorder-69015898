@@ -140,109 +140,169 @@ export default function Checkout() {
         paymentProofUrl = publicUrl;
       }
 
-      // Generate order number #PO + YYYYMMDD + sequential number
-      const today = new Date();
-      const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-      const orderNumber = `PO${dateStr}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+      // === TÁCH ĐỌN THEO MASTER (NHÓM ITEMS THEO MASTER) ===
+      const masterGroups: { [key: string]: typeof cartItems } = {};
+      
+      cartItems.forEach(item => {
+        const master = item.master || "no_master";
+        if (!masterGroups[master]) {
+          masterGroups[master] = [];
+        }
+        masterGroups[master].push(item);
+      });
 
+      const masterKeys = Object.keys(masterGroups);
+      const orderNumbers: string[] = [];
 
-      // Sử dụng số điện thoại liên lạc nếu không điền số nhận hàng
-      const finalDeliveryPhone = deliveryInfo.phone || contactInfo.phone;
+      // TẠO TỪNG ĐƠN HÀNG CHO MỖI MASTER
+      for (const master of masterKeys) {
+        const groupItems = masterGroups[master];
+        const groupTotal = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        // Generate order number cho đơn này
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+        const orderNumber = `PO${dateStr}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+        orderNumbers.push(orderNumber);
 
-      const { error: insertError } = await (supabase as any)
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          customer_fb: contactInfo.fb,
-          customer_email: contactInfo.email,
-          customer_phone: contactInfo.phone,
-          delivery_name: deliveryInfo.name,
-          delivery_phone: finalDeliveryPhone,
-          delivery_address: deliveryInfo.address,
-          delivery_note: deliveryInfo.note,
-          items: cartItems as any,
-          total_price: totalPrice,
-          payment_method: selectedMethod,
-          payment_type: paymentType,
-          payment_proof_url: paymentProofUrl,
-          payment_status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
-          order_progress: 'Đang xử lý'
-        } as any);
+        const finalDeliveryPhone = deliveryInfo.phone || contactInfo.phone;
 
-      if (insertError) {
-        throw insertError;
-      }
+        const { error: insertError } = await (supabase as any)
+          .from('orders')
+          .insert({
+            order_number: orderNumber,
+            customer_fb: contactInfo.fb,
+            customer_email: contactInfo.email,
+            customer_phone: contactInfo.phone,
+            delivery_name: deliveryInfo.name,
+            delivery_phone: finalDeliveryPhone,
+            delivery_address: deliveryInfo.address,
+            delivery_note: deliveryInfo.note,
+            items: groupItems as any,
+            total_price: groupTotal,
+            payment_method: selectedMethod,
+            payment_type: paymentType,
+            payment_proof_url: paymentProofUrl,
+            payment_status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
+            order_progress: 'Đang xử lý'
+          } as any);
 
-      // Sync to Google Sheets
-      try {
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-order-to-sheets`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-          },
-          body: JSON.stringify({
-            order: {
-              id: orderNumber,
-              order_number: orderNumber,
-              created_at: new Date().toISOString(),
-              customer_fb: contactInfo.fb,
-              customer_email: contactInfo.email,
-              customer_phone: contactInfo.phone,
-              delivery_name: deliveryInfo.name,
-              delivery_phone: finalDeliveryPhone,
-              delivery_address: deliveryInfo.address,
-              delivery_note: deliveryInfo.note,
-              items: cartItems,
-              total_price: totalPrice,
-              payment_method: selectedMethod,
-              payment_type: paymentType,
-              payment_proof_url: paymentProofUrl,
-              payment_status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
-              order_progress: 'Đang xử lý'
+        if (insertError) {
+          throw insertError;
+        }
+
+        // === TỰ ĐỘNG TRỪ TỒN KHO TRONG DATABASE (CHO NHÓM NÀY) ===
+        try {
+          for (const item of groupItems) {
+            if (item.selectedVariant) {
+              const { data: product, error: fetchError } = await supabase
+                .from('products')
+                .select('variants')
+                .eq('id', item.id)
+                .single();
+
+              if (!fetchError && product) {
+                const updatedVariants = (product.variants as any[]).map((v: any) => {
+                  if (v.name === item.selectedVariant && v.stock !== undefined) {
+                    return { ...v, stock: Math.max(0, (v.stock || 0) - item.quantity) };
+                  }
+                  return v;
+                });
+
+                await supabase
+                  .from('products')
+                  .update({ variants: updatedVariants })
+                  .eq('id', item.id);
+              }
+            } else if (item.stock !== undefined) {
+              await supabase
+                .from('products')
+                .update({ stock: Math.max(0, (item.stock || 0) - item.quantity) })
+                .eq('id', item.id);
             }
-          })
-        }).catch(err => {
-          console.warn('Failed to sync to Google Sheets:', err);
-        });
-      } catch (syncError) {
-        console.warn('Google Sheets sync error:', syncError);
-      }
-
-      // Send order confirmation email
-      try {
-        await supabase.functions.invoke('send-order-email', {
-          body: {
-            email: contactInfo.email,
-            orderNumber: orderNumber,
-            customerName: deliveryInfo.name,
-            items: cartItems.map(item => ({
-              name: item.name,
-              variant: item.selectedVariant,
-              quantity: item.quantity,
-              price: item.price
-            })),
-            totalPrice: totalPrice,
-            status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
-            paymentStatus: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
-            orderProgress: 'Đang xử lý',
-            type: 'new_order',
-            deliveryAddress: deliveryInfo.address
           }
-        });
-      } catch (emailError) {
-        console.warn('Failed to send confirmation email:', emailError);
+        } catch (stockError) {
+          console.warn('Không thể cập nhật tồn kho:', stockError);
+        }
+
+        // Sync đơn này to Google Sheets
+        try {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-order-to-sheets`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+            },
+            body: JSON.stringify({
+              order: {
+                id: orderNumber,
+                order_number: orderNumber,
+                created_at: new Date().toISOString(),
+                customer_fb: contactInfo.fb,
+                customer_email: contactInfo.email,
+                customer_phone: contactInfo.phone,
+                delivery_name: deliveryInfo.name,
+                delivery_phone: finalDeliveryPhone,
+                delivery_address: deliveryInfo.address,
+                delivery_note: deliveryInfo.note,
+                items: groupItems,
+                total_price: groupTotal,
+                payment_method: selectedMethod,
+                payment_type: paymentType,
+                payment_proof_url: paymentProofUrl,
+                payment_status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
+                order_progress: 'Đang xử lý'
+              }
+            })
+          }).catch(err => {
+            console.warn('Failed to sync to Google Sheets:', err);
+          });
+        } catch (syncError) {
+          console.warn('Google Sheets sync error:', syncError);
+        }
+
+        // Send email cho đơn này
+        try {
+          await supabase.functions.invoke('send-order-email', {
+            body: {
+              email: contactInfo.email,
+              orderNumber: orderNumber,
+              customerName: deliveryInfo.name,
+              items: groupItems.map(item => ({
+                name: item.name,
+                variant: item.selectedVariant,
+                quantity: item.quantity,
+                price: item.price
+              })),
+              totalPrice: groupTotal,
+              status: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
+              paymentStatus: paymentType === 'deposit' ? 'Đã cọc' : 'Chưa thanh toán',
+              orderProgress: 'Đang xử lý',
+              type: 'new_order',
+              deliveryAddress: deliveryInfo.address
+            }
+          });
+        } catch (emailError) {
+          console.warn('Failed to send confirmation email:', emailError);
+        }
       }
 
       setIsSubmitting(false);
       clearCart();
       
-      toast({
-        title: "Đặt hàng thành công!",
-        description: "Chúng tôi sẽ liên hệ với bạn sớm nhất.",
-      });
-      
-      navigate(`/order-success?orderNumber=${orderNumber}`);
+      if (orderNumbers.length === 1) {
+        toast({
+          title: "Đặt hàng thành công!",
+          description: "Chúng tôi sẽ liên hệ với bạn sớm nhất.",
+        });
+        navigate(`/order-success?orderNumber=${orderNumbers[0]}`);
+      } else {
+        toast({
+          title: `Đặt hàng thành công ${orderNumbers.length} đơn!`,
+          description: `Đơn hàng đã được tách theo master: ${orderNumbers.join(', ')}`,
+        });
+        navigate(`/order-success?orderNumber=${orderNumbers[0]}`);
+      }
 
     } catch (error) {
       console.error("Error submitting order:", error);
