@@ -989,6 +989,7 @@ ${generateEmailContent(order)}
                         </Pie>
                         <Tooltip />
                       </PieChart>
+                    </ResponsiveContainer>
                   </CardContent>
                 </Card>
               </div>
@@ -1016,7 +1017,8 @@ ${generateEmailContent(order)}
                       </Pie>
                       <Tooltip />
                     </PieChart>
-                  </CardContent>
+                  </ResponsiveContainer>
+                </CardContent>
               </Card>
             </TabsContent>
 
@@ -1247,7 +1249,6 @@ ${generateEmailContent(order)}
                                   ) : (
                                     order.delivery_address
                                   )}
-                                </div>
                               )}
                             </div>
                             {order.delivery_note && (
@@ -1404,7 +1405,7 @@ ${generateEmailContent(order)}
                       if (totalPages <= 5) {
                         pageNum = i + 1;
                       } else if (currentPage <= 3) {
-                        pageNum = i + 1;
+                        pageNum = currentPage - 2 + i;
                       } else if (currentPage >= totalPages - 2) {
                         pageNum = totalPages - 4 + i;
                       } else {
