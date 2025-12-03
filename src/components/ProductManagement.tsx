@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, X, Image as ImageIcon, DollarSign } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useCart } from "@/contexts/CartContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DBProduct = Tables<"products">;
@@ -20,6 +21,7 @@ export default function ProductManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<DBProduct | null>(null);
   const { toast } = useToast();
+  const { refetchProducts: refetchCartProducts } = useCart();
 
   const [formData, setFormData] = useState<Partial<DBProduct>>({
     name: "",
@@ -174,6 +176,7 @@ export default function ProductManagement() {
       setIsDialogOpen(false);
       resetForm();
       fetchProducts();
+      refetchCartProducts(); // Refresh products on store pages
     } catch (error: any) {
       console.error('Submit error:', error);
       toast({
@@ -228,6 +231,7 @@ export default function ProductManagement() {
       if (error) throw error;
       toast({ title: "Đã xóa sản phẩm" });
       await fetchProducts();
+      refetchCartProducts(); // Refresh products on store pages
     } catch (error) {
       console.error(error);
       toast({

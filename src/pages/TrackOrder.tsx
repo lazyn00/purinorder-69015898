@@ -432,43 +432,39 @@ export default function TrackOrder() {
                     </>
                   )}
 
-                  {!order.second_payment_proof_url && (
-                    <>
-                      <Separator />
-                      <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
-                        <Label className="font-semibold text-lg mb-3 block">
-                          {order.payment_type === 'deposit' && order.payment_status === 'đã cọc' 
-                            ? 'Thanh toán 50% còn lại' 
-                            : 'Đăng bill bổ sung'}
-                        </Label>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          {order.payment_type === 'deposit' && order.payment_status === 'đã cọc'
-                            ? `Vui lòng thanh toán ${(order.total_price * 0.5).toLocaleString('vi-VN')}đ và đăng bill chuyển khoản`
-                            : 'Dùng để đăng bill hoàn cọc, phụ thu hoặc thanh toán bổ sung'}
-                        </p>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              handleUploadSecondPayment(order.id, e.target.files[0]);
-                            }
-                          }}
-                          disabled={uploadingOrderId === order.id}
-                          className="cursor-pointer"
-                        />
-                        {uploadingOrderId === order.id && (
-                          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang upload...
-                          </div>
-                        )}
+                  <Separator />
+                  <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
+                    <Label className="font-semibold text-lg mb-3 block">
+                      {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc' 
+                        ? 'Thanh toán 50% còn lại' 
+                        : 'Đăng bill bổ sung'}
+                    </Label>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc'
+                        ? `Vui lòng thanh toán ${(order.total_price * 0.5).toLocaleString('vi-VN')}đ và đăng bill chuyển khoản`
+                        : 'Dùng để đăng bill hoàn cọc, phụ thu hoặc thanh toán bổ sung'}
+                    </p>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleUploadSecondPayment(order.id, e.target.files[0]);
+                        }
+                      }}
+                      disabled={uploadingOrderId === order.id}
+                      className="cursor-pointer"
+                    />
+                    {uploadingOrderId === order.id && (
+                      <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Đang upload...
                       </div>
-                    </>
-                  )}
+                    )}
+                  </div>
 
                   {order.second_payment_proof_url && (
-                    <div className="text-sm">
+                    <div className="text-sm mt-3">
                       <a 
                         href={order.second_payment_proof_url} 
                         target="_blank" 
@@ -476,7 +472,7 @@ export default function TrackOrder() {
                         className="text-green-600 hover:underline flex items-center gap-2"
                       >
                         <Upload className="h-4 w-4" />
-                        Xem bill thanh toán bổ sung
+                        Xem bill thanh toán bổ sung đã đăng
                       </a>
                     </div>
                   )}
