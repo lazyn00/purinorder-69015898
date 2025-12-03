@@ -439,34 +439,50 @@ export default function ProductDetail() {
                 ))
               )}
 
-              {/* (Trường hợp 1 phân loại - ID 3) */}
-              {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
-                <div>
-                  <Label htmlFor="variant" className="text-base font-semibold">
-                    Phân loại *
-                  </Label>
-                  <Select 
-                    value={selectedVariant} 
-                    onValueChange={handleVariantChange}
-                  >
-                    <SelectTrigger id="variant" className="mt-2">
-                      <SelectValue placeholder="Chọn phân loại" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {product.variants.map((variant) => (
-                        <SelectItem 
-                            key={variant.name} 
-                            value={variant.name}
-                            disabled={variant.stock !== undefined && variant.stock <= 0}
+              {/* (Trường hợp 1 phân loại - ID 3) */}
+              {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
+                <div>
+                  <Label htmlFor="variant" className="text-base font-semibold">
+                    Phân loại *
+                  </Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                    {product.variants.map((variant) => {
+                      const variantImageIndex = product.variantImageMap?.[variant.name];
+                      const variantImage = variantImageIndex !== undefined ? product.images[variantImageIndex] : null;
+                      const isOutOfStock = variant.stock !== undefined && variant.stock <= 0;
+                      const isSelected = selectedVariant === variant.name;
+                      
+                      return (
+                        <button
+                          key={variant.name}
+                          type="button"
+                          onClick={() => !isOutOfStock && handleVariantChange(variant.name)}
+                          disabled={isOutOfStock}
+                          className={`
+                            relative flex flex-col items-center p-2 rounded-lg border-2 transition-all
+                            ${isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}
+                            ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                          `}
                         >
-                          {variant.name} 
-                            {variant.stock !== undefined && variant.stock <= 0 && " (Hết hàng)"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+                          {variantImage && (
+                            <img
+                              src={variantImage}
+                              alt={variant.name}
+                              className="w-16 h-16 object-cover rounded mb-1"
+                            />
+                          )}
+                          <span className={`text-sm text-center ${isSelected ? 'font-semibold' : ''}`}>
+                            {variant.name}
+                          </span>
+                          {isOutOfStock && (
+                            <span className="text-xs text-red-500">Hết hàng</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t pt-4">

@@ -8,7 +8,7 @@ import { ScrollToTop } from "./ScrollToTop";
 const menuItems = [
   { path: "/products", label: "Sản phẩm" },
   { path: "/policy", label: "Chính sách" },
-  { path: "/contact", label: "Liên hệ" },
+  { path: "/contact", label: "Thông tin" },
   { path: "/track-order", label: "Tra đơn" },
 ];
 
