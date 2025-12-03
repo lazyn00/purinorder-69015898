@@ -824,7 +824,7 @@ ${generateEmailContent(order)}
               </form>
             </CardContent>
           </Card>
-        </div>
+          </div>
       </Layout>
     );
   }
