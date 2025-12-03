@@ -110,11 +110,24 @@ interface ProductNotification {
   created_at: string;
 }
 
+interface ProductData {
+  id: number;
+  name: string;
+  price: number;
+  te?: number;
+  rate?: number;
+  actual_rate?: number;
+  actual_can?: number;
+  actual_pack?: number;
+  cong?: number;
+}
+
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [shippingInfo, setShippingInfo] = useState<{[key: string]: {provider: string, code: string}}>({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -270,11 +283,73 @@ export default function Admin() {
     };
   }, [orders]);
 
+  // Tính toán tiền công và tiền chênh
+  const costStatistics = useMemo(() => {
+    let totalServiceFee = 0; // Tổng tiền công
+    let totalProfit = 0; // Tổng tiền chênh
+    let productsWithActualCost = 0;
+
+    // Tạo map từ product id/name -> product data
+    const productMap = new Map<number, ProductData>();
+    products.forEach(p => productMap.set(p.id, p));
+
+    orders.forEach(order => {
+      if (order.order_progress === 'Đã huỷ') return;
+      
+      const items = order.items as any[];
+      items.forEach(item => {
+        const product = productMap.get(item.id);
+        if (!product) return;
+
+        const quantity = item.quantity || 1;
+        
+        // Tính tiền công
+        if (product.cong) {
+          totalServiceFee += (product.cong * quantity);
+        }
+
+        // Tính tiền chênh nếu có đủ dữ liệu actual
+        if (product.actual_rate || product.actual_can || product.actual_pack) {
+          const te = product.te || 0;
+          const actualRate = product.actual_rate || product.rate || 0;
+          const actualCan = product.actual_can || 0;
+          const actualPack = product.actual_pack || 0;
+          const cong = product.cong || 0;
+          
+          const actualCost = (te * actualRate) + actualCan + actualPack + cong;
+          const profit = product.price - actualCost;
+          totalProfit += (profit * quantity);
+          productsWithActualCost++;
+        }
+      });
+    });
+
+    return {
+      totalServiceFee,
+      totalProfit,
+      productsWithActualCost
+    };
+  }, [orders, products]);
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong');
+      
+      if (error) throw error;
+      setProducts((data as ProductData[]) || []);
+    } catch (error) {
+      console.error('Error fetching products for stats:', error);
+    }
+  };
+
   useEffect(() => {
     const adminSession = sessionStorage.getItem('admin_logged_in');
     if (adminSession === 'true') {
       setIsLoggedIn(true);
       fetchOrders();
+      fetchProducts();
     }
   }, []);
 
@@ -285,6 +360,7 @@ export default function Admin() {
       setIsLoggedIn(true);
       sessionStorage.setItem('admin_logged_in', 'true');
       fetchOrders();
+      fetchProducts();
       toast({
         title: "Đăng nhập thành công",
         description: "Chào mừng Admin!",
@@ -785,7 +861,7 @@ ${generateEmailContent(order)}
 
             <TabsContent value="stats" className="space-y-6">
               {/* Tổng quan */}
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
@@ -827,6 +903,36 @@ ${generateEmailContent(order)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {((statistics.progressCounts['Đã hoàn thành'] || 0) / statistics.totalOrders * 100).toFixed(1)}% tổng đơn
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng tiền công</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-amber-600">
+                      {costStatistics.totalServiceFee.toLocaleString('vi-VN')}đ
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Phí dịch vụ từ đơn hàng
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tiền chênh (lãi/lỗ)</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`text-2xl font-bold ${costStatistics.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {costStatistics.totalProfit >= 0 ? '+' : ''}{costStatistics.totalProfit.toLocaleString('vi-VN')}đ
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Giá bán - (tệ×rate thực + cân thực + pack thực + công)
                     </p>
                   </CardContent>
                 </Card>
