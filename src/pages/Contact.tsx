@@ -34,8 +34,8 @@ export default function Contact() {
                   <Mail className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">Email</p>
-                    <a href="mailto:purinorder@gmail.com" className="text-muted-foreground hover:text-primary">
-                      purinorder@gmail.com
+                    <a href="mailto:ppurin.order@gmail.com" className="text-muted-foreground hover:text-primary">
+                      ppurin.order@gmail.com
                     </a>
                   </div>
                 </div>
