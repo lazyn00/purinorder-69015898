@@ -49,10 +49,10 @@ const getStatusColor = (status: string) => {
     case "Đang sản xuất":
       return "bg-purple-100 text-purple-800 border-purple-200";
     // CẬP NHẬT TÊN VÀ MÀU SẮC CHO TIẾN ĐỘ VẬN CHUYỂN TRUNG - VIỆT
-    **case "Đang vận chuyển Trung - Việt":**
-      **return "bg-yellow-100 text-yellow-800 border-yellow-200";**     // THÊM TRẠNG THÁI "SẴN SÀNG GIAO" VÀ MÀU SẮC
-    **case "Sẵn sàng giao":**
-      **return "bg-teal-100 text-teal-800 border-teal-200";**     case "Đang giao":
+    case "Đang vận chuyển Trung - Việt":
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";     // THÊM TRẠNG THÁI "SẴN SÀNG GIAO" VÀ MÀU SẮC
+    case "Sẵn sàng giao":
+      return "bg-teal-100 text-teal-800 border-teal-200";     case "Đang giao":
       return "bg-orange-100 text-orange-800 border-orange-200";
     case "Đã hoàn thành":
       return "bg-emerald-100 text-emerald-800 border-emerald-200";
