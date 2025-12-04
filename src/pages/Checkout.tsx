@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -33,27 +33,47 @@ const getVariantImage = (item: CartItem) => {
 // === KẾT THÚC HÀM HELPER ===
 
 export default function Checkout() {
-  const { cartItems, totalPrice, clearCart } = useCart();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const [contactInfo, setContactInfo] = useState({
-    fb: "",
-    email: "",
-    phone: ""
-  });
-  
+  const { cartItems, totalPrice, clearCart } = useCart();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [contactInfo, setContactInfo] = useState({
+    fb: "",
+    email: "",
+    phone: ""
+  });
+  
   const [deliveryInfo, setDeliveryInfo] = useState({
     name: "",
     phone: "",
     address: "",
     note: ""
   });
-  
-  const [selectedMethod, setSelectedMethod] = useState("Vietcombank");
-  const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
-  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  
+  const [selectedMethod, setSelectedMethod] = useState("Vietcombank");
+  const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+
+  // Auto-fill delivery info when contact phone changes
+  useEffect(() => {
+    if (contactInfo.phone.length >= 10) {
+      const savedDeliveryInfo = localStorage.getItem(`delivery_info_${contactInfo.phone}`);
+      if (savedDeliveryInfo) {
+        const parsed = JSON.parse(savedDeliveryInfo);
+        setDeliveryInfo(prev => ({
+          name: prev.name || parsed.name || "",
+          phone: prev.phone || parsed.phone || "",
+          address: prev.address || parsed.address || "",
+          note: prev.note || ""
+        }));
+        toast({
+          title: "Đã tự động điền thông tin",
+          description: "Thông tin nhận hàng từ lần đặt trước đã được điền.",
+        });
+      }
+    }
+  }, [contactInfo.phone]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -288,6 +308,15 @@ export default function Checkout() {
       }
 
       setIsSubmitting(false);
+      
+      // Save delivery info for auto-fill next time
+      const deliveryInfoToSave = {
+        name: deliveryInfo.name,
+        phone: deliveryInfo.phone || contactInfo.phone,
+        address: deliveryInfo.address
+      };
+      localStorage.setItem(`delivery_info_${contactInfo.phone}`, JSON.stringify(deliveryInfoToSave));
+      
       clearCart();
       
       if (orderNumbers.length === 1) {

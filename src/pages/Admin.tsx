@@ -120,6 +120,7 @@ interface ProductData {
   actual_can?: number;
   actual_pack?: number;
   cong?: number;
+  variants?: any[];
 }
 
 export default function Admin() {
@@ -283,13 +284,13 @@ export default function Admin() {
     };
   }, [orders]);
 
-  // Tính toán tiền công và tiền chênh
+  // Tính toán tiền công và tiền chênh theo từng sản phẩm/variant
   const costStatistics = useMemo(() => {
     let totalServiceFee = 0; // Tổng tiền công
     let totalProfit = 0; // Tổng tiền chênh
     let productsWithActualCost = 0;
 
-    // Tạo map từ product id/name -> product data
+    // Tạo map từ product id -> product data
     const productMap = new Map<number, ProductData>();
     products.forEach(p => productMap.set(p.id, p));
 
@@ -303,21 +304,45 @@ export default function Admin() {
 
         const quantity = item.quantity || 1;
         
+        // Lấy dữ liệu cost của variant nếu có
+        let variantActualRate = product.actual_rate;
+        let variantActualCan = product.actual_can;
+        let variantActualPack = product.actual_pack;
+        let variantCong = product.cong;
+        let variantTe = product.te;
+        let itemPrice = item.price || product.price;
+
+        // Nếu item có selectedVariant và product có variants, tìm variant tương ứng
+        if (item.selectedVariant && (product as any).variants) {
+          const variants = (product as any).variants as any[];
+          const matchedVariant = variants.find((v: any) => v.name === item.selectedVariant);
+          if (matchedVariant) {
+            // Sử dụng giá của variant
+            itemPrice = matchedVariant.price || itemPrice;
+            // Nếu variant có actual costs riêng, sử dụng
+            if (matchedVariant.actual_rate !== undefined) variantActualRate = matchedVariant.actual_rate;
+            if (matchedVariant.actual_can !== undefined) variantActualCan = matchedVariant.actual_can;
+            if (matchedVariant.actual_pack !== undefined) variantActualPack = matchedVariant.actual_pack;
+            if (matchedVariant.cong !== undefined) variantCong = matchedVariant.cong;
+            if (matchedVariant.te !== undefined) variantTe = matchedVariant.te;
+          }
+        }
+        
         // Tính tiền công
-        if (product.cong) {
-          totalServiceFee += (product.cong * quantity);
+        if (variantCong) {
+          totalServiceFee += (variantCong * quantity);
         }
 
         // Tính tiền chênh nếu có đủ dữ liệu actual
-        if (product.actual_rate || product.actual_can || product.actual_pack) {
-          const te = product.te || 0;
-          const actualRate = product.actual_rate || product.rate || 0;
-          const actualCan = product.actual_can || 0;
-          const actualPack = product.actual_pack || 0;
-          const cong = product.cong || 0;
+        if (variantActualRate || variantActualCan || variantActualPack) {
+          const te = variantTe || 0;
+          const actualRate = variantActualRate || product.rate || 0;
+          const actualCan = variantActualCan || 0;
+          const actualPack = variantActualPack || 0;
+          const cong = variantCong || 0;
           
           const actualCost = (te * actualRate) + actualCan + actualPack + cong;
-          const profit = product.price - actualCost;
+          const profit = itemPrice - actualCost;
           totalProfit += (profit * quantity);
           productsWithActualCost++;
         }
@@ -335,7 +360,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong');
+        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, variants');
       
       if (error) throw error;
       setProducts((data as ProductData[]) || []);
