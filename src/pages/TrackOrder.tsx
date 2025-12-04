@@ -7,10 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown } from "lucide-react";
+import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown, Copy, Filter } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const ORDER_PROGRESS_OPTIONS = [
+  "Đang xử lý",
+  "Đã đặt hàng",
+  "Đang sản xuất",
+  "Đang vận chuyển T-V",
+  "Sẵn sàng giao",
+  "Đang giao",
+  "Đã hoàn thành",
+  "Đã huỷ"
+];
 
 interface Order {
   id: string;
@@ -49,8 +60,10 @@ const getStatusColor = (status: string) => {
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "Đang sản xuất":
       return "bg-purple-100 text-purple-800 border-purple-200";
-    case "Đang vận chuyển":
+    case "Đang vận chuyển T-V":
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "Sẵn sàng giao":
+      return "bg-lime-100 text-lime-800 border-lime-200";
     case "Đang giao":
       return "bg-orange-100 text-orange-800 border-orange-200";
     case "Đã hoàn thành":
@@ -94,8 +107,17 @@ export default function TrackOrder() {
   const [isUpdatingDelivery, setIsUpdatingDelivery] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [progressFilter, setProgressFilter] = useState<string>("all");
   
   const { toast } = useToast();
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Đã copy",
+      description: `Mã đơn: ${text}`,
+    });
+  };
 
   // Filter and sort orders
   const filteredOrders = useMemo(() => {
@@ -111,6 +133,11 @@ export default function TrackOrder() {
       );
     }
     
+    // Filter by progress
+    if (progressFilter !== "all") {
+      result = result.filter(order => order.order_progress === progressFilter);
+    }
+    
     // Sort by date
     result.sort((a, b) => {
       const dateA = new Date(a.created_at).getTime();
@@ -119,7 +146,7 @@ export default function TrackOrder() {
     });
     
     return result;
-  }, [orders, productSearch, sortOrder]);
+  }, [orders, productSearch, sortOrder, progressFilter]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,18 +342,30 @@ export default function TrackOrder() {
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <h2 className="text-2xl font-semibold">Đơn hàng của bạn ({filteredOrders.length})</h2>
               
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-64">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
+                <div className="relative flex-1 sm:w-48">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Tìm theo tên sản phẩm..."
+                    placeholder="Tìm theo sản phẩm..."
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     className="pl-9"
                   />
                 </div>
+                <Select value={progressFilter} onValueChange={setProgressFilter}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Tiến độ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả tiến độ</SelectItem>
+                    {ORDER_PROGRESS_OPTIONS.map(progress => (
+                      <SelectItem key={progress} value={progress}>{progress}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "newest" | "oldest")}>
-                  <SelectTrigger className="w-full sm:w-40">
+                  <SelectTrigger className="w-full sm:w-32">
                     <ArrowUpDown className="h-4 w-4 mr-2" />
                     <SelectValue />
                   </SelectTrigger>
@@ -345,7 +384,17 @@ export default function TrackOrder() {
                   <Card key={order.id} className="w-[350px] flex-shrink-0">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start gap-2">
-                        <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => copyToClipboard(order.order_number || order.id.slice(0, 8))}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
                         <div className="flex flex-col gap-1">
                           <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium text-xs`}>
                             {order.payment_status}
@@ -355,11 +404,6 @@ export default function TrackOrder() {
                           </Badge>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(order.created_at).toLocaleDateString('vi-VN', { 
-                          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-                        })}
-                      </p>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm">
                       <div className="flex justify-between">
