@@ -453,31 +453,44 @@ export default function ProductDetail() {
                       const isSelected = selectedVariant === variant.name;
                       
                       return (
-                        <button
-                          key={variant.name}
-                          type="button"
-                          onClick={() => !isOutOfStock && handleVariantChange(variant.name)}
-                          disabled={isOutOfStock}
-                          className={`
-                            relative flex flex-col items-center p-2 rounded-lg border-2 transition-all
-                            ${isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}
-                            ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                          `}
-                        >
-                          {variantImage && (
-                            <img
-                              src={variantImage}
-                              alt={variant.name}
-                              className="w-16 h-16 object-cover rounded mb-1"
-                            />
-                          )}
-                          <span className={`text-sm text-center ${isSelected ? 'font-semibold' : ''}`}>
-                            {variant.name}
-                          </span>
-                          {isOutOfStock && (
-                            <span className="text-xs text-red-500">Hết hàng</span>
-                          )}
-                        </button>
+                        <div key={variant.name} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => !isOutOfStock && handleVariantChange(variant.name)}
+                            disabled={isOutOfStock}
+                            className={`
+                              relative flex flex-col items-center p-2 rounded-lg border-2 transition-all w-full
+                              ${isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}
+                              ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                            `}
+                          >
+                            {variantImage && (
+                              <div className="relative group">
+                                <img
+                                  src={variantImage}
+                                  alt={variant.name}
+                                  className="w-16 h-16 object-cover rounded mb-1"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(variantImage, '_blank');
+                                  }}
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"
+                                >
+                                  <span className="text-white text-xs">🔍 Zoom</span>
+                                </button>
+                              </div>
+                            )}
+                            <span className={`text-sm text-center ${isSelected ? 'font-semibold' : ''}`}>
+                              {variant.name}
+                            </span>
+                            {isOutOfStock && (
+                              <span className="text-xs text-red-500">Hết hàng</span>
+                            )}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

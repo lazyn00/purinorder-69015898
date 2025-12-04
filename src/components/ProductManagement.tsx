@@ -99,8 +99,9 @@ export default function ProductManagement() {
   };
 
   const calculateTotal = () => {
-    const { te, rate, can_weight, pack, cong } = formData;
-    const total = (te ?? 0) * (rate ?? 0) + (can_weight ?? 0) + (pack ?? 0) + (cong ?? 0);
+    // Công thức: R-V + Cân + Pack + Công (R-V = tệ × rate)
+    const rv = formData.r_v ?? ((formData.te ?? 0) * (formData.rate ?? 0));
+    const total = rv + (formData.can_weight ?? 0) + (formData.pack ?? 0) + (formData.cong ?? 0);
     setFormData(prev => ({ ...prev, total }));
   };
 
@@ -118,7 +119,7 @@ export default function ProductManagement() {
 
     // Prepare data with proper formatting for JSON fields
     const filteredImages = imageUrls.filter(url => url.trim() !== "");
-    const dataToSave = {
+    const dataToSave: any = {
       name: formData.name,
       price: formData.price,
       te: formData.te ?? null,
@@ -147,6 +148,11 @@ export default function ProductManagement() {
       option_groups: [],
       variant_image_map: Object.keys(variantImageMap).length > 0 ? variantImageMap : {}
     };
+
+    // Include ID if provided for new product
+    if (!editingProduct && formData.id) {
+      dataToSave.id = formData.id;
+    }
 
     setIsLoading(true);
     try {
@@ -360,6 +366,20 @@ export default function ProductManagement() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* ID field - only shown when adding new product */}
+                {!editingProduct && (
+                  <div className="space-y-2">
+                    <Label htmlFor="product-id">ID sản phẩm (Tùy chọn)</Label>
+                    <Input
+                      id="product-id"
+                      type="number"
+                      value={formData.id ?? ""}
+                      onChange={(e) => handleInputChange('id', e.target.value ? parseInt(e.target.value) : null)}
+                      placeholder="Để trống để tự động tạo"
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="name">Tên sản phẩm *</Label>
                   <Input
