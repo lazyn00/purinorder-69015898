@@ -33,7 +33,8 @@ const ORDER_PROGRESS = [
   "Đang xử lý",
   "Đã đặt hàng",
   "Đang sản xuất",
-  "Đang vận chuyển",
+  "Đang vận chuyển T-V",
+  "Sẵn sàng giao",
   "Đang giao",
   "Đã hoàn thành",
   "Đã huỷ"
@@ -62,8 +63,10 @@ const getProgressColor = (progress: string) => {
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "Đang sản xuất":
       return "bg-purple-100 text-purple-800 border-purple-200";
-    case "Đang vận chuyển":
+    case "Đang vận chuyển T-V":
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "Sẵn sàng giao":
+      return "bg-lime-100 text-lime-800 border-lime-200";
     case "Đang giao":
       return "bg-orange-100 text-orange-800 border-orange-200";
     case "Đã hoàn thành":
