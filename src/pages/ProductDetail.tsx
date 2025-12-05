@@ -464,24 +464,12 @@ export default function ProductDetail() {
                               ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                             `}
                           >
-                            {variantImage && (
-                              <div className="relative group">
-                                <img
-                                  src={variantImage}
-                                  alt={variant.name}
-                                  className="w-16 h-16 object-cover rounded mb-1"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(variantImage, '_blank');
-                                  }}
-                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"
-                                >
-                                  <span className="text-white text-xs">🔍 Zoom</span>
-                                </button>
-                              </div>
+                          {variantImage && (
+                              <img
+                                src={variantImage}
+                                alt={variant.name}
+                                className="w-16 h-16 object-cover rounded mb-1"
+                              />
                             )}
                             <span className={`text-sm text-center ${isSelected ? 'font-semibold' : ''}`}>
                               {variant.name}
