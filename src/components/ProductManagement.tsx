@@ -157,32 +157,42 @@ export default function ProductManagement() {
     setIsLoading(true);
     try {
       if (editingProduct) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
           .update(dataToSave)
-          .eq('id', editingProduct.id);
+          .eq('id', editingProduct.id)
+          .select();
 
         if (error) {
           console.error('Update error:', error);
           throw error;
         }
+        
+        if (!data || data.length === 0) {
+          throw new Error('Không tìm thấy sản phẩm để cập nhật');
+        }
+        
+        console.log('Updated product:', data[0]);
         toast({ title: "Cập nhật thành công" });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
-          .insert([dataToSave]);
+          .insert([dataToSave])
+          .select();
 
         if (error) {
           console.error('Insert error:', error);
           throw error;
         }
+        
+        console.log('Inserted product:', data?.[0]);
         toast({ title: "Thêm sản phẩm thành công" });
       }
 
       setIsDialogOpen(false);
       resetForm();
-      fetchProducts();
-      refetchCartProducts(); // Refresh products on store pages
+      await fetchProducts();
+      await refetchCartProducts(); // Refresh products on store pages
     } catch (error: any) {
       console.error('Submit error:', error);
       toast({
