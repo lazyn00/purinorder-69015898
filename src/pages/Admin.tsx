@@ -889,7 +889,7 @@ ${generateEmailContent(order)}
 
             <TabsContent value="stats" className="space-y-6">
               {/* Tổng quan */}
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
@@ -935,35 +935,6 @@ ${generateEmailContent(order)}
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Tổng tiền công</CardTitle>
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-amber-600">
-                      {costStatistics.totalServiceFee.toLocaleString('vi-VN')}đ
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Phí dịch vụ từ đơn hàng
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Tiền chênh (lãi/lỗ)</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`text-2xl font-bold ${costStatistics.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {costStatistics.totalProfit >= 0 ? '+' : ''}{costStatistics.totalProfit.toLocaleString('vi-VN')}đ
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Giá bán - (tệ×rate thực + cân thực + pack thực + công)
-                    </p>
-                  </CardContent>
-                </Card>
               </div>
 
               {/* Biểu đồ */}
