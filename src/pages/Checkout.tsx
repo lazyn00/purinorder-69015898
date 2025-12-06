@@ -55,24 +55,39 @@ export default function Checkout() {
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
-  // Auto-fill delivery info when contact phone changes
+  // Auto-fill delivery info from database when contact phone changes
   useEffect(() => {
-    if (contactInfo.phone.length >= 10) {
-      const savedDeliveryInfo = localStorage.getItem(`delivery_info_${contactInfo.phone}`);
-      if (savedDeliveryInfo) {
-        const parsed = JSON.parse(savedDeliveryInfo);
-        setDeliveryInfo(prev => ({
-          name: prev.name || parsed.name || "",
-          phone: prev.phone || parsed.phone || "",
-          address: prev.address || parsed.address || "",
-          note: prev.note || ""
-        }));
-        toast({
-          title: "Đã tự động điền thông tin",
-          description: "Thông tin nhận hàng từ lần đặt trước đã được điền.",
-        });
+    const fetchDeliveryInfo = async () => {
+      if (contactInfo.phone.length >= 10) {
+        try {
+          // First try to fetch from database
+          const { data, error } = await supabase
+            .from('orders')
+            .select('delivery_name, delivery_phone, delivery_address')
+            .or(`customer_phone.eq.${contactInfo.phone},delivery_phone.eq.${contactInfo.phone}`)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (!error && data && data.length > 0) {
+            const prevOrder = data[0];
+            setDeliveryInfo(prev => ({
+              name: prev.name || prevOrder.delivery_name || "",
+              phone: prev.phone || prevOrder.delivery_phone || "",
+              address: prev.address || prevOrder.delivery_address || "",
+              note: prev.note || ""
+            }));
+            toast({
+              title: "Đã tự động điền thông tin",
+              description: "Thông tin nhận hàng từ lần đặt trước đã được điền.",
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching delivery info:", error);
+        }
       }
-    }
+    };
+
+    fetchDeliveryInfo();
   }, [contactInfo.phone]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -308,14 +323,6 @@ export default function Checkout() {
       }
 
       setIsSubmitting(false);
-      
-      // Save delivery info for auto-fill next time
-      const deliveryInfoToSave = {
-        name: deliveryInfo.name,
-        phone: deliveryInfo.phone || contactInfo.phone,
-        address: deliveryInfo.address
-      };
-      localStorage.setItem(`delivery_info_${contactInfo.phone}`, JSON.stringify(deliveryInfoToSave));
       
       clearCart();
       

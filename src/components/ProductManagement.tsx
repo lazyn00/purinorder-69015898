@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,21 +7,47 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2, X, Image as ImageIcon, DollarSign } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, X, Image as ImageIcon, DollarSign, RefreshCw, Search, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCart } from "@/contexts/CartContext";
 import type { Tables } from "@/integrations/supabase/types";
+
+const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMO2j1Re7P9V8A/exec";
+const STATUS_OPTIONS = ["Sẵn", "Order", "Pre-order"];
 
 type DBProduct = Tables<"products">;
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<DBProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<DBProduct | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
   const { refetchProducts: refetchCartProducts } = useCart();
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+    
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        p.name.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q) ||
+        p.artist?.toLowerCase().includes(q)
+      );
+    }
+    
+    if (statusFilter !== "all") {
+      result = result.filter(p => p.status === statusFilter);
+    }
+    
+    return result;
+  }, [products, searchQuery, statusFilter]);
 
   const [formData, setFormData] = useState<Partial<DBProduct>>({
     name: "",
@@ -94,6 +120,77 @@ export default function ProductManagement() {
     }
   };
 
+  // Sync từ Google Sheet vào database
+  const syncFromSheet = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch("https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec");
+      const data = await response.json();
+      
+      if (!data.products || data.products.length === 0) {
+        toast({ title: "Không có sản phẩm từ Sheet" });
+        setIsSyncing(false);
+        return;
+      }
+
+      let syncedCount = 0;
+      for (const sheetProduct of data.products) {
+        // Parse variantImageMap nếu là string
+        let variantImageMap = {};
+        if (sheetProduct.variantImageMap && typeof sheetProduct.variantImageMap === 'string') {
+          try {
+            variantImageMap = JSON.parse(sheetProduct.variantImageMap);
+          } catch (e) {
+            variantImageMap = {};
+          }
+        } else if (typeof sheetProduct.variantImageMap === 'object') {
+          variantImageMap = sheetProduct.variantImageMap;
+        }
+
+        const productData = {
+          id: sheetProduct.id,
+          name: sheetProduct.name,
+          price: sheetProduct.price || 0,
+          description: Array.isArray(sheetProduct.description) 
+            ? sheetProduct.description.join('\n') 
+            : (sheetProduct.description || ''),
+          images: Array.isArray(sheetProduct.images) ? sheetProduct.images : [],
+          category: sheetProduct.category || null,
+          subcategory: sheetProduct.subcategory || null,
+          artist: sheetProduct.artist || null,
+          variants: Array.isArray(sheetProduct.variants) ? sheetProduct.variants : [],
+          option_groups: Array.isArray(sheetProduct.optionGroups) ? sheetProduct.optionGroups : [],
+          variant_image_map: variantImageMap,
+          fees_included: sheetProduct.feesIncluded ?? true,
+          master: sheetProduct.master || null,
+          status: sheetProduct.status || 'Sẵn',
+          order_deadline: sheetProduct.orderDeadline || null,
+          stock: sheetProduct.stock ?? null,
+        };
+
+        // Upsert vào database
+        const { error } = await supabase
+          .from('products')
+          .upsert(productData, { onConflict: 'id' });
+
+        if (!error) syncedCount++;
+      }
+
+      toast({ title: `Đã đồng bộ ${syncedCount} sản phẩm từ Sheet` });
+      await fetchProducts();
+      await refetchCartProducts();
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể đồng bộ từ Sheet",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -157,32 +254,42 @@ export default function ProductManagement() {
     setIsLoading(true);
     try {
       if (editingProduct) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
           .update(dataToSave)
-          .eq('id', editingProduct.id);
+          .eq('id', editingProduct.id)
+          .select();
 
         if (error) {
           console.error('Update error:', error);
           throw error;
         }
+        
+        if (!data || data.length === 0) {
+          throw new Error('Không tìm thấy sản phẩm để cập nhật');
+        }
+        
+        console.log('Updated product:', data[0]);
         toast({ title: "Cập nhật thành công" });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
-          .insert([dataToSave]);
+          .insert([dataToSave])
+          .select();
 
         if (error) {
           console.error('Insert error:', error);
           throw error;
         }
+        
+        console.log('Inserted product:', data?.[0]);
         toast({ title: "Thêm sản phẩm thành công" });
       }
 
       setIsDialogOpen(false);
       resetForm();
-      fetchProducts();
-      refetchCartProducts(); // Refresh products on store pages
+      await fetchProducts();
+      await refetchCartProducts(); // Refresh products on store pages
     } catch (error: any) {
       console.error('Submit error:', error);
       toast({
@@ -348,15 +455,21 @@ export default function ProductManagement() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Quản lý sản phẩm</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => resetForm()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Thêm sản phẩm
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <h2 className="text-2xl font-bold">Quản lý sản phẩm ({filteredProducts.length})</h2>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={syncFromSheet} disabled={isSyncing}>
+              {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              Đồng bộ từ Sheet
             </Button>
-          </DialogTrigger>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => resetForm()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Thêm
+                </Button>
+              </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -821,6 +934,33 @@ export default function ProductManagement() {
             </form>
           </DialogContent>
         </Dialog>
+          </div>
+        </div>
+        
+        {/* Search and filter bar */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm theo tên, danh mục, artist..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-40">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả</SelectItem>
+              {STATUS_OPTIONS.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isLoading && !isDialogOpen ? (
@@ -829,7 +969,7 @@ export default function ProductManagement() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <Card key={product.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
