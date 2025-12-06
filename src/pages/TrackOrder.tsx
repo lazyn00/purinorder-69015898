@@ -377,170 +377,175 @@ export default function TrackOrder() {
               </div>
             </div>
             
-            {/* Vertical list of order cards */}
-            <div className="space-y-4">
-              {filteredOrders.map((order) => (
-                <Card key={order.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col gap-2">
-                      {/* Status badges - left aligned */}
-                      <div className="flex flex-wrap gap-1">
-                        <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium text-xs`}>
-                          {order.payment_status}
-                        </Badge>
-                        <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium text-xs`}>
-                          {order.order_progress}
-                        </Badge>
+            {/* Horizontal scrollable order cards */}
+            <div className="overflow-x-auto pb-4">
+              <div className="flex gap-4 min-w-max">
+                {filteredOrders.map((order) => (
+                  <Card key={order.id} className="w-[350px] flex-shrink-0">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => copyToClipboard(order.order_number || order.id.slice(0, 8))}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium text-xs`}>
+                            {order.payment_status}
+                          </Badge>
+                          <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium text-xs`}>
+                            {order.order_progress}
+                          </Badge>
+                        </div>
                       </div>
-                      {/* Order number with copy button */}
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={() => copyToClipboard(order.order_number || order.id.slice(0, 8))}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tổng tiền:</span>
+                        <span className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</span>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tổng tiền:</span>
-                      <span className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</span>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                      <p className="text-muted-foreground text-xs mb-1">Sản phẩm:</p>
-                      <div className="space-y-1">
-                        {order.items && order.items.map((item: any, index: number) => (
-                          <div key={index} className="text-sm">
-                            x{item.quantity} {item.name}{item.selectedVariant && ` (${item.selectedVariant})`}
-                          </div>
-                        ))}
+                      
+                      <Separator />
+                      
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-1">Sản phẩm:</p>
+                        <div className="space-y-1 max-h-20 overflow-y-auto">
+                          {order.items && order.items.map((item: any, index: number) => (
+                            <div key={index} className="text-xs">
+                              x{item.quantity} {item.name}{item.selectedVariant && ` (${item.selectedVariant})`}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Delivery Info */}
-                    {editingOrderId !== order.id ? (
-                      <div className="bg-muted/50 rounded p-3 space-y-1">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">📍 Thông tin nhận:</span>
-                          {order.order_progress !== 'Đã hoàn thành' && order.order_progress !== 'Đã huỷ' && (
-                            <Button variant="ghost" size="sm" className="h-7" onClick={() => startEditing(order)}>
-                              <Edit2 className="h-3 w-3 mr-1" />
-                              Sửa
-                            </Button>
+                      {/* Delivery Info */}
+                      {editingOrderId !== order.id ? (
+                        <div className="bg-muted/50 rounded p-2 space-y-1 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">📍 Thông tin nhận:</span>
+                            {order.order_progress !== 'Đã hoàn thành' && order.order_progress !== 'Đã huỷ' && (
+                              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => startEditing(order)}>
+                                <Edit2 className="h-3 w-3 mr-1" />
+                                Sửa
+                              </Button>
+                            )}
+                          </div>
+                          <p>{order.delivery_name} - {order.delivery_phone}</p>
+                          <p className="text-muted-foreground line-clamp-2">{order.delivery_address}</p>
+                          {order.delivery_note && (
+                            <p className="italic text-orange-600">{order.delivery_note}</p>
                           )}
                         </div>
-                        <p>{order.delivery_name} - {order.delivery_phone}</p>
-                        <p className="text-muted-foreground">{order.delivery_address}</p>
-                        {order.delivery_note && (
-                          <p className="italic text-orange-600">{order.delivery_note}</p>
+                      ) : (
+                        <div className="space-y-2 bg-muted/50 rounded p-2">
+                          <Input
+                            placeholder="Tên người nhận"
+                            defaultValue={order.delivery_name}
+                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_name: e.target.value})}
+                            className="h-8 text-xs"
+                          />
+                          <Input
+                            placeholder="SĐT nhận hàng"
+                            defaultValue={order.delivery_phone}
+                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_phone: e.target.value})}
+                            className="h-8 text-xs"
+                          />
+                          <Textarea
+                            placeholder="Địa chỉ"
+                            defaultValue={order.delivery_address}
+                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_address: e.target.value})}
+                            className="text-xs min-h-[60px]"
+                          />
+                          <Textarea
+                            placeholder="Ghi chú"
+                            defaultValue={order.delivery_note}
+                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_note: e.target.value})}
+                            className="text-xs min-h-[40px]"
+                          />
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" className="flex-1 h-7 text-xs" onClick={() => setEditingOrderId(null)}>
+                              Hủy
+                            </Button>
+                            <Button size="sm" className="flex-1 h-7 text-xs" onClick={() => handleUpdateDeliveryInfo(order)} disabled={isUpdatingDelivery}>
+                              {isUpdatingDelivery ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                              Lưu
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Shipping Info */}
+                      {order.shipping_provider && order.tracking_code && (
+                        <div className="bg-blue-50 dark:bg-blue-950/30 rounded p-2 space-y-1 text-xs">
+                          <p className="font-medium flex items-center gap-1">
+                            <Truck className="h-3 w-3" /> Vận chuyển:
+                          </p>
+                          <p>{order.shipping_provider}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-blue-600">{order.tracking_code}</span>
+                            {getTrackingUrl(order.shipping_provider, order.tracking_code) && (
+                              <a
+                                href={getTrackingUrl(order.shipping_provider, order.tracking_code)!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Tra cứu
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <Separator />
+                      
+                      {/* Upload Bill */}
+                      <div className="border border-dashed border-primary/30 rounded p-2 bg-primary/5">
+                        <Label className="font-medium text-xs block mb-1">
+                          {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc' 
+                            ? 'Thanh toán 50% còn lại' 
+                            : 'Đăng bill bổ sung'}
+                        </Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleUploadSecondPayment(order.id, e.target.files[0]);
+                            }
+                          }}
+                          disabled={uploadingOrderId === order.id}
+                          className="text-xs h-8"
+                        />
+                        {uploadingOrderId === order.id && (
+                          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Đang upload...
+                          </div>
+                        )}
+                        {order.second_payment_proof_url && (
+                          <a 
+                            href={order.second_payment_proof_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:underline flex items-center gap-1 text-xs mt-1"
+                          >
+                            <Upload className="h-3 w-3" />
+                            Xem bill đã đăng
+                          </a>
                         )}
                       </div>
-                    ) : (
-                      <div className="space-y-2 bg-muted/50 rounded p-3">
-                        <Input
-                          placeholder="Tên người nhận"
-                          defaultValue={order.delivery_name}
-                          onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_name: e.target.value})}
-                        />
-                        <Input
-                          placeholder="SĐT nhận hàng"
-                          defaultValue={order.delivery_phone}
-                          onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_phone: e.target.value})}
-                        />
-                        <Textarea
-                          placeholder="Địa chỉ"
-                          defaultValue={order.delivery_address}
-                          onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_address: e.target.value})}
-                        />
-                        <Textarea
-                          placeholder="Ghi chú"
-                          defaultValue={order.delivery_note}
-                          onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_note: e.target.value})}
-                        />
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingOrderId(null)}>
-                            Hủy
-                          </Button>
-                          <Button size="sm" className="flex-1" onClick={() => handleUpdateDeliveryInfo(order)} disabled={isUpdatingDelivery}>
-                            {isUpdatingDelivery ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                            Lưu
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Shipping Info */}
-                    {order.shipping_provider && order.tracking_code && (
-                      <div className="bg-blue-50 dark:bg-blue-950/30 rounded p-3 space-y-1">
-                        <p className="font-medium flex items-center gap-1">
-                          <Truck className="h-4 w-4" /> Vận chuyển:
-                        </p>
-                        <p>{order.shipping_provider}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-blue-600">{order.tracking_code}</span>
-                          {getTrackingUrl(order.shipping_provider, order.tracking_code) && (
-                            <a
-                              href={getTrackingUrl(order.shipping_provider, order.tracking_code)!}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              Tra cứu
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <Separator />
-                    
-                    {/* Upload Bill */}
-                    <div className="border border-dashed border-primary/30 rounded p-3 bg-primary/5">
-                      <Label className="font-medium text-sm block mb-2">
-                        {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc' 
-                          ? 'Thanh toán 50% còn lại' 
-                          : 'Đăng bill bổ sung'}
-                      </Label>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            handleUploadSecondPayment(order.id, e.target.files[0]);
-                          }
-                        }}
-                        disabled={uploadingOrderId === order.id}
-                      />
-                      {uploadingOrderId === order.id && (
-                        <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Đang upload...
-                        </div>
-                      )}
-                      {order.second_payment_proof_url && (
-                        <a 
-                          href={order.second_payment_proof_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-green-600 hover:underline flex items-center gap-1 mt-2"
-                        >
-                          <Upload className="h-4 w-4" />
-                          Xem bill đã đăng
-                        </a>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
         )}
