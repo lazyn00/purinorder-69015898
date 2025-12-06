@@ -382,7 +382,17 @@ export default function TrackOrder() {
               {filteredOrders.map((order) => (
                 <Card key={order.id}>
                   <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start gap-2">
+                    <div className="flex flex-col gap-2">
+                      {/* Status badges - left aligned */}
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium text-xs`}>
+                          {order.payment_status}
+                        </Badge>
+                        <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium text-xs`}>
+                          {order.order_progress}
+                        </Badge>
+                      </div>
+                      {/* Order number with copy button */}
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
                         <Button
@@ -393,14 +403,6 @@ export default function TrackOrder() {
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium text-xs`}>
-                          {order.payment_status}
-                        </Badge>
-                        <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium text-xs`}>
-                          {order.order_progress}
-                        </Badge>
                       </div>
                     </div>
                   </CardHeader>
