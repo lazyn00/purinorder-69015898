@@ -402,7 +402,7 @@ export default function ProductDetail() {
                 <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
                 <ul className="text-muted-foreground space-y-1 list-disc list-inside">
                   {(typeof product.description === 'string' 
-                    ? product.description.split('\n').filter(line => line.trim()) 
+                    ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()) 
                     : product.description
                   ).map((item, index) => (
                     <li key={index}>{item}</li>
