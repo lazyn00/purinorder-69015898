@@ -23,6 +23,7 @@ export interface Product {
   orderDeadline?: string | null;
   stock?: number; // Stock chung cho tất cả variants (nếu không có stock riêng)
   priceDisplay: string; // Giữ lại trường này cho đỡ lỗi
+  productionTime?: string; // Thời gian sản xuất
 }
 export interface CartItem extends Product {
   quantity: number;

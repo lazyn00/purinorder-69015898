@@ -411,7 +411,14 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* (Logic 1 hoặc 2 phân loại) */}
+            {product.productionTime && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
+                <p className="text-muted-foreground">{product.productionTime}</p>
+              </div>
+            )}
+
+            {/* (Logic 1 hoặc 2 phân loại) */}
             <div className="border-t pt-4 space-y-4">
               {/* (Trường hợp 2+ phân loại - ID 4) */}
               {product.optionGroups && product.optionGroups.length > 0 && (
