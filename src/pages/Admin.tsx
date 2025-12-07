@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Settings } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,6 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { productsData } from "@/data/products";
-import ProductManagement from "@/components/ProductManagement";
 
 const ADMIN_USERNAME = "Admin";
 const ADMIN_PASSWORD = "Nhuy7890";
@@ -99,6 +98,7 @@ interface Order {
   second_payment_proof_url: string;
   shipping_provider: string;
   tracking_code: string;
+  surcharge: number;
 }
 
 const COLORS = ['#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#60a5fa', '#fb923c'];
@@ -143,6 +143,7 @@ export default function Admin() {
   const [expandedAddresses, setExpandedAddresses] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<ProductNotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -565,6 +566,33 @@ export default function Admin() {
     }
   };
 
+  const updateSurcharge = async (orderId: string, surcharge: number) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ surcharge })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, surcharge } : order
+      ));
+
+      toast({
+        title: "Cập nhật thành công",
+        description: `Phụ thu: ${surcharge.toLocaleString('vi-VN')}đ`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật phụ thu",
+        variant: "destructive"
+      });
+    }
+  };
+
   const deleteOrder = async (orderId: string) => {
     if (!confirm("Bạn có chắc muốn xóa đơn hàng này?")) return;
 
@@ -876,9 +904,6 @@ ${generateEmailContent(order)}
               <TabsTrigger value="products" className="h-10 w-10 p-0" title="Thống kê sản phẩm">
                 <Package className="h-5 w-5" />
               </TabsTrigger>
-              <TabsTrigger value="manage-products" className="h-10 w-10 p-0" title="Quản lý sản phẩm">
-                <Settings className="h-5 w-5" />
-              </TabsTrigger>
               <TabsTrigger value="orders" className="h-10 w-10 p-0" title="Đơn hàng">
                 <ShoppingCart className="h-5 w-5" />
               </TabsTrigger>
@@ -1073,10 +1098,6 @@ ${generateEmailContent(order)}
               </Card>
             </TabsContent>
 
-            <TabsContent value="manage-products" className="space-y-4">
-              <ProductManagement />
-            </TabsContent>
-
             <TabsContent value="orders" className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
@@ -1144,6 +1165,7 @@ ${generateEmailContent(order)}
                       <TableHead className="min-w-[200px]">Khách hàng</TableHead>
                       <TableHead className="min-w-[200px]">Sản phẩm</TableHead>
                       <TableHead className="text-right min-w-[100px]">Tổng tiền</TableHead>
+                      <TableHead className="min-w-[120px]">Phụ thu</TableHead>
                       <TableHead className="min-w-[120px]">Thanh toán</TableHead>
                       <TableHead className="min-w-[120px]">Tiến độ</TableHead>
                       <TableHead className="min-w-[150px]">Vận chuyển</TableHead>
@@ -1297,6 +1319,37 @@ ${generateEmailContent(order)}
                               </a>
                             )}
                           </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="h-7 text-xs w-20"
+                              value={surchargeInputs[order.id] ?? (order.surcharge || "")}
+                              onChange={(e) => setSurchargeInputs({
+                                ...surchargeInputs,
+                                [order.id]: e.target.value
+                              })}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                const value = parseInt(surchargeInputs[order.id] || "0") || 0;
+                                updateSurcharge(order.id, value);
+                              }}
+                            >
+                              <Save className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          {order.surcharge > 0 && (
+                            <div className="text-xs text-orange-600 mt-1">
+                              +{order.surcharge.toLocaleString('vi-VN')}đ
+                            </div>
+                          )}
                         </TableCell>
 
                         <TableCell>

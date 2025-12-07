@@ -63,7 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('id', { ascending: false });
 
       if (!error && data) {
         supabaseProducts = data.map((dbProduct: any) => ({

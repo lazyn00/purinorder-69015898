@@ -37,6 +37,7 @@ export type Database = {
           second_payment_proof_url: string | null
           shipping_provider: string | null
           status: string | null
+          surcharge: number | null
           total_price: number
           tracking_code: string | null
         }
@@ -62,6 +63,7 @@ export type Database = {
           second_payment_proof_url?: string | null
           shipping_provider?: string | null
           status?: string | null
+          surcharge?: number | null
           total_price: number
           tracking_code?: string | null
         }
@@ -87,6 +89,7 @@ export type Database = {
           second_payment_proof_url?: string | null
           shipping_provider?: string | null
           status?: string | null
+          surcharge?: number | null
           total_price?: number
           tracking_code?: string | null
         }
