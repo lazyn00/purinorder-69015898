@@ -396,14 +396,6 @@ export default function ProductDetail() {
               />
             )}
             
-            {/* --- THỜI GIAN SẢN XUẤT (Đã chuyển lên trên Mô tả) --- */}
-            {product.productionTime && (
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
-                <p className="text-muted-foreground">{product.productionTime}</p>
-              </div>
-            )}
-            
             {/* --- MÔ TẢ SẢN PHẨM --- */}
             {product.description && (
               <div className="border-t pt-4">
@@ -418,6 +410,15 @@ export default function ProductDetail() {
                 </ul>
               </div>
             )}
+
+            {/* --- THỜI GIAN SẢN XUẤT (Đã chuyển xuống sau Mô tả) --- */}
+            {/* Bỏ điều kiện ẩn đi để luôn hiện (nếu data rỗng sẽ hiện "Đang cập nhật") */}
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
+              <p className="text-muted-foreground">
+                {product.productionTime ? product.productionTime : "Đang cập nhật (Dữ liệu trống)"}
+              </p>
+            </div>
 
             {/* (Logic 1 hoặc 2 phân loại) */}
             <div className="border-t pt-4 space-y-4">
