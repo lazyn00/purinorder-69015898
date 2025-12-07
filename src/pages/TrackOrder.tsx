@@ -44,6 +44,7 @@ interface Order {
   second_payment_proof_url: string;
   shipping_provider: string;
   tracking_code: string;
+  surcharge: number;
 }
 
 const getStatusColor = (status: string) => {
@@ -382,17 +383,8 @@ export default function TrackOrder() {
               {filteredOrders.map((order) => (
                 <Card key={order.id}>
                   <CardHeader className="pb-3">
-                    <div className="flex flex-col gap-2">
-                      {/* Status badges - left aligned */}
-                      <div className="flex flex-wrap gap-1">
-                        <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium text-xs`}>
-                          {order.payment_status}
-                        </Badge>
-                        <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium text-xs`}>
-                          {order.order_progress}
-                        </Badge>
-                      </div>
-                      {/* Order number with copy button */}
+                    <div className="flex items-start justify-between gap-2">
+                      {/* Order number with copy button - left */}
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
                         <Button
@@ -404,6 +396,15 @@ export default function TrackOrder() {
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
+                      {/* Status badges - right aligned */}
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium text-xs`}>
+                          {order.payment_status}
+                        </Badge>
+                        <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium text-xs`}>
+                          {order.order_progress}
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3 text-sm">
@@ -411,6 +412,12 @@ export default function TrackOrder() {
                       <span className="text-muted-foreground">Tổng tiền:</span>
                       <span className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</span>
                     </div>
+                    {order.surcharge > 0 && (
+                      <div className="flex justify-between text-orange-600">
+                        <span>Phụ thu:</span>
+                        <span className="font-bold">+{order.surcharge.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
                     
                     <Separator />
                     
