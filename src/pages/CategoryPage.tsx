@@ -101,25 +101,26 @@ export default function CategoryPage() {
     return subcategoryMatch && artistMatch && searchMatch;
   });
 
-  // Sort products - Available products first (ĐÃ SỬ DỤNG HÀM MỚI)
-  filteredProducts = [...filteredProducts].sort((a, b) => {
-    const aAvailable = isProductAvailable(a as Product);
-    const bAvailable = isProductAvailable(b as Product);
-    
-    // Push unavailable products to the end
-    if (aAvailable && !bAvailable) return -1;
-    if (!aAvailable && bAvailable) return 1;
-    
-    // Then apply user's sort preference
-    if (sortBy === "price-asc") {
-      return a.price - b.price;
-    } else if (sortBy === "price-desc") {
-      return b.price - a.price;
-    } else if (sortBy === "name") {
-      return a.name.localeCompare(b.name);
-    }
-    return 0;
-  });
+  // Sort products - Available products first, then by ID descending (ĐÃ SỬ DỤNG HÀM MỚI)
+  filteredProducts = [...filteredProducts].sort((a, b) => {
+    const aAvailable = isProductAvailable(a as Product);
+    const bAvailable = isProductAvailable(b as Product);
+    
+    // Push unavailable products to the end
+    if (aAvailable && !bAvailable) return -1;
+    if (!aAvailable && bAvailable) return 1;
+    
+    // Then apply user's sort preference
+    if (sortBy === "price-asc") {
+      return a.price - b.price;
+    } else if (sortBy === "price-desc") {
+      return b.price - a.price;
+    } else if (sortBy === "name") {
+      return a.name.localeCompare(b.name);
+    }
+    // Default: sort by ID descending (newest first)
+    return b.id - a.id;
+  });
 
   // Pagination
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);

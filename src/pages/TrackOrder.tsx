@@ -512,11 +512,20 @@ export default function TrackOrder() {
                     
                     {/* Upload Bill */}
                     <div className="border border-dashed border-primary/30 rounded p-3 bg-primary/5">
-                      <Label className="font-medium text-sm block mb-2">
-                        {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc' 
-                          ? 'Thanh toán 50% còn lại' 
-                          : 'Đăng bill bổ sung'}
-                      </Label>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="font-medium text-sm">
+                          {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc' 
+                            ? 'Thanh toán 50% còn lại' 
+                            : 'Đăng bill bổ sung'}
+                        </Label>
+                        <a 
+                          href="/contact" 
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          Xem thông tin CK
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
                       <Input
                         type="file"
                         accept="image/*"
