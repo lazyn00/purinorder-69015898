@@ -411,8 +411,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* --- THỜI GIAN SẢN XUẤT (Đã chuyển xuống sau Mô tả) --- */}
-            {/* Bỏ điều kiện ẩn đi để luôn hiện (nếu data rỗng sẽ hiện "Đang cập nhật") */}
+            {/* --- THỜI GIAN SẢN XUẤT (Nằm sau Mô tả - Luôn hiển thị) --- */}
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
               <p className="text-muted-foreground">
@@ -448,48 +447,58 @@ export default function ProductDetail() {
                 ))
               )}
 
-              {/* (Trường hợp 1 phân loại - ID 3) */}
+              {/* (Trường hợp 1 phân loại - ID 3 - Dùng Dropdown có ảnh) */}
               {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
                 <div>
                   <Label htmlFor="variant" className="text-base font-semibold">
                     Phân loại *
                   </Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                    {product.variants.map((variant) => {
-                      const variantImageIndex = product.variantImageMap?.[variant.name];
-                      const variantImage = variantImageIndex !== undefined ? product.images[variantImageIndex] : null;
-                      const isOutOfStock = variant.stock !== undefined && variant.stock <= 0;
-                      const isSelected = selectedVariant === variant.name;
+                  
+                  <div className="mt-2">
+                    <Select 
+                      value={selectedVariant} 
+                      onValueChange={(value) => handleVariantChange(value)}
+                    >
+                      <SelectTrigger className="w-full h-12 text-base">
+                        <SelectValue placeholder="Chọn phân loại sản phẩm" />
+                      </SelectTrigger>
                       
-                      return (
-                        <div key={variant.name} className="relative">
-                          <button
-                            type="button"
-                            onClick={() => !isOutOfStock && handleVariantChange(variant.name)}
-                            disabled={isOutOfStock}
-                            className={`
-                              relative flex flex-col items-center p-2 rounded-lg border-2 transition-all w-full
-                              ${isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}
-                              ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                            `}
-                          >
-                          {variantImage && (
-                              <img
-                                src={variantImage}
-                                alt={variant.name}
-                                className="w-16 h-16 object-cover rounded mb-1"
-                              />
-                            )}
-                            <span className={`text-sm text-center ${isSelected ? 'font-semibold' : ''}`}>
-                              {variant.name}
-                            </span>
-                            {isOutOfStock && (
-                              <span className="text-xs text-red-500">Hết hàng</span>
-                            )}
-                          </button>
-                        </div>
-                      );
-                    })}
+                      <SelectContent>
+                        {product.variants.map((variant) => {
+                           const variantImageIndex = product.variantImageMap?.[variant.name];
+                           const variantImage = variantImageIndex !== undefined ? product.images[variantImageIndex] : null;
+                           const isOutOfStock = variant.stock !== undefined && variant.stock <= 0;
+                          
+                          return (
+                            <SelectItem 
+                              key={variant.name} 
+                              value={variant.name}
+                              disabled={isOutOfStock}
+                              className="cursor-pointer py-3"
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Hiển thị ảnh nhỏ trong dropdown nếu có */}
+                                {variantImage && (
+                                  <img 
+                                    src={variantImage} 
+                                    alt={variant.name} 
+                                    className="w-10 h-10 rounded object-cover border border-slate-200"
+                                  />
+                                )}
+                                
+                                <span className="font-medium">{variant.name}</span>
+                                
+                                {isOutOfStock && (
+                                  <span className="ml-2 text-xs text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded">
+                                    Hết hàng
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               )}
