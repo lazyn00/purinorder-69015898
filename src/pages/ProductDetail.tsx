@@ -415,7 +415,7 @@ export default function ProductDetail() {
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
               <p className="text-muted-foreground">
-                {product.productionTime ? product.productionTime : "Đang cập nhật (Dữ liệu trống)"}
+                {product.productionTime ? product.productionTime : "Đang cập nhật"}
               </p>
             </div>
 
