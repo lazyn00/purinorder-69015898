@@ -146,7 +146,6 @@ export type Database = {
           order_deadline: string | null
           pack: number | null
           price: number
-          production_time: string | null
           proof: string | null
           r_v: number | null
           rate: number | null
@@ -179,7 +178,6 @@ export type Database = {
           order_deadline?: string | null
           pack?: number | null
           price: number
-          production_time?: string | null
           proof?: string | null
           r_v?: number | null
           rate?: number | null
@@ -212,7 +210,6 @@ export type Database = {
           order_deadline?: string | null
           pack?: number | null
           price?: number
-          production_time?: string | null
           proof?: string | null
           r_v?: number | null
           rate?: number | null

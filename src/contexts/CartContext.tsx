@@ -86,8 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           status: dbProduct.status || 'Sẵn',
           orderDeadline: dbProduct.order_deadline,
           stock: dbProduct.stock,
-          priceDisplay: `${dbProduct.price.toLocaleString('vi-VN')}đ`,
-          productionTime: dbProduct.production_time || ''
+          priceDisplay: `${dbProduct.price.toLocaleString('vi-VN')}đ`
         }));
       }
     } catch (error) {
