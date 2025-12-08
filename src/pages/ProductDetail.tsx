@@ -22,10 +22,15 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
+// Hàm helper để xác định stock khả dụng chính xác
 const getVariantStock = (product: Product, variantName: string): number | undefined => {
-    if (!product.variants || product.variants.length === 0) return product.stock;
+    if (!product.variants || product.variants.length === 0) {
+        return product.stock;
+    }
     const variant = product.variants.find(v => v.name === variantName);
-    if (variant && variant.stock !== undefined) return variant.stock;
+    if (variant && variant.stock !== undefined) {
+        return variant.stock;
+    }
     return product.stock;
 };
 
@@ -36,6 +41,8 @@ export default function ProductDetail() {
   const { toast } = useToast();
   
   const [quantity, setQuantity] = useState(1);
+  
+  // --- STATE CHO CAROUSEL (SỐ TRANG) ---
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
@@ -47,6 +54,7 @@ export default function ProductDetail() {
   const [isExpired, setIsExpired] = useState(false);
   const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
 
+  // 1. useEffect tìm sản phẩm
   useEffect(() => {
     if (!isLoading && products.length > 0) {
       const foundProduct = products.find(p => p.id == Number(id)); 
@@ -54,13 +62,16 @@ export default function ProductDetail() {
     }
   }, [isLoading, products, id]);
 
+  // 2. useEffect cập nhật state ban đầu
   useEffect(() => {
     if (product) {
       setCurrentPrice(product.price);
       if (product.orderDeadline) {
         const deadline = new Date(product.orderDeadline);
         if (deadline < new Date()) setIsExpired(true);
-      } else if (product.status === "Sẵn") setIsExpired(false);
+      } else if (product.status === "Sẵn") {
+         setIsExpired(false);
+      }
       
       if (product.optionGroups && product.optionGroups.length > 0) {
         const initialOptions = product.optionGroups.reduce((acc, group) => {
@@ -69,7 +80,8 @@ export default function ProductDetail() {
         }, {} as { [key: string]: string });
         setSelectedOptions(initialOptions);
         setAvailableStock(undefined);
-      } else if (product.variants && product.variants.length === 1) {
+      } 
+      else if (product.variants && product.variants.length === 1) {
           const firstVariant = product.variants[0];
           setSelectedVariant(firstVariant.name);
           setCurrentPrice(firstVariant.price);
@@ -80,19 +92,29 @@ export default function ProductDetail() {
     }
   }, [product]);
 
+  // 3. useEffect logic phân loại
   useEffect(() => {
     if (!product || !product.optionGroups || product.optionGroups.length === 0) return;
+
     const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
+
     if (allOptionsSelected) {
-        const constructedName = product.optionGroups.map(group => selectedOptions[group.name]).join("-");
+        const constructedName = product.optionGroups
+            .map(group => selectedOptions[group.name])
+            .join("-");
+        
         const variant = product.variants.find(v => v.name === constructedName);
+        
         if (variant) {
           setCurrentPrice(variant.price);
           setSelectedVariant(variant.name);
           setAvailableStock(getVariantStock(product, variant.name));
+          
           if (carouselApi && product.variantImageMap) {
             const imageIndex = product.variantImageMap[variant.name];
-            if (imageIndex !== undefined) carouselApi.scrollTo(imageIndex);
+            if (imageIndex !== undefined) {
+                carouselApi.scrollTo(imageIndex);
+            }
           }
         } else {
           setSelectedVariant("");
@@ -105,33 +127,53 @@ export default function ProductDetail() {
     }
   }, [selectedOptions, product, carouselApi]);
 
+  // 4. useEffect cuộn ảnh variant đơn
   useEffect(() => {
     if (carouselApi && product?.variantImageMap && selectedVariant) {
       const imageIndex = product.variantImageMap[selectedVariant];
-      if (imageIndex !== undefined) carouselApi.scrollTo(imageIndex);
+      if (imageIndex !== undefined) {
+        carouselApi.scrollTo(imageIndex);
+      }
     }
   }, [selectedVariant, carouselApi, product]);
 
+  // 5. useEffect xử lý SỐ TRANG (Indicator)
   useEffect(() => {
-    if (!carouselApi) return;
+    if (!carouselApi) {
+      return;
+    }
+
     setCount(carouselApi.scrollSnapList().length);
     setCurrent(carouselApi.selectedScrollSnap() + 1);
-    carouselApi.on("select", () => setCurrent(carouselApi.selectedScrollSnap() + 1));
+
+    carouselApi.on("select", () => {
+      setCurrent(carouselApi.selectedScrollSnap() + 1);
+    });
   }, [carouselApi]);
   
+  // --- HANDLERS ---
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
     const variant = product?.variants.find(v => v.name === variantName);
-    if (variant) setCurrentPrice(variant.price);
-    if (product) setAvailableStock(getVariantStock(product, variantName));
+    if (variant) {
+      setCurrentPrice(variant.price);
+    }
+    if (product) {
+        setAvailableStock(getVariantStock(product, variantName));
+    }
     if (carouselApi && product?.variantImageMap) {
       const imageIndex = product.variantImageMap[variantName];
-      if (imageIndex !== undefined) carouselApi.scrollTo(imageIndex);
+      if (imageIndex !== undefined) {
+        carouselApi.scrollTo(imageIndex);
+      }
     }
   };
 
   const handleOptionChange = (groupName: string, value: string) => {
-    setSelectedOptions(prev => ({ ...prev, [groupName]: value }));
+    setSelectedOptions(prev => ({
+      ...prev,
+      [groupName]: value,
+    }));
   };
   
   const handleAddToCart = () => {
@@ -140,11 +182,20 @@ export default function ProductDetail() {
     const isReadyToAdd = !hasVariants || (hasVariants && selectedVariant);
 
     if (!isReadyToAdd) {
-      toast({ title: "Vui lòng chọn phân loại", description: "Bạn cần chọn phân loại sản phẩm", variant: "destructive" });
+      toast({
+        title: "Vui lòng chọn phân loại",
+        description: "Bạn cần chọn phân loại sản phẩm trước khi thêm vào giỏ",
+        variant: "destructive"
+      });
       return;
     }
+    
     if (availableStock !== undefined && quantity > availableStock) {
-      toast({ title: "Không đủ hàng", description: `Chỉ còn ${availableStock} sản phẩm`, variant: "destructive" });
+      toast({
+        title: "Không đủ hàng",
+        description: `Chỉ còn ${availableStock} sản phẩm`,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -155,17 +206,39 @@ export default function ProductDetail() {
     };
     
     addToCart(productToAdd, quantity, selectedVariant || product.name);
-    toast({ title: "Đã thêm vào giỏ hàng!", description: `${product.name} x${quantity}` });
+    toast({
+      title: "Đã thêm vào giỏ hàng!",
+      description: selectedVariant 
+        ? `${product.name} (${selectedVariant}) x${quantity}`
+        : `${product.name} x${quantity}`,
+    });
   };
 
-  const incrementQuantity = () => setQuantity(prev => (availableStock !== undefined && prev + 1 > availableStock) ? prev : prev + 1);
+  const incrementQuantity = () => {
+        setQuantity(prev => {
+            if (availableStock !== undefined && prev + 1 > availableStock) {
+                return prev;
+            }
+            return prev + 1;
+        });
+    }
+
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
   const handleShare = async () => {
     const shareUrl = window.location.href;
     const shareText = `${product?.name} - ${currentPrice.toLocaleString('vi-VN')}đ`;
+
     if (navigator.share) {
-      try { await navigator.share({ title: product?.name, text: shareText, url: shareUrl }); } catch (error) {}
+      try {
+        await navigator.share({
+          title: product?.name,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (error) {
+        console.log('Share cancelled');
+      }
     } else {
       navigator.clipboard.writeText(shareUrl);
       toast({ title: "Đã copy link" });
@@ -174,6 +247,9 @@ export default function ProductDetail() {
 
   if (isLoading) return <Layout><div className="container mx-auto py-12 flex justify-center h-[50vh]"><LoadingPudding /></div></Layout>;
   if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
+
+  // Kiểm tra xem có bất kỳ thông tin nào để hiển thị trong khung thông tin không
+  const hasInfo = product.description || product.size || product.includes || product.productionTime;
 
   return (
     <Layout>
@@ -191,6 +267,7 @@ export default function ProductDetail() {
                 <CarouselContent>
                     {product.images.map((image, index) => (
                     <CarouselItem key={index}>
+                        {/* Khung ảnh max-h-400px, không ép vuông */}
                         <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
                             <img
                                 src={image}
@@ -208,6 +285,8 @@ export default function ProductDetail() {
                     </>
                 )}
                 </Carousel>
+                
+                {/* Số trang */}
                 {count > 0 && (
                     <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-medium pointer-events-none z-10">
                         {current}/{count}
@@ -215,6 +294,7 @@ export default function ProductDetail() {
                 )}
             </div>
 
+            {/* Thumbnail Strip */}
             {product.images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {product.images.map((image, index) => (
@@ -236,7 +316,7 @@ export default function ProductDetail() {
           {/* --- CỘT THÔNG TIN --- */}
           <div className="space-y-5">
             
-            {/* Header */}
+            {/* Header: Tên & Badge */}
             <div>
               <div className="flex justify-between items-start gap-2">
                  <div className="space-y-1">
@@ -262,43 +342,48 @@ export default function ProductDetail() {
               {product.orderDeadline && <div className="mt-2"><OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} /></div>}
             </div>
             
-            {/* --- KHUNG THÔNG TIN CỐ ĐỊNH (Always Show - Fill "Không" if empty) --- */}
-            <div className="border rounded-lg divide-y divide-border/60">
-              
-              {/* 1. MÔ TẢ SẢN PHẨM */}
-              <div className="p-3 md:p-4">
-                <h3 className="font-medium text-sm text-muted-foreground mb-2">Mô tả sản phẩm</h3>
-                {product.description ? (
-                  <ul className="text-foreground/90 space-y-1 text-sm leading-relaxed">
-                    {(typeof product.description === 'string' ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()) : product.description).map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-foreground/90">Không</p>
+            {/* --- KHUNG THÔNG TIN CHUNG (Gom nhóm: Mô tả, Size, Includes, Time) --- */}
+            {hasInfo && (
+              <div className="border rounded-lg divide-y divide-border/60">
+                {/* 1. MÔ TẢ SẢN PHẨM */}
+                {product.description && (
+                  <div className="p-3 md:p-4">
+                    <h3 className="font-medium text-sm text-muted-foreground mb-2">Mô tả sản phẩm</h3>
+                    <ul className="text-foreground/90 space-y-1 list-disc list-inside text-sm leading-relaxed">
+                      {(typeof product.description === 'string' ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()) : product.description).map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 2. KÍCH THƯỚC */}
+                {product.size && (
+                  <div className="p-3 md:p-4 flex items-baseline">
+                    <span className="font-medium text-sm text-muted-foreground w-32 flex-shrink-0">Kích thước</span>
+                    <span className="text-sm text-foreground/90">{product.size}</span>
+                  </div>
+                )}
+
+                {/* 3. BAO GỒM */}
+                {product.includes && (
+                  <div className="p-3 md:p-4 flex items-baseline">
+                    <span className="font-medium text-sm text-muted-foreground w-32 flex-shrink-0">Bao gồm</span>
+                    <span className="text-sm text-foreground/90">{product.includes}</span>
+                  </div>
+                )}
+
+                {/* 4. THỜI GIAN SẢN XUẤT */}
+                {product.productionTime && (
+                  <div className="p-3 md:p-4 flex items-baseline">
+                    <span className="font-medium text-sm text-muted-foreground w-32 flex-shrink-0">Thời gian SX</span>
+                    <span className="text-sm text-foreground/90">{product.productionTime}</span>
+                  </div>
                 )}
               </div>
+            )}
 
-              {/* 2. KÍCH THƯỚC */}
-              <div className="p-3 md:p-4 flex items-baseline">
-                <span className="font-medium text-sm text-muted-foreground w-32 flex-shrink-0">Kích thước</span>
-                <span className="text-sm text-foreground/90">{product.size || "Không"}</span>
-              </div>
-
-              {/* 3. BAO GỒM */}
-              <div className="p-3 md:p-4 flex items-baseline">
-                <span className="font-medium text-sm text-muted-foreground w-32 flex-shrink-0">Bao gồm</span>
-                <span className="text-sm text-foreground/90">{product.includes || "Không"}</span>
-              </div>
-
-              {/* 4. THỜI GIAN SẢN XUẤT */}
-              <div className="p-3 md:p-4 flex items-baseline">
-                <span className="font-medium text-sm text-muted-foreground w-32 flex-shrink-0">Thời gian SX</span>
-                <span className="text-sm text-foreground/90">{product.productionTime || "Không"}</span>
-              </div>
-            </div>
-
-            {/* Phân loại */}
+            {/* Phân loại (Dropdown có ảnh) */}
             <div className="space-y-3 pt-2">
               {product.optionGroups && product.optionGroups.length > 0 && (
                 product.optionGroups.map((group) => (
@@ -376,7 +461,7 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Nút Mua */}
+            {/* Nút Mua Hàng */}
             <div className="space-y-2">
               {(isExpired || availableStock === 0) ? (
                 <>
@@ -401,7 +486,7 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Related Products */}
+        {/* RELATED PRODUCTS */}
         {product.master && products.filter(p => p.master === product.master && p.id !== product.id).length > 0 && (
           <div className="border-t pt-8 mt-8">
             <h2 className="text-lg font-bold mb-4 text-foreground">Sản phẩm cùng loại</h2>
