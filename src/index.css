@@ -86,8 +86,7 @@ All colors MUST be HSL.
   }
 
   body {
-    /* Thêm: text-sm (14px) cho mobile, md:text-base (16px) cho PC */
-    @apply bg-background text-foreground text-sm md:text-base antialiased;
+    @apply bg-background text-foreground;
   }
 }
 
@@ -99,18 +98,5 @@ All colors MUST be HSL.
   
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
-  }
-  
-  .animate-marquee {
-    animation: marquee 30s linear infinite;
-  }
-  
-  @keyframes marquee {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
   }
 }

@@ -31,14 +31,13 @@ export default function Products() {
     return hasStock && notExpired;
   };
 
-  // === SẮP XẾP SẢN PHẨM: CÒN HÀNG LÊN TRƯỚC, SAU ĐÓ THEO ID GIẢM DẦN ===
+  // === SẮP XẾP SẢN PHẨM: CÒN HÀNG LÊN TRƯỚC (Giữ nguyên để đảm bảo thứ tự) ===
   const sortedProducts = [...products].sort((a, b) => {
     const aAvailable = isProductAvailable(a);
     const bAvailable = isProductAvailable(b);
     if (aAvailable && !bAvailable) return -1;
     if (!aAvailable && bAvailable) return 1;
-    // Default: sort by ID descending (newest first)
-    return b.id - a.id;
+    return 0;
   });
 
   // === BƯỚC LỌC 1: Lọc theo từ khóa tìm kiếm (Áp dụng trên danh sách đã sắp xếp) ===
