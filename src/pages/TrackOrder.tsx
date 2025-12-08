@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown, Copy, Filter, Phone } from "lucide-react";
+import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown, Copy, Filter } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,10 +50,10 @@ interface Order {
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Chưa thanh toán": return "bg-red-50 text-red-700 border-red-200";
-    case "Đã thanh toán": return "bg-green-50 text-green-700 border-green-200";
     case "Đang xác nhận thanh toán": return "bg-blue-50 text-blue-700 border-blue-200"; // Mới
-    case "Đã cọc": return "bg-amber-50 text-amber-700 border-amber-200";
     case "Đang xác nhận cọc": return "bg-blue-50 text-blue-700 border-blue-200"; // Mới
+    case "Đã thanh toán": return "bg-green-50 text-green-700 border-green-200";
+    case "Đã cọc": return "bg-amber-50 text-amber-700 border-amber-200";
     case "Đã hoàn cọc": return "bg-pink-50 text-pink-700 border-pink-200";
     case "Đã đặt hàng": return "bg-blue-50 text-blue-700 border-blue-200";
     case "Đang sản xuất": return "bg-purple-50 text-purple-700 border-purple-200";
@@ -69,10 +69,10 @@ const getStatusColor = (status: string) => {
 const getTrackingUrl = (provider: string, code: string): string | null => {
   const lowerProvider = provider.toLowerCase();
   if (lowerProvider.includes('spx') || lowerProvider === 'shopee express') return `https://spx.vn/track?${code}`;
-  if (lowerProvider.includes('ghn')) return `https://donhang.ghn.vn/?order_code=${code}`;
-  if (lowerProvider.includes('ghtk')) return `https://i.ghtk.vn/${code}`;
-  if (lowerProvider.includes('j&t')) return `https://jtexpress.vn/vi/tracking?billcodes=${code}`;
-  if (lowerProvider.includes('viettel')) return `https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/?key=${code}`;
+  if (lowerProvider.includes('ghn') || lowerProvider === 'giao hàng nhanh') return `https://donhang.ghn.vn/?order_code=${code}`;
+  if (lowerProvider.includes('ghtk') || lowerProvider === 'giao hàng tiết kiệm') return `https://i.ghtk.vn/${code}`;
+  if (lowerProvider.includes('j&t') || lowerProvider.includes('jnt')) return `https://jtexpress.vn/vi/tracking?billcodes=${code}`;
+  if (lowerProvider.includes('viettel') || lowerProvider.includes('vtp')) return `https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/?key=${code}`;
   return null;
 };
 
@@ -218,7 +218,8 @@ export default function TrackOrder() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-3 py-6 md:py-10"> {/* Giảm padding ngang trên mobile */}
+      {/* Giảm padding container */}
+      <div className="container mx-auto px-3 py-6 md:py-10">
         <div className="text-center mb-6">
           <Package className="h-10 w-10 mx-auto mb-3 text-primary" />
           <h1 className="text-2xl font-bold mb-2">Tra cứu đơn hàng</h1>
@@ -231,18 +232,15 @@ export default function TrackOrder() {
             <form onSubmit={handleSearch} className="space-y-4">
               <div>
                 <Label htmlFor="phone" className="text-sm font-medium mb-1.5 block">Số điện thoại</Label>
-                <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="090..."
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    className="pl-9 h-10 text-base" /* h-10 để dễ bấm, text-base để không bị zoom trên iOS */
-                    />
-                </div>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="090..."
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  className="h-10 text-base" /* Text base tránh zoom ios */
+                />
               </div>
               <Button type="submit" className="w-full h-10 font-medium" disabled={isSearching}>
                 {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Tra cứu ngay"}
@@ -296,7 +294,7 @@ export default function TrackOrder() {
             <div className="space-y-4">
               {filteredOrders.map((order) => (
                 <Card key={order.id} className="overflow-hidden border shadow-sm">
-                  {/* Header Card */}
+                  {/* Header Card: Tối ưu khoảng cách và size chữ */}
                   <CardHeader className="p-3 sm:p-4 bg-muted/20 border-b pb-3">
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between items-start">
@@ -321,6 +319,7 @@ export default function TrackOrder() {
                     </div>
                   </CardHeader>
                   
+                  {/* Content Card: Giảm padding */}
                   <CardContent className="p-3 sm:p-4 space-y-4 text-sm">
                     {/* Danh sách sản phẩm */}
                     <div>
@@ -357,7 +356,6 @@ export default function TrackOrder() {
                                     <span className="font-semibold text-xs text-muted-foreground uppercase flex items-center gap-1">
                                         <Truck className="h-3 w-3" /> Giao tới
                                     </span>
-                                    {/* Chỉ cho sửa khi đơn mới */}
                                     {['Đang xử lý', 'Đã đặt hàng', 'Đang sản xuất'].includes(order.order_progress) && (
                                         <Button variant="ghost" size="sm" className="h-6 px-2 text-primary hover:text-primary/80 text-xs" onClick={() => startEditing(order)}>
                                             <Edit2 className="h-3 w-3 mr-1" /> Sửa
@@ -415,7 +413,7 @@ export default function TrackOrder() {
                     )}
 
                     {/* Upload Bill Bổ sung */}
-                    {order.payment_type === 'deposit' && (order.payment_status === 'Đã cọc' || order.payment_status === 'Đang xác nhận cọc') && (
+                    {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc' && (
                         <div className="border border-dashed border-primary/40 bg-primary/5 p-3 rounded-md">
                             <div className="flex justify-between items-center mb-3">
                                 <span className="text-xs font-semibold text-primary uppercase">Thanh toán phần còn lại</span>
