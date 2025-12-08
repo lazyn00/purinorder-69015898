@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { supabase } from "@/integrations/supabase/client";
 
-// === DÁN URL APPS SCRIPT (ĐỌC SẢN PHẨM) CỦA BẠN VÀO ĐÂY ===
+// Fallback Google Sheet URL (optional)
 const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
-// ===
 
 // Định nghĩa kiểu Product mới (từ Google Sheet)
 export interface Product {
   id: number;
   name: string;
   price: number;
-  description: string[];
+  description: string | string[];
   images: string[];
   category: string;
   subcategory?: string; // Phân loại nhỏ
@@ -23,6 +23,7 @@ export interface Product {
   orderDeadline?: string | null;
   stock?: number; // Stock chung cho tất cả variants (nếu không có stock riêng)
   priceDisplay: string; // Giữ lại trường này cho đỡ lỗi
+  productionTime?: string; // Thời gian sản xuất
 }
 export interface CartItem extends Product {
   quantity: number;
@@ -41,6 +42,7 @@ interface CartContextType {
   // State cho sản phẩm
   products: Product[];
   isLoading: boolean;
+  refetchProducts: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -52,38 +54,80 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch(GAS_PRODUCTS_URL);
-        const data = await response.json();
-        
-        if (data.products) {
-          // Parse variantImageMap nếu nó là string
-          const parsedProducts = data.products.map((product: any) => {
-            if (product.variantImageMap && typeof product.variantImageMap === 'string') {
-              try {
-                product.variantImageMap = JSON.parse(product.variantImageMap);
-              } catch (e) {
-                console.error(`Lỗi parse variantImageMap cho sản phẩm ${product.id}:`, e);
-                product.variantImageMap = {};
-              }
-            }
-            return product;
-          });
-          setProducts(parsedProducts);
-        } else {
-          console.error("Lỗi tải products:", data.error);
-        }
-      } catch (error) {
-        console.error("Không thể tải sản phẩm từ Google Sheet:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    let supabaseProducts: Product[] = [];
+    let googleSheetProducts: Product[] = [];
 
+    // 1. Fetch từ Supabase
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (!error && data) {
+        supabaseProducts = data.map((dbProduct: any) => ({
+          id: dbProduct.id,
+          name: dbProduct.name,
+          price: dbProduct.price,
+          description: dbProduct.description || '',
+          images: Array.isArray(dbProduct.images) ? dbProduct.images : [],
+          category: dbProduct.category || '',
+          subcategory: dbProduct.subcategory || '',
+          artist: dbProduct.artist || '',
+          variants: Array.isArray(dbProduct.variants) ? dbProduct.variants : [],
+          optionGroups: Array.isArray(dbProduct.option_groups) ? dbProduct.option_groups : [],
+          variantImageMap: typeof dbProduct.variant_image_map === 'object' 
+            ? dbProduct.variant_image_map 
+            : {},
+          feesIncluded: dbProduct.fees_included ?? true,
+          master: dbProduct.master || '',
+          status: dbProduct.status || 'Sẵn',
+          orderDeadline: dbProduct.order_deadline,
+          stock: dbProduct.stock,
+          priceDisplay: `${dbProduct.price.toLocaleString('vi-VN')}đ`,
+          productionTime: dbProduct.production_time || ''
+        }));
+      }
+    } catch (error) {
+      console.error("Không thể tải sản phẩm từ Supabase:", error);
+    }
+
+    // 2. Fetch từ Google Sheet
+    try {
+      const response = await fetch(GAS_PRODUCTS_URL);
+      const data = await response.json();
+      
+      if (data.products) {
+        googleSheetProducts = data.products.map((product: any) => {
+          if (product.variantImageMap && typeof product.variantImageMap === 'string') {
+            try {
+              product.variantImageMap = JSON.parse(product.variantImageMap);
+            } catch (e) {
+              console.error(`Lỗi parse variantImageMap cho sản phẩm ${product.id}:`, e);
+              product.variantImageMap = {};
+            }
+          }
+          return product;
+        });
+      }
+    } catch (error) {
+      console.error("Không thể tải sản phẩm từ Google Sheet:", error);
+    }
+
+    // 3. Merge: ưu tiên Supabase, thêm Google Sheet products không trùng ID
+    const supabaseIds = new Set(supabaseProducts.map(p => p.id));
+    const uniqueGoogleProducts = googleSheetProducts.filter(p => !supabaseIds.has(p.id));
+    
+    const allProducts = [...supabaseProducts, ...uniqueGoogleProducts];
+    setProducts(allProducts);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
     fetchProducts();
-  }, []); // Tải 1 lần duy nhất
+  }, []);
 
   // (Các hàm giỏ hàng đã sửa lỗi)
   const addToCart = (product: Product, quantity: number, variant: string) => {
@@ -138,7 +182,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalItems,
       totalPrice,
       products, 
-      isLoading
+      isLoading,
+      refetchProducts: fetchProducts
     }}>
       {children}
     </CartContext.Provider>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Package, Upload, Truck, Save, Edit2 } from "lucide-react";
+import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown, Copy, Filter } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const ORDER_PROGRESS_OPTIONS = [
+  "Đang xử lý",
+  "Đã đặt hàng",
+  "Đang sản xuất",
+  "Đang vận chuyển T-V",
+  "Sẵn sàng giao",
+  "Đang giao",
+  "Đã hoàn thành",
+  "Đã huỷ"
+];
 
 interface Order {
   id: string;
@@ -32,6 +44,7 @@ interface Order {
   second_payment_proof_url: string;
   shipping_provider: string;
   tracking_code: string;
+  surcharge: number;
 }
 
 const getStatusColor = (status: string) => {
@@ -48,8 +61,10 @@ const getStatusColor = (status: string) => {
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "Đang sản xuất":
       return "bg-purple-100 text-purple-800 border-purple-200";
-    case "Đang vận chuyển":
+    case "Đang vận chuyển T-V":
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "Sẵn sàng giao":
+      return "bg-lime-100 text-lime-800 border-lime-200";
     case "Đang giao":
       return "bg-orange-100 text-orange-800 border-orange-200";
     case "Đã hoàn thành":
@@ -63,6 +78,26 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const getTrackingUrl = (provider: string, code: string): string | null => {
+  const lowerProvider = provider.toLowerCase();
+  if (lowerProvider.includes('spx') || lowerProvider === 'shopee express') {
+    return `https://spx.vn/track?${code}`;
+  }
+  if (lowerProvider.includes('ghn') || lowerProvider === 'giao hàng nhanh') {
+    return `https://donhang.ghn.vn/?order_code=${code}`;
+  }
+  if (lowerProvider.includes('ghtk') || lowerProvider === 'giao hàng tiết kiệm') {
+    return `https://i.ghtk.vn/${code}`;
+  }
+  if (lowerProvider.includes('j&t') || lowerProvider.includes('jnt')) {
+    return `https://jtexpress.vn/vi/tracking?billcodes=${code}`;
+  }
+  if (lowerProvider.includes('viettel') || lowerProvider.includes('vtp')) {
+    return `https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/?key=${code}`;
+  }
+  return null;
+};
+
 export default function TrackOrder() {
   const [phone, setPhone] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -71,8 +106,48 @@ export default function TrackOrder() {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [tempDeliveryData, setTempDeliveryData] = useState<Partial<Order>>({});
   const [isUpdatingDelivery, setIsUpdatingDelivery] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [progressFilter, setProgressFilter] = useState<string>("all");
   
   const { toast } = useToast();
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Đã copy",
+      description: `Mã đơn: ${text}`,
+    });
+  };
+
+  // Filter and sort orders
+  const filteredOrders = useMemo(() => {
+    let result = [...orders];
+    
+    // Filter by product name
+    if (productSearch.trim()) {
+      result = result.filter(order => 
+        order.items.some((item: any) => 
+          item.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+          (item.selectedVariant && item.selectedVariant.toLowerCase().includes(productSearch.toLowerCase()))
+        )
+      );
+    }
+    
+    // Filter by progress
+    if (progressFilter !== "all") {
+      result = result.filter(order => order.order_progress === progressFilter);
+    }
+    
+    // Sort by date
+    result.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
+    
+    return result;
+  }, [orders, productSearch, sortOrder, progressFilter]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,14 +303,14 @@ export default function TrackOrder() {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-2xl px-4 py-12">
+      <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <Package className="h-12 w-12 mx-auto mb-4 text-primary" />
           <h1 className="text-3xl font-bold mb-2">Tra cứu đơn hàng</h1>
           <p className="text-muted-foreground">Nhập số điện thoại để tra cứu đơn hàng của bạn</p>
         </div>
 
-        <Card className="mb-8">
+        <Card className="mb-8 max-w-xl mx-auto">
           <CardContent className="pt-6">
             <form onSubmit={handleSearch} className="space-y-4">
               <div>
@@ -265,222 +340,224 @@ export default function TrackOrder() {
 
         {orders.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Đơn hàng của bạn ({orders.length})</h2>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <h2 className="text-2xl font-semibold">Đơn hàng của bạn ({filteredOrders.length})</h2>
+              
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
+                <div className="relative flex-1 sm:w-48">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Tìm theo sản phẩm..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={progressFilter} onValueChange={setProgressFilter}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Tiến độ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả tiến độ</SelectItem>
+                    {ORDER_PROGRESS_OPTIONS.map(progress => (
+                      <SelectItem key={progress} value={progress}>{progress}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "newest" | "oldest")}>
+                  <SelectTrigger className="w-full sm:w-32">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Mới nhất</SelectItem>
+                    <SelectItem value="oldest">Cũ nhất</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             
-            {orders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start flex-wrap gap-2">
-                    <div>
-                      <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium`}>
-                        {order.payment_status}
-                      </Badge>
-                      <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium`}>
-                        {order.order_progress}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Tổng tiền</p>
-                      <p className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</p>
-                      <p className="text-xs text-muted-foreground">
-                        {order.payment_type === 'deposit' ? 'Đặt cọc 50%' : 'Thanh toán 100%'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Phương thức</p>
-                      <p className="font-medium">{order.payment_method}</p>
-                    </div>
-                  </div>
-
-                  <Separator />
-                  
-                  <div>
-                    <p className="text-muted-foreground text-sm mb-2">Sản phẩm</p>
-                    <div className="space-y-2">
-                      {order.items && order.items.map((item: any, index: number) => (
-                        <div key={index} className="flex justify-between text-sm">
-                          <span>x{item.quantity} {item.name} {item.selectedVariant && `(${item.selectedVariant})`}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="p-4 bg-gray-50 dark:bg-gray-950/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                        <Truck className="h-5 w-5" /> Thông tin nhận hàng
-                      </h3>
-                      {order.order_progress !== 'Đã hoàn thành' && order.order_progress !== 'Đã huỷ' && editingOrderId !== order.id && (
-                        <Button variant="ghost" size="sm" onClick={() => startEditing(order)}>
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          Chỉnh sửa
+            {/* Vertical list of order cards */}
+            <div className="space-y-4">
+              {filteredOrders.map((order) => (
+                <Card key={order.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      {/* Order number with copy button - left */}
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => copyToClipboard(order.order_number || order.id.slice(0, 8))}
+                        >
+                          <Copy className="h-3 w-3" />
                         </Button>
-                      )}
+                      </div>
+                      {/* Status badges - right aligned */}
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border font-medium text-xs`}>
+                          {order.payment_status}
+                        </Badge>
+                        <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium text-xs`}>
+                          {order.order_progress}
+                        </Badge>
+                      </div>
                     </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tổng tiền:</span>
+                      <span className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                    {order.surcharge > 0 && (
+                      <div className="flex justify-between text-orange-600">
+                        <span>Phụ thu:</span>
+                        <span className="font-bold">+{order.surcharge.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
                     
+                    <Separator />
+                    
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">Sản phẩm:</p>
+                      <div className="space-y-1">
+                        {order.items && order.items.map((item: any, index: number) => (
+                          <div key={index} className="text-sm">
+                            x{item.quantity} {item.name}{item.selectedVariant && ` (${item.selectedVariant})`}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Delivery Info */}
                     {editingOrderId !== order.id ? (
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Người nhận:</span>
-                            <span className="font-medium text-right">{order.delivery_name || "Chưa có"}</span>
+                      <div className="bg-muted/50 rounded p-3 space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">📍 Thông tin nhận:</span>
+                          {order.order_progress !== 'Đã hoàn thành' && order.order_progress !== 'Đã huỷ' && (
+                            <Button variant="ghost" size="sm" className="h-7" onClick={() => startEditing(order)}>
+                              <Edit2 className="h-3 w-3 mr-1" />
+                              Sửa
+                            </Button>
+                          )}
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">SĐT nhận hàng:</span>
-                            <span className="font-medium text-right">{order.delivery_phone || "Chưa có"}</span>
-                        </div>
-                        <div>
-                            <span className="text-muted-foreground block mb-1">Địa chỉ:</span>
-                            <span className="font-medium block text-right break-words">{order.delivery_address || "Chưa có"}</span>
-                        </div>
-                        <div>
-                            <span className="text-muted-foreground block mb-1">Ghi chú:</span>
-                            <span className="font-medium block text-right italic text-orange-600 dark:text-orange-400">
-                                {order.delivery_note || "Không có ghi chú"}
-                            </span>
-                        </div>
+                        <p>{order.delivery_name} - {order.delivery_phone}</p>
+                        <p className="text-muted-foreground">{order.delivery_address}</p>
+                        {order.delivery_note && (
+                          <p className="italic text-orange-600">{order.delivery_note}</p>
+                        )}
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <Label htmlFor={`name-${order.id}`}>Tên người nhận</Label>
-                          <Input
-                            id={`name-${order.id}`}
-                            defaultValue={order.delivery_name}
-                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_name: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor={`phone-${order.id}`}>SĐT nhận hàng</Label>
-                          <Input
-                            id={`phone-${order.id}`}
-                            type="tel"
-                            defaultValue={order.delivery_phone}
-                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_phone: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor={`address-${order.id}`}>Địa chỉ nhận hàng</Label>
-                          <Textarea
-                            id={`address-${order.id}`}
-                            defaultValue={order.delivery_address}
-                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_address: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor={`note-${order.id}`}>Ghi chú (Tùy chọn)</Label>
-                          <Textarea
-                            id={`note-${order.id}`}
-                            defaultValue={order.delivery_note}
-                            placeholder="Ví dụ: Giao ngoài giờ hành chính, gọi trước khi giao..."
-                            onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_note: e.target.value})}
-                          />
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setEditingOrderId(null)}
-                            disabled={isUpdatingDelivery}
-                          >
+                      <div className="space-y-2 bg-muted/50 rounded p-3">
+                        <Input
+                          placeholder="Tên người nhận"
+                          defaultValue={order.delivery_name}
+                          onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_name: e.target.value})}
+                        />
+                        <Input
+                          placeholder="SĐT nhận hàng"
+                          defaultValue={order.delivery_phone}
+                          onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_phone: e.target.value})}
+                        />
+                        <Textarea
+                          placeholder="Địa chỉ"
+                          defaultValue={order.delivery_address}
+                          onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_address: e.target.value})}
+                        />
+                        <Textarea
+                          placeholder="Ghi chú"
+                          defaultValue={order.delivery_note}
+                          onChange={(e) => setTempDeliveryData({...tempDeliveryData, delivery_note: e.target.value})}
+                        />
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingOrderId(null)}>
                             Hủy
                           </Button>
-                          <Button 
-                            onClick={() => handleUpdateDeliveryInfo(order)}
-                            disabled={isUpdatingDelivery}
-                          >
-                            {isUpdatingDelivery ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Save className="mr-2 h-4 w-4" />
-                            )}
-                            Lưu thay đổi
+                          <Button size="sm" className="flex-1" onClick={() => handleUpdateDeliveryInfo(order)} disabled={isUpdatingDelivery}>
+                            {isUpdatingDelivery ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                            Lưu
                           </Button>
                         </div>
                       </div>
                     )}
-                  </div>
 
-                  {order.shipping_provider && order.tracking_code && (
-                    <>
-                      <Separator />
-                      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
-                        <h3 className="font-semibold mb-3 text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                          📦 Thông tin vận chuyển
-                        </h3>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Nhà vận chuyển:</span>
-                            <span className="font-medium">{order.shipping_provider}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Mã vận đơn:</span>
-                            <span className="font-mono font-medium text-blue-600 dark:text-blue-400">{order.tracking_code}</span>
-                          </div>
+                    {/* Shipping Info */}
+                    {order.shipping_provider && order.tracking_code && (
+                      <div className="bg-blue-50 dark:bg-blue-950/30 rounded p-3 space-y-1">
+                        <p className="font-medium flex items-center gap-1">
+                          <Truck className="h-4 w-4" /> Vận chuyển:
+                        </p>
+                        <p>{order.shipping_provider}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-blue-600">{order.tracking_code}</span>
+                          {getTrackingUrl(order.shipping_provider, order.tracking_code) && (
+                            <a
+                              href={getTrackingUrl(order.shipping_provider, order.tracking_code)!}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              Tra cứu
+                            </a>
+                          )}
                         </div>
                       </div>
-                    </>
-                  )}
+                    )}
 
-                  {!order.second_payment_proof_url && (
-                    <>
-                      <Separator />
-                      <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
-                        <Label className="font-semibold text-lg mb-3 block">
-                          {order.payment_type === 'deposit' && order.payment_status === 'đã cọc' 
+                    <Separator />
+                    
+                    {/* Upload Bill */}
+                    <div className="border border-dashed border-primary/30 rounded p-3 bg-primary/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="font-medium text-sm">
+                          {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc' 
                             ? 'Thanh toán 50% còn lại' 
                             : 'Đăng bill bổ sung'}
                         </Label>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          {order.payment_type === 'deposit' && order.payment_status === 'đã cọc'
-                            ? `Vui lòng thanh toán ${(order.total_price * 0.5).toLocaleString('vi-VN')}đ và đăng bill chuyển khoản`
-                            : 'Dùng để đăng bill hoàn cọc, phụ thu hoặc thanh toán bổ sung'}
-                        </p>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              handleUploadSecondPayment(order.id, e.target.files[0]);
-                            }
-                          }}
-                          disabled={uploadingOrderId === order.id}
-                          className="cursor-pointer"
-                        />
-                        {uploadingOrderId === order.id && (
-                          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang upload...
-                          </div>
-                        )}
+                        <a 
+                          href="/contact" 
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          Xem thông tin CK
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       </div>
-                    </>
-                  )}
-
-                  {order.second_payment_proof_url && (
-                    <div className="text-sm">
-                      <a 
-                        href={order.second_payment_proof_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-green-600 hover:underline flex items-center gap-2"
-                      >
-                        <Upload className="h-4 w-4" />
-                        Xem bill thanh toán bổ sung
-                      </a>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleUploadSecondPayment(order.id, e.target.files[0]);
+                          }
+                        }}
+                        disabled={uploadingOrderId === order.id}
+                      />
+                      {uploadingOrderId === order.id && (
+                        <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang upload...
+                        </div>
+                      )}
+                      {order.second_payment_proof_url && (
+                        <a 
+                          href={order.second_payment_proof_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-green-600 hover:underline flex items-center gap-1 mt-2"
+                        >
+                          <Upload className="h-4 w-4" />
+                          Xem bill đã đăng
+                        </a>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
       </div>

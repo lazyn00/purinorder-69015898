@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,8 @@ const ORDER_PROGRESS = [
   "Đang xử lý",
   "Đã đặt hàng",
   "Đang sản xuất",
-  "Đang vận chuyển",
+  "Đang vận chuyển T-V",
+  "Sẵn sàng giao",
   "Đang giao",
   "Đã hoàn thành",
   "Đã huỷ"
@@ -61,8 +62,10 @@ const getProgressColor = (progress: string) => {
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "Đang sản xuất":
       return "bg-purple-100 text-purple-800 border-purple-200";
-    case "Đang vận chuyển":
+    case "Đang vận chuyển T-V":
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "Sẵn sàng giao":
+      return "bg-lime-100 text-lime-800 border-lime-200";
     case "Đang giao":
       return "bg-orange-100 text-orange-800 border-orange-200";
     case "Đã hoàn thành":
@@ -95,6 +98,7 @@ interface Order {
   second_payment_proof_url: string;
   shipping_provider: string;
   tracking_code: string;
+  surcharge: number;
 }
 
 const COLORS = ['#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#60a5fa', '#fb923c'];
@@ -109,11 +113,25 @@ interface ProductNotification {
   created_at: string;
 }
 
+interface ProductData {
+  id: number;
+  name: string;
+  price: number;
+  te?: number;
+  rate?: number;
+  actual_rate?: number;
+  actual_can?: number;
+  actual_pack?: number;
+  cong?: number;
+  variants?: any[];
+}
+
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [shippingInfo, setShippingInfo] = useState<{[key: string]: {provider: string, code: string}}>({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -125,17 +143,23 @@ export default function Admin() {
   const [expandedAddresses, setExpandedAddresses] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<ProductNotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Filter orders based on search and filters
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
+      // Tìm kiếm trong tên, SĐT, mã đơn VÀ tên sản phẩm
       const matchesSearch = searchTerm === "" || 
         order.delivery_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.delivery_phone.includes(searchTerm) ||
         order.customer_phone.includes(searchTerm) ||
-        (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase()));
+        (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        order.items.some((item: any) => 
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.selectedVariant && item.selectedVariant.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
       
       const matchesPaymentStatus = paymentStatusFilter === "all" || order.payment_status === paymentStatusFilter;
       const matchesOrderProgress = orderProgressFilter === "all" || order.order_progress === orderProgressFilter;
@@ -264,11 +288,97 @@ export default function Admin() {
     };
   }, [orders]);
 
+  // Tính toán tiền công và tiền chênh theo từng sản phẩm/variant
+  const costStatistics = useMemo(() => {
+    let totalServiceFee = 0; // Tổng tiền công
+    let totalProfit = 0; // Tổng tiền chênh
+    let productsWithActualCost = 0;
+
+    // Tạo map từ product id -> product data
+    const productMap = new Map<number, ProductData>();
+    products.forEach(p => productMap.set(p.id, p));
+
+    orders.forEach(order => {
+      if (order.order_progress === 'Đã huỷ') return;
+      
+      const items = order.items as any[];
+      items.forEach(item => {
+        const product = productMap.get(item.id);
+        if (!product) return;
+
+        const quantity = item.quantity || 1;
+        
+        // Lấy dữ liệu cost của variant nếu có
+        let variantActualRate = product.actual_rate;
+        let variantActualCan = product.actual_can;
+        let variantActualPack = product.actual_pack;
+        let variantCong = product.cong;
+        let variantTe = product.te;
+        let itemPrice = item.price || product.price;
+
+        // Nếu item có selectedVariant và product có variants, tìm variant tương ứng
+        if (item.selectedVariant && (product as any).variants) {
+          const variants = (product as any).variants as any[];
+          const matchedVariant = variants.find((v: any) => v.name === item.selectedVariant);
+          if (matchedVariant) {
+            // Sử dụng giá của variant
+            itemPrice = matchedVariant.price || itemPrice;
+            // Nếu variant có actual costs riêng, sử dụng
+            if (matchedVariant.actual_rate !== undefined) variantActualRate = matchedVariant.actual_rate;
+            if (matchedVariant.actual_can !== undefined) variantActualCan = matchedVariant.actual_can;
+            if (matchedVariant.actual_pack !== undefined) variantActualPack = matchedVariant.actual_pack;
+            if (matchedVariant.cong !== undefined) variantCong = matchedVariant.cong;
+            if (matchedVariant.te !== undefined) variantTe = matchedVariant.te;
+          }
+        }
+        
+        // Tính tiền công
+        if (variantCong) {
+          totalServiceFee += (variantCong * quantity);
+        }
+
+        // Tính tiền chênh nếu có đủ dữ liệu actual
+        if (variantActualRate || variantActualCan || variantActualPack) {
+          const te = variantTe || 0;
+          const actualRate = variantActualRate || product.rate || 0;
+          const actualCan = variantActualCan || 0;
+          const actualPack = variantActualPack || 0;
+          const cong = variantCong || 0;
+          
+          const actualCost = (te * actualRate) + actualCan + actualPack + cong;
+          const profit = itemPrice - actualCost;
+          totalProfit += (profit * quantity);
+          productsWithActualCost++;
+        }
+      });
+    });
+
+    return {
+      totalServiceFee,
+      totalProfit,
+      productsWithActualCost
+    };
+  }, [orders, products]);
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, variants');
+      
+      if (error) throw error;
+      setProducts((data as ProductData[]) || []);
+    } catch (error) {
+      console.error('Error fetching products for stats:', error);
+    }
+  };
+
   useEffect(() => {
     const adminSession = sessionStorage.getItem('admin_logged_in');
     if (adminSession === 'true') {
       setIsLoggedIn(true);
       fetchOrders();
+      fetchProducts();
     }
   }, []);
 
@@ -279,6 +389,7 @@ export default function Admin() {
       setIsLoggedIn(true);
       sessionStorage.setItem('admin_logged_in', 'true');
       fetchOrders();
+      fetchProducts();
       toast({
         title: "Đăng nhập thành công",
         description: "Chào mừng Admin!",
@@ -455,6 +566,33 @@ export default function Admin() {
     }
   };
 
+  const updateSurcharge = async (orderId: string, surcharge: number) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ surcharge })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, surcharge } : order
+      ));
+
+      toast({
+        title: "Cập nhật thành công",
+        description: `Phụ thu: ${surcharge.toLocaleString('vi-VN')}đ`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật phụ thu",
+        variant: "destructive"
+      });
+    }
+  };
+
   const deleteOrder = async (orderId: string) => {
     if (!confirm("Bạn có chắc muốn xóa đơn hàng này?")) return;
 
@@ -541,7 +679,9 @@ SĐT: ${order.delivery_phone}
       'Địa chỉ': order.delivery_address,
       'Ghi chú': order.delivery_note || '',
       'Sản phẩm': order.items.map((item: any) => 
-        `x${item.quantity} ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''}`
+        item.selectedVariant 
+          ? `x${item.quantity} ${item.name} (${item.selectedVariant})`
+          : `x${item.quantity} ${item.name}`
       ).join(', '),
       'Tổng tiền': order.total_price,
       'Thanh toán': order.payment_status,
@@ -567,33 +707,30 @@ SĐT: ${order.delivery_phone}
 
   const generateEmailContent = (order: Order) => {
     const itemsList = order.items.map((item: any) => 
-      `  • ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ''} x${item.quantity}`
+      item.selectedVariant
+        ? `• ${item.name} (${item.selectedVariant}) x${item.quantity}`
+        : `• ${item.name} x${item.quantity}`
     ).join('\n');
+
+    const paymentStatusDisplay = order.payment_status?.toLowerCase() || '';
+    const orderProgressDisplay = order.order_progress?.toLowerCase() || '';
 
     return `Hi bạn iu 🍮
 
-Đây là email cập nhật tiến độ đơn hàng #${order.order_number} của bạn:
+Purin gửi bạn cập nhật tiến độ đơn hàng #${order.order_number} nè:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 SẢN PHẨM
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+📦 Sản phẩm
 ${itemsList}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 TRẠNG THÁI
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 Trạng thái thanh toán: ${paymentStatusDisplay}
+🚀 Tiến độ: ${orderProgressDisplay}${order.tracking_code ? `\n📍 Mã vận đơn: ${order.tracking_code}` : ''}
 
-💰 Thanh toán: ${order.payment_status}
-🚀 Tiến độ: ${order.order_progress}${order.tracking_code ? `\n📍 Mã vận đơn: ${order.tracking_code}` : ''}
+Cảm ơn bạn đã luôn tin tưởng Purin 🍮💖
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Nếu cần hỗ trợ gì, bạn cứ nhắn Purin liền nha!
 
-Cảm ơn bạn đã tin tưởng và ủng hộ Purin 🍮💖
-
----
-Purin Order
-`.trim();
+—
+Purin Order`.trim();
   };
 
   const sendBulkEmails = async () => {
@@ -760,16 +897,24 @@ ${generateEmailContent(order)}
           </div>
         ) : (
           <Tabs defaultValue="stats" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-full sm:max-w-2xl gap-1">
-              <TabsTrigger value="stats" className="text-xs sm:text-sm">Doanh thu</TabsTrigger>
-              <TabsTrigger value="products" className="text-xs sm:text-sm">Sản phẩm</TabsTrigger>
-              <TabsTrigger value="orders" className="text-xs sm:text-sm">Đơn hàng</TabsTrigger>
-              <TabsTrigger value="notifications" onClick={fetchNotifications} className="text-xs sm:text-sm">Thông báo</TabsTrigger>
+            <TabsList className="inline-flex h-12 items-center justify-start gap-2 bg-muted p-1">
+              <TabsTrigger value="stats" className="h-10 w-10 p-0" title="Doanh thu">
+                <BarChart3 className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="products" className="h-10 w-10 p-0" title="Thống kê sản phẩm">
+                <Package className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="h-10 w-10 p-0" title="Đơn hàng">
+                <ShoppingCart className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="notifications" onClick={fetchNotifications} className="h-10 w-10 p-0" title="Thông báo">
+                <Bell className="h-5 w-5" />
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
               {/* Tổng quan */}
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
@@ -814,25 +959,26 @@ ${generateEmailContent(order)}
                     </p>
                   </CardContent>
                 </Card>
+
               </div>
 
               {/* Biểu đồ */}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Doanh thu 7 ngày gần nhất</CardTitle>
+                    <CardTitle className="text-sm sm:text-base">Doanh thu 7 ngày gần nhất</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <CardContent className="px-2 sm:px-6">
+                    <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={statistics.revenueByDay}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
+                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
                         <Tooltip 
                           formatter={(value: number) => `${(value * 1000).toLocaleString('vi-VN')}đ`}
                           labelFormatter={(label) => `Ngày ${label}`}
                         />
-                        <Legend />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
                         <Bar dataKey="revenue" fill="hsl(var(--primary))" name="Doanh thu (k)" />
                       </BarChart>
                     </ResponsiveContainer>
@@ -841,10 +987,10 @@ ${generateEmailContent(order)}
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Phân bố trạng thái thanh toán</CardTitle>
+                    <CardTitle className="text-sm sm:text-base">Phân bố trạng thái thanh toán</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <CardContent className="px-2 sm:px-6">
+                    <ResponsiveContainer width="100%" height={250}>
                       <PieChart>
                         <Pie
                           data={statistics.paymentDistribution}
@@ -869,10 +1015,10 @@ ${generateEmailContent(order)}
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Phân bố tiến độ đơn hàng</CardTitle>
+                  <CardTitle className="text-sm sm:text-base">Phân bố tiến độ đơn hàng</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                <CardContent className="px-2 sm:px-6">
+                  <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
                       <Pie
                         data={statistics.progressDistribution}
@@ -880,7 +1026,7 @@ ${generateEmailContent(order)}
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                        outerRadius={100}
+                        outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -896,7 +1042,7 @@ ${generateEmailContent(order)}
             </TabsContent>
 
             <TabsContent value="products" className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng sản phẩm đã bán</CardTitle>
@@ -937,13 +1083,13 @@ ${generateEmailContent(order)}
                 <CardContent>
                   <div className="space-y-2">
                     {productStats.map((product) => (
-                      <div key={product.name} className="flex justify-between items-center p-2 border rounded">
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">{product.productName}</p>
+                      <div key={product.name} className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 p-3 border rounded">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm sm:text-base break-words">{product.name}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground break-words">{product.productName}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold">{product.count} sản phẩm</p>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-sm sm:text-base">{product.count} sp</p>
                         </div>
                       </div>
                     ))}
@@ -957,7 +1103,7 @@ ${generateEmailContent(order)}
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Tìm theo tên, SĐT hoặc mã đơn..."
+                    placeholder="Tìm theo tên, SĐT, mã đơn, hoặc sản phẩm..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -993,49 +1139,50 @@ ${generateEmailContent(order)}
               </p>
 
               {selectedOrderIds.size > 0 && (
-                <div className="flex gap-2">
-                  <Button onClick={exportToExcel} className="gap-2" variant="outline">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button onClick={exportToExcel} className="gap-2 w-full sm:w-auto" variant="outline" size="sm">
                     <FileDown className="h-4 w-4" />
-                    Xuất Excel ({selectedOrderIds.size} đơn)
+                    <span className="hidden xs:inline">Xuất Excel</span> ({selectedOrderIds.size})
                   </Button>
-                  <Button onClick={sendBulkEmails} className="gap-2">
+                  <Button onClick={sendBulkEmails} className="gap-2 w-full sm:w-auto" size="sm">
                     <Mail className="h-4 w-4" />
-                    Gửi email ({selectedOrderIds.size} đơn)
+                    <span className="hidden xs:inline">Gửi email</span> ({selectedOrderIds.size})
                   </Button>
                 </div>
               )}
               
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50px]">
+                      <TableHead className="w-[50px] sticky left-0 bg-background z-10">
                         <Checkbox
                           checked={selectedOrderIds.size === paginatedOrders.length && paginatedOrders.length > 0}
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      <TableHead className="w-[100px]">Mã đơn</TableHead>
-                      <TableHead>Khách hàng</TableHead>
-                      <TableHead>Sản phẩm</TableHead>
-                      <TableHead className="text-right">Tổng tiền</TableHead>
-                      <TableHead>Thanh toán</TableHead>
-                      <TableHead>Tiến độ</TableHead>
-                      <TableHead>Vận chuyển</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
+                      <TableHead className="min-w-[100px] sticky left-[50px] bg-background z-10">Mã đơn</TableHead>
+                      <TableHead className="min-w-[200px]">Khách hàng</TableHead>
+                      <TableHead className="min-w-[200px]">Sản phẩm</TableHead>
+                      <TableHead className="text-right min-w-[100px]">Tổng tiền</TableHead>
+                      <TableHead className="min-w-[120px]">Phụ thu</TableHead>
+                      <TableHead className="min-w-[120px]">Thanh toán</TableHead>
+                      <TableHead className="min-w-[120px]">Tiến độ</TableHead>
+                      <TableHead className="min-w-[150px]">Vận chuyển</TableHead>
+                      <TableHead className="text-right min-w-[100px]">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedOrders.map((order) => (
+                      {paginatedOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell>
+                        <TableCell className="sticky left-0 bg-background">
                           <Checkbox
                             checked={selectedOrderIds.has(order.id)}
                             onCheckedChange={() => toggleSelectOrder(order.id)}
                           />
                         </TableCell>
                         
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium sticky left-[50px] bg-background">
                           <div className="space-y-1">
                             <div className="text-sm">#{order.order_number || order.id.slice(0, 8)}</div>
                             <div className="text-xs text-muted-foreground">
@@ -1066,7 +1213,9 @@ ${generateEmailContent(order)}
                             </a>
                             {order.customer_email && (
                               <a 
-                                href={`mailto:${order.customer_email}`} 
+                                href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(order.customer_email)}&su=${encodeURIComponent(`Cập nhật đơn hàng #${order.order_number}`)}&body=${encodeURIComponent(generateEmailContent(order))}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="text-xs text-primary hover:underline block"
                               >
                                 ✉️ {order.customer_email}
@@ -1131,7 +1280,7 @@ ${generateEmailContent(order)}
                           <div className="space-y-1 max-w-[250px]">
                             {order.items && order.items.slice(0, expandedOrderIds.has(order.id) ? order.items.length : 2).map((item: any, index: number) => (
                               <div key={index} className="text-xs">
-                                x{item.quantity} {item.name} {item.selectedVariant && `(${item.selectedVariant})`}
+                                x{item.quantity} {item.name}{item.selectedVariant && ` (${item.selectedVariant})`}
                               </div>
                             ))}
                             {order.items && order.items.length > 2 && (
@@ -1161,10 +1310,46 @@ ${generateEmailContent(order)}
                             <div className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</div>
                             {order.payment_proof_url && (
                               <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
-                                Bill <ExternalLink className="h-3 w-3" />
+                                Bill 1 <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                            {order.second_payment_proof_url && (
+                              <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline flex items-center justify-end gap-1">
+                                Bill 2 <ExternalLink className="h-3 w-3" />
                               </a>
                             )}
                           </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="h-7 text-xs w-20"
+                              value={surchargeInputs[order.id] ?? (order.surcharge || "")}
+                              onChange={(e) => setSurchargeInputs({
+                                ...surchargeInputs,
+                                [order.id]: e.target.value
+                              })}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                const value = parseInt(surchargeInputs[order.id] || "0") || 0;
+                                updateSurcharge(order.id, value);
+                              }}
+                            >
+                              <Save className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          {order.surcharge > 0 && (
+                            <div className="text-xs text-orange-600 mt-1">
+                              +{order.surcharge.toLocaleString('vi-VN')}đ
+                            </div>
+                          )}
                         </TableCell>
 
                         <TableCell>

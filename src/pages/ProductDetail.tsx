@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft } from "lucide-react";
+import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Share2 } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { OrderCountdown } from "@/components/OrderCountdown";
 import { useCart, Product } from "@/contexts/CartContext";
@@ -220,10 +220,12 @@ export default function ProductDetail() {
     
     addToCart(productToAdd, quantity, selectedVariant || product.name);
 
-    toast({
-      title: "Đã thêm vào giỏ hàng!",
-      description: `${product.name}${selectedVariant ? ` (${selectedVariant})` : ''} x${quantity}`,
-    });
+    toast({
+      title: "Đã thêm vào giỏ hàng!",
+      description: selectedVariant 
+        ? `${product.name} (${selectedVariant}) x${quantity}`
+        : `${product.name} x${quantity}`,
+    });
   };
 
   const incrementQuantity = () => {
@@ -235,9 +237,33 @@ export default function ProductDetail() {
         });
     }
 
-  const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
+  const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
-  // --- RENDER ---
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = `${product?.name} - ${currentPrice.toLocaleString('vi-VN')}đ`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product?.name,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (error) {
+        console.log('Share cancelled or failed');
+      }
+    } else {
+      // Fallback: copy link
+      navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Đã copy link",
+        description: "Link sản phẩm đã được copy vào clipboard",
+      });
+    }
+  };
+
+  // --- RENDER ---
 
   // (Xử lý loading)
   if (isLoading) {
@@ -321,20 +347,33 @@ export default function ProductDetail() {
 
           {/* Product Info */}
           <div className="space-y-6">
-            <div>
-              {/* (Đọc tag động) */}
-              {product.status && (
-                <Badge variant="secondary" className="mb-3">
-                  {product.status}
-                </Badge>
-              )}
-              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-              {product.master && (
-                <p className="text-muted-foreground text-sm">
-                  Master: {product.master}
-                </p>
-              )}
-            </div>
+            <div>
+              {/* (Đọc tag động) */}
+              {product.status && (
+                <Badge variant="secondary" className="mb-3">
+                  {product.status}
+                </Badge>
+              )}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+                  {product.master && (
+                    <p className="text-muted-foreground text-sm">
+                      Master: {product.master}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleShare}
+                  className="flex-shrink-0"
+                  title="Chia sẻ sản phẩm"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
             <div className="border-t pt-4">
               <p className={`text-4xl font-bold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
@@ -358,18 +397,28 @@ export default function ProductDetail() {
             )}
             
             
-            {product.description && product.description.length > 0 && (
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
-                <ul className="text-muted-foreground space-y-1 list-disc list-inside">
-                  {product.description.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {product.description && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
+                <ul className="text-muted-foreground space-y-1 list-disc list-inside">
+                  {(typeof product.description === 'string' 
+                    ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()) 
+                    : product.description
+                  ).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-            {/* (Logic 1 hoặc 2 phân loại) */}
+            {product.productionTime && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
+                <p className="text-muted-foreground">{product.productionTime}</p>
+              </div>
+            )}
+
+            {/* (Logic 1 hoặc 2 phân loại) */}
             <div className="border-t pt-4 space-y-4">
               {/* (Trường hợp 2+ phân loại - ID 4) */}
               {product.optionGroups && product.optionGroups.length > 0 && (
@@ -397,34 +446,51 @@ export default function ProductDetail() {
                 ))
               )}
 
-              {/* (Trường hợp 1 phân loại - ID 3) */}
-              {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
-                <div>
-                  <Label htmlFor="variant" className="text-base font-semibold">
-                    Phân loại *
-                  </Label>
-                  <Select 
-                    value={selectedVariant} 
-                    onValueChange={handleVariantChange}
-                  >
-                    <SelectTrigger id="variant" className="mt-2">
-                      <SelectValue placeholder="Chọn phân loại" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {product.variants.map((variant) => (
-                        <SelectItem 
-                            key={variant.name} 
-                            value={variant.name}
-                            disabled={variant.stock !== undefined && variant.stock <= 0}
-                        >
-                          {variant.name} 
-                            {variant.stock !== undefined && variant.stock <= 0 && " (Hết hàng)"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              {/* (Trường hợp 1 phân loại - ID 3) */}
+              {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
+                <div>
+                  <Label htmlFor="variant" className="text-base font-semibold">
+                    Phân loại *
+                  </Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                    {product.variants.map((variant) => {
+                      const variantImageIndex = product.variantImageMap?.[variant.name];
+                      const variantImage = variantImageIndex !== undefined ? product.images[variantImageIndex] : null;
+                      const isOutOfStock = variant.stock !== undefined && variant.stock <= 0;
+                      const isSelected = selectedVariant === variant.name;
+                      
+                      return (
+                        <div key={variant.name} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => !isOutOfStock && handleVariantChange(variant.name)}
+                            disabled={isOutOfStock}
+                            className={`
+                              relative flex flex-col items-center p-2 rounded-lg border-2 transition-all w-full
+                              ${isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}
+                              ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                            `}
+                          >
+                          {variantImage && (
+                              <img
+                                src={variantImage}
+                                alt={variant.name}
+                                className="w-16 h-16 object-cover rounded mb-1"
+                              />
+                            )}
+                            <span className={`text-sm text-center ${isSelected ? 'font-semibold' : ''}`}>
+                              {variant.name}
+                            </span>
+                            {isOutOfStock && (
+                              <span className="text-xs text-red-500">Hết hàng</span>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t pt-4">

@@ -13,6 +13,7 @@ import Policy from "./pages/Policy";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Checkout from "./pages/Checkout";
+import OrderSuccess from "./pages/OrderSuccess";
 import TrackOrder from "./pages/TrackOrder";
 import Admin from "./pages/Admin";
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/policy" element={<Policy />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/track-order" element={<TrackOrder />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
