@@ -22,7 +22,6 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
-// Hàm helper để xác định stock khả dụng chính xác
 const getVariantStock = (product: Product, variantName: string): number | undefined => {
     if (!product.variants || product.variants.length === 0) {
         return product.stock;
@@ -42,7 +41,7 @@ export default function ProductDetail() {
   
   const [quantity, setQuantity] = useState(1);
   
-  // --- STATE CHO CAROUSEL (SỐ TRANG) ---
+  // --- STATE CAROUSEL ---
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
@@ -54,7 +53,6 @@ export default function ProductDetail() {
   const [isExpired, setIsExpired] = useState(false);
   const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
 
-  // 1. useEffect tìm sản phẩm
   useEffect(() => {
     if (!isLoading && products.length > 0) {
       const foundProduct = products.find(p => p.id == Number(id)); 
@@ -62,7 +60,6 @@ export default function ProductDetail() {
     }
   }, [isLoading, products, id]);
 
-  // 2. useEffect cập nhật state ban đầu
   useEffect(() => {
     if (product) {
       setCurrentPrice(product.price);
@@ -92,7 +89,6 @@ export default function ProductDetail() {
     }
   }, [product]);
 
-  // 3. useEffect logic phân loại
   useEffect(() => {
     if (!product || !product.optionGroups || product.optionGroups.length === 0) return;
 
@@ -127,7 +123,6 @@ export default function ProductDetail() {
     }
   }, [selectedOptions, product, carouselApi]);
 
-  // 4. useEffect cuộn ảnh variant đơn
   useEffect(() => {
     if (carouselApi && product?.variantImageMap && selectedVariant) {
       const imageIndex = product.variantImageMap[selectedVariant];
@@ -137,21 +132,18 @@ export default function ProductDetail() {
     }
   }, [selectedVariant, carouselApi, product]);
 
-  // 5. useEffect xử lý SỐ TRANG (Indicator)
+  // Cập nhật bộ đếm trang
   useEffect(() => {
     if (!carouselApi) {
       return;
     }
-
     setCount(carouselApi.scrollSnapList().length);
     setCurrent(carouselApi.selectedScrollSnap() + 1);
-
     carouselApi.on("select", () => {
       setCurrent(carouselApi.selectedScrollSnap() + 1);
     });
   }, [carouselApi]);
   
-  // --- HANDLERS ---
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
     const variant = product?.variants.find(v => v.name === variantName);
@@ -257,21 +249,18 @@ export default function ProductDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           
-          {/* --- CAROUSEL ẢNH (SIZE NHỎ GỌN NHƯ TAOBAO) --- */}
+          {/* --- CAROUSEL ẢNH --- */}
           <div className="space-y-4">
             <div className="relative">
                 <Carousel className="w-full" setApi={setCarouselApi}>
                 <CarouselContent>
                     {product.images.map((image, index) => (
                     <CarouselItem key={index}>
-                        {/* - Bỏ aspect-square, dùng max-h-[400px] để giới hạn chiều cao (nhỏ hơn 500px cũ).
-                           - Giữ flex center để căn giữa ảnh.
-                        */}
+                        {/* Khung ảnh cao tối đa 400px (giống Taobao), căn giữa, ảnh giữ tỷ lệ gốc */}
                         <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
                             <img
                                 src={image}
                                 alt={`${product.name} - ${index + 1}`}
-                                // Giới hạn chiều cao 400px, ảnh tự co giãn theo tỷ lệ gốc
                                 className="w-auto h-auto max-w-full max-h-[400px] object-contain"
                             />
                         </div>
@@ -286,7 +275,7 @@ export default function ProductDetail() {
                 )}
                 </Carousel>
                 
-                {/* --- SỐ TRANG (1/5) --- */}
+                {/* --- SỐ TRANG --- */}
                 {count > 0 && (
                     <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full font-medium pointer-events-none z-10">
                         {current}/{count}
@@ -338,6 +327,7 @@ export default function ProductDetail() {
 
             {product.orderDeadline && <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />}
             
+            {/* --- MÔ TẢ & THÔNG TIN CHI TIẾT --- */}
             {product.description && (
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">Mô tả sản phẩm</h3>
@@ -349,7 +339,25 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* --- THỜI GIAN SẢN XUẤT (Luôn hiện) --- */}
+            {/* Hiển thị Size & Includes nếu có */}
+            {(product.size || product.includes) && (
+              <div className="border-t pt-4 space-y-2">
+                {product.size && (
+                  <div className="flex items-baseline">
+                    <span className="font-semibold text-sm uppercase text-muted-foreground min-w-[80px]">Kích thước:</span>
+                    <span className="text-foreground/90 text-sm md:text-base">{product.size}</span>
+                  </div>
+                )}
+                {product.includes && (
+                  <div className="flex items-baseline">
+                    <span className="font-semibold text-sm uppercase text-muted-foreground min-w-[80px]">Bao gồm:</span>
+                    <span className="text-foreground/90 text-sm md:text-base">{product.includes}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- THỜI GIAN SẢN XUẤT --- */}
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">Thời gian sản xuất</h3>
               <p className="text-foreground/90 text-sm md:text-base">
