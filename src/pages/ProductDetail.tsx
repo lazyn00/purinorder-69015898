@@ -256,7 +256,7 @@ export default function ProductDetail() {
                   </p>
                   {isExpired 
                     ? <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded">HẾT HẠN</span>
-                    : <span className="text-[10px] text-muted-foreground">*{product.feesIncluded ? 'Full phí' : 'Chưa full phí'}</span>
+                    : <span className="text-[11px] text-muted-foreground">*{product.feesIncluded ? 'Full phí' : 'Chưa full phí'}</span>
                   }
               </div>
               {product.orderDeadline && <div className="mt-2"><OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} /></div>}
@@ -265,18 +265,17 @@ export default function ProductDetail() {
             {/* --- KHUNG THÔNG TIN CỐ ĐỊNH (Always Show - Fill "Không" if empty) --- */}
             <div className="border rounded-lg divide-y divide-border/60">
               
-              {/* 1. MÔ TẢ SẢN PHẨM */}
-              <div className="p-3 md:p-4">
-                <h3 className="font-medium text-sm text-muted-foreground mb-2">Mô tả sản phẩm</h3>
-                {product.description ? (
-                  <ul className="text-foreground/90 space-y-1 text-sm leading-relaxed">
-                    {(typeof product.description === 'string' ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()) : product.description).map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-foreground/90">Không</p>
-                )}
+              {/* 1. MÔ TẢ SẢN PHẨM - Đã chỉnh lại layout ngang hàng */}
+              <div className="p-3 md:p-4 flex items-baseline">
+                <span className="font-medium text-sm text-muted-foreground w-32 flex-shrink-0">Mô tả</span>
+                <span className="text-sm text-foreground/90">
+                  {product.description ? (
+                    typeof product.description === 'string' 
+                      // Thay thế các ký tự xuống dòng (\n) thành dấu cách để văn bản liền mạch
+                      ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()).join(' ')
+                      : product.description.join(' ') 
+                  ) : "Không"}
+                </span>
               </div>
 
               {/* 2. KÍCH THƯỚC */}
