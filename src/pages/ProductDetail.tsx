@@ -25,23 +25,14 @@ import {
 // Hàm helper để xác định stock khả dụng chính xác
 const getVariantStock = (product: Product, variantName: string): number | undefined => {
     if (!product.variants || product.variants.length === 0) {
-        // Không có variants, dùng stock chung
         return product.stock;
     }
-
     const variant = product.variants.find(v => v.name === variantName);
-    
-    if (variant) {
-        // Ưu tiên stock riêng của variant
-        if (variant.stock !== undefined) {
-            return variant.stock;
-        }
+    if (variant && variant.stock !== undefined) {
+        return variant.stock;
     }
-    
-    // Nếu variant không có stock riêng, dùng stock chung
     return product.stock;
 };
-
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -50,17 +41,20 @@ export default function ProductDetail() {
   const { toast } = useToast();
   
   const [quantity, setQuantity] = useState(1);
+  
+  // --- STATE CHO CAROUSEL (SỐ TRANG) ---
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
 
   const [product, setProduct] = useState<Product | undefined>(undefined);
-  
   const [currentPrice, setCurrentPrice] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<string>(""); 
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
   const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
 
-  // 1. useEffect để tìm sản phẩm khi 'products' tải xong
+  // 1. useEffect tìm sản phẩm
   useEffect(() => {
     if (!isLoading && products.length > 0) {
       const foundProduct = products.find(p => p.id == Number(id)); 
@@ -68,12 +62,10 @@ export default function ProductDetail() {
     }
   }, [isLoading, products, id]);
 
-  // 2. useEffect để cập nhật state ban đầu khi 'product' được tìm thấy
+  // 2. useEffect cập nhật state ban đầu
   useEffect(() => {
     if (product) {
       setCurrentPrice(product.price);
-      
-      // Cập nhật trạng thái hết hạn order
       if (product.orderDeadline) {
         const deadline = new Date(product.orderDeadline);
         if (deadline < new Date()) setIsExpired(true);
@@ -81,38 +73,32 @@ export default function ProductDetail() {
          setIsExpired(false);
       }
       
-      // Khởi tạo selectedOptions cho 2+ phân loại
       if (product.optionGroups && product.optionGroups.length > 0) {
         const initialOptions = product.optionGroups.reduce((acc, group) => {
             acc[group.name] = "";
             return acc;
         }, {} as { [key: string]: string });
         setSelectedOptions(initialOptions);
-        setAvailableStock(undefined); // Reset stock vì cần chọn đủ options
-
+        setAvailableStock(undefined);
       } 
-      // Trường hợp 1 variant (hoặc 0 variant)
       else if (product.variants && product.variants.length === 1) {
           const firstVariant = product.variants[0];
           setSelectedVariant(firstVariant.name);
           setCurrentPrice(firstVariant.price);
-          // Set stock cho variant duy nhất
           setAvailableStock(getVariantStock(product, firstVariant.name));
       } else {
-        // Không có variants (>1 variant được chọn qua dropdown), dùng stock chung
         setAvailableStock(product.stock);
       }
     }
   }, [product]);
 
-  // 3. useEffect xử lý 2+ phân loại (optionGroups) - TÌM VARIANT & CẬP NHẬT STOCK
+  // 3. useEffect logic phân loại
   useEffect(() => {
     if (!product || !product.optionGroups || product.optionGroups.length === 0) return;
 
     const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
 
     if (allOptionsSelected) {
-        // Xây dựng tên variant từ options đã chọn (ví dụ: Màu-Đỏ)
         const constructedName = product.optionGroups
             .map(group => selectedOptions[group.name])
             .join("-");
@@ -122,9 +108,7 @@ export default function ProductDetail() {
         if (variant) {
           setCurrentPrice(variant.price);
           setSelectedVariant(variant.name);
-
-            // CẬP NHẬT AVAILABLE STOCK KHI CHỌN ĐỦ OPTIONS
-            setAvailableStock(getVariantStock(product, variant.name));
+          setAvailableStock(getVariantStock(product, variant.name));
           
           if (carouselApi && product.variantImageMap) {
             const imageIndex = product.variantImageMap[variant.name];
@@ -135,16 +119,15 @@ export default function ProductDetail() {
         } else {
           setSelectedVariant("");
           setCurrentPrice(product.price);
-          setAvailableStock(undefined); // Không tìm thấy variant, reset stock
-          console.warn("Tổ hợp không hợp lệ:", constructedName);
+          setAvailableStock(undefined);
         }
     } else {
-        setSelectedVariant(""); // Chưa chọn đủ, không có variant nào được chọn
+        setSelectedVariant("");
         setAvailableStock(undefined);
     }
   }, [selectedOptions, product, carouselApi]);
 
-  // 4. useEffect xử lý cuộn ảnh cho 1 phân loại đơn giản
+  // 4. useEffect cuộn ảnh variant đơn
   useEffect(() => {
     if (carouselApi && product?.variantImageMap && selectedVariant) {
       const imageIndex = product.variantImageMap[selectedVariant];
@@ -153,23 +136,31 @@ export default function ProductDetail() {
       }
     }
   }, [selectedVariant, carouselApi, product]);
-  
-  // --- HÀM XỬ LÝ ---
 
-  // Xử lý khi chọn variant đơn (1 phân loại) - CẬP NHẬT STOCK
+  // 5. useEffect xử lý SỐ TRANG (Indicator)
+  useEffect(() => {
+    if (!carouselApi) {
+      return;
+    }
+
+    setCount(carouselApi.scrollSnapList().length);
+    setCurrent(carouselApi.selectedScrollSnap() + 1);
+
+    carouselApi.on("select", () => {
+      setCurrent(carouselApi.selectedScrollSnap() + 1);
+    });
+  }, [carouselApi]);
+  
+  // --- HANDLERS ---
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
     const variant = product?.variants.find(v => v.name === variantName);
     if (variant) {
       setCurrentPrice(variant.price);
     }
-
-    // CẬP NHẬT AVAILABLE STOCK KHI CHỌN VARIANT
     if (product) {
         setAvailableStock(getVariantStock(product, variantName));
     }
-    
-    // Logic cuộn ảnh (giữ nguyên)
     if (carouselApi && product?.variantImageMap) {
       const imageIndex = product.variantImageMap[variantName];
       if (imageIndex !== undefined) {
@@ -187,20 +178,18 @@ export default function ProductDetail() {
   
   const handleAddToCart = () => {
     if (!product) return; 
-
     const hasVariants = product.variants && product.variants.length > 0;
     const isReadyToAdd = !hasVariants || (hasVariants && selectedVariant);
 
     if (!isReadyToAdd) {
       toast({
-        title: "Vui lòng chọn đủ phân loại",
-        description: "Bạn cần chọn tất cả các phân loại sản phẩm",
+        title: "Vui lòng chọn phân loại",
+        description: "Bạn cần chọn phân loại sản phẩm trước khi thêm vào giỏ",
         variant: "destructive"
       });
       return;
     }
     
-    // Kiểm tra stock chỉ khi đã chọn variant (hoặc không có variant) và stock được xác định
     if (availableStock !== undefined && quantity > availableStock) {
       toast({
         title: "Không đủ hàng",
@@ -210,16 +199,13 @@ export default function ProductDetail() {
       return;
     }
 
-    const correctPrice = currentPrice;
-
     const productToAdd = {
       ...product,
-      price: correctPrice,
-      priceDisplay: `${correctPrice.toLocaleString('vi-VN')}đ`
+      price: currentPrice,
+      priceDisplay: `${currentPrice.toLocaleString('vi-VN')}đ`
     };
     
     addToCart(productToAdd, quantity, selectedVariant || product.name);
-
     toast({
       title: "Đã thêm vào giỏ hàng!",
       description: selectedVariant 
@@ -251,357 +237,235 @@ export default function ProductDetail() {
           url: shareUrl,
         });
       } catch (error) {
-        console.log('Share cancelled or failed');
+        console.log('Share cancelled');
       }
     } else {
-      // Fallback: copy link
       navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: "Đã copy link",
-        description: "Link sản phẩm đã được copy vào clipboard",
-      });
+      toast({ title: "Đã copy link" });
     }
   };
 
-  // --- RENDER ---
+  if (isLoading) return <Layout><div className="container mx-auto py-12 flex justify-center h-[50vh]"><LoadingPudding /></div></Layout>;
+  if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-2xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
 
-  // (Xử lý loading)
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 flex justify-center items-center h-[50vh]">
-          <LoadingPudding />
-        </div>
-      </Layout>
-    );
-  }
-
-  // (Xử lý không tìm thấy)
-  if (!product) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 text-center">
-          <h1 className="text-2xl font-bold mb-4">Không tìm thấy sản phẩm</h1>
-          <Button onClick={() => navigate("/products")}>Quay lại</Button>
-        </div>
-      </Layout>
-    );
-  }
-
-  // (Render khi đã có 'product')
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12">
-        
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6 gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Quay lại
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 gap-2 pl-0 hover:bg-transparent hover:text-primary">
+          <ArrowLeft className="h-4 w-4" /> Quay lại
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Image Carousel (Giữ định dạng ảnh gốc, giới hạn 500px) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          
+          {/* --- CAROUSEL ẢNH (SIZE NHỎ GỌN NHƯ TAOBAO) --- */}
           <div className="space-y-4">
-            <Carousel className="w-full" setApi={setCarouselApi}>
-              <CarouselContent>
-                {product.images.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20">
-                      <img
-                        src={image}
-                        alt={`${product.name} - ${index + 1}`}
-                        className="w-auto h-auto max-w-full max-h-[500px] object-contain"
-                      />
+            <div className="relative">
+                <Carousel className="w-full" setApi={setCarouselApi}>
+                <CarouselContent>
+                    {product.images.map((image, index) => (
+                    <CarouselItem key={index}>
+                        {/* - Bỏ aspect-square, dùng max-h-[400px] để giới hạn chiều cao (nhỏ hơn 500px cũ).
+                           - Giữ flex center để căn giữa ảnh.
+                        */}
+                        <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
+                            <img
+                                src={image}
+                                alt={`${product.name} - ${index + 1}`}
+                                // Giới hạn chiều cao 400px, ảnh tự co giãn theo tỷ lệ gốc
+                                className="w-auto h-auto max-w-full max-h-[400px] object-contain"
+                            />
+                        </div>
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                {product.images.length > 1 && (
+                    <>
+                    <CarouselPrevious className="left-4 opacity-70 hover:opacity-100" />
+                    <CarouselNext className="right-4 opacity-70 hover:opacity-100" />
+                    </>
+                )}
+                </Carousel>
+                
+                {/* --- SỐ TRANG (1/5) --- */}
+                {count > 0 && (
+                    <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full font-medium pointer-events-none z-10">
+                        {current}/{count}
                     </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {product.images.length > 1 && (
-                <>
-                  <CarouselPrevious className="left-4" />
-                  <CarouselNext className="right-4" />
-                </>
-              )}
-            </Carousel>
+                )}
+            </div>
+
+            {/* Thumbnail Strip */}
             {product.images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {product.images.map((image, index) => (
                   <div 
                     key={index} 
-                    className="flex-shrink-0 cursor-pointer"
+                    className={`
+                        flex-shrink-0 cursor-pointer rounded-md overflow-hidden border-2 transition-all w-16 h-16 box-content
+                        ${index + 1 === current ? 'border-primary opacity-100' : 'border-transparent opacity-60 hover:opacity-100'}
+                    `}
                     onClick={() => carouselApi?.scrollTo(index)}
                   >
-                    <img
-                      src={image}
-                      alt={`Thumb ${index + 1}`}
-                      className="w-20 h-20 object-cover rounded border hover:border-primary transition-colors"
-                    />
+                    <img src={image} className="w-full h-full object-cover" alt="thumb" />
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Product Info */}
+          {/* --- PRODUCT INFO --- */}
           <div className="space-y-6">
             <div>
-              {/* (Đọc tag động) */}
-              {product.status && (
-                <Badge variant="secondary" className="mb-3">
-                  {product.status}
-                </Badge>
-              )}
+              {product.status && <Badge variant="secondary" className="mb-2">{product.status}</Badge>}
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-                  {product.master && (
-                    <p className="text-muted-foreground text-sm">
-                      Master: {product.master}
-                    </p>
-                  )}
+                  <h1 className="text-2xl md:text-3xl font-bold mb-1">{product.name}</h1>
+                  {product.master && <p className="text-muted-foreground text-sm">Master: {product.master}</p>}
                 </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleShare}
-                  className="flex-shrink-0"
-                  title="Chia sẻ sản phẩm"
-                >
-                  <Share2 className="h-4 w-4" />
-                </Button>
+                <Button variant="outline" size="icon" onClick={handleShare}><Share2 className="h-4 w-4" /></Button>
               </div>
             </div>
 
             <div className="border-t pt-4">
-              <p className={`text-4xl font-bold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
+              <p className={`text-3xl font-bold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
                 {currentPrice.toLocaleString('vi-VN')}đ
               </p>
-              {isExpired ? (
-                    <p className="text-lg font-bold text-red-500 mt-2">ĐÃ HẾT HẠN ORDER</p>
-                ) : (
-                    <p className="text-sm text-muted-foreground mt-2">
-                  *{product.feesIncluded ? 'Đã full phí dự kiến' : 'Chưa full phí'}
-                </p>
-                )}
+              {isExpired 
+                ? <p className="text-base font-bold text-red-500 mt-1">ĐÃ HẾT HẠN ORDER</p>
+                : <p className="text-xs text-muted-foreground mt-1">*{product.feesIncluded ? 'Đã full phí dự kiến' : 'Chưa full phí'}</p>
+              }
             </div>
 
-            {/* Countdown Timer */}
-            {product.orderDeadline && (
-              <OrderCountdown 
-                deadline={product.orderDeadline} 
-                onExpired={() => setIsExpired(true)} 
-              />
-            )}
+            {product.orderDeadline && <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />}
             
-            {/* --- MÔ TẢ SẢN PHẨM --- */}
             {product.description && (
               <div className="border-t pt-4">
-                <h3 className="font-semibold mb-2">Mô tả sản phẩm</h3>
-                <ul className="text-muted-foreground space-y-1 list-disc list-inside">
-                  {(typeof product.description === 'string' 
-                    ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()) 
-                    : product.description
-                  ).map((item, index) => (
+                <h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">Mô tả sản phẩm</h3>
+                <ul className="text-foreground/90 space-y-1 list-disc list-inside text-sm md:text-base">
+                  {(typeof product.description === 'string' ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()) : product.description).map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* --- THỜI GIAN SẢN XUẤT (Nằm sau Mô tả - Luôn hiển thị) --- */}
+            {/* --- THỜI GIAN SẢN XUẤT (Luôn hiện) --- */}
             <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
-              <p className="text-muted-foreground">
-                {product.productionTime ? product.productionTime : "Đang cập nhật (Dữ liệu trống)"}
+              <h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">Thời gian sản xuất</h3>
+              <p className="text-foreground/90 text-sm md:text-base">
+                {product.productionTime ? product.productionTime : "Đang cập nhật"}
               </p>
             </div>
 
-            {/* (Logic 1 hoặc 2 phân loại) */}
+            {/* --- PHÂN LOẠI (Dropdown có ảnh) --- */}
             <div className="border-t pt-4 space-y-4">
-              {/* (Trường hợp 2+ phân loại - ID 4) */}
               {product.optionGroups && product.optionGroups.length > 0 && (
                 product.optionGroups.map((group) => (
                   <div key={group.name}>
-                    <Label htmlFor={`variant-${group.name}`} className="text-base font-semibold">
-                      {group.name} *
-                    </Label>
-                    <Select 
-                      value={selectedOptions[group.name]} 
-                      onValueChange={(value) => handleOptionChange(group.name, value)}
-                    >
-                      <SelectTrigger id={`variant-${group.name}`} className="mt-2">
-                        <SelectValue placeholder={`Chọn ${group.name.toLowerCase()}`} />
-                      </SelectTrigger>
+                    <Label className="text-base font-semibold block mb-2">{group.name} *</Label>
+                    <Select value={selectedOptions[group.name]} onValueChange={(value) => handleOptionChange(group.name, value)}>
+                      <SelectTrigger className="w-full h-12 text-base"><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
                       <SelectContent>
-                        {group.options.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
+                        {group.options.map((option) => <SelectItem key={option} value={option} className="py-3">{option}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                 ))
               )}
 
-              {/* (Trường hợp 1 phân loại - ID 3 - Dùng Dropdown có ảnh) */}
               {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
                 <div>
-                  <Label htmlFor="variant" className="text-base font-semibold">
-                    Phân loại *
-                  </Label>
-                  
-                  <div className="mt-2">
-                    <Select 
-                      value={selectedVariant} 
-                      onValueChange={(value) => handleVariantChange(value)}
-                    >
-                      <SelectTrigger className="w-full h-12 text-base">
-                        <SelectValue placeholder="Chọn phân loại sản phẩm" />
-                      </SelectTrigger>
-                      
-                      <SelectContent>
+                  <Label className="text-base font-semibold block mb-3">Phân loại *</Label>
+                  <Select value={selectedVariant} onValueChange={(value) => handleVariantChange(value)}>
+                    <SelectTrigger className="w-full h-12 text-base">
+                        <SelectValue placeholder="Chọn phân loại" />
+                    </SelectTrigger>
+                    <SelectContent>
                         {product.variants.map((variant) => {
                            const variantImageIndex = product.variantImageMap?.[variant.name];
                            const variantImage = variantImageIndex !== undefined ? product.images[variantImageIndex] : null;
                            const isOutOfStock = variant.stock !== undefined && variant.stock <= 0;
-                          
-                          return (
-                            <SelectItem 
-                              key={variant.name} 
-                              value={variant.name}
-                              disabled={isOutOfStock}
-                              className="cursor-pointer py-3"
-                            >
-                              <div className="flex items-center gap-3">
-                                {/* Hiển thị ảnh nhỏ trong dropdown nếu có */}
-                                {variantImage && (
-                                  <img 
-                                    src={variantImage} 
-                                    alt={variant.name} 
-                                    className="w-10 h-10 rounded object-cover border border-slate-200"
-                                  />
-                                )}
-                                
-                                <span className="font-medium">{variant.name}</span>
-                                
-                                {isOutOfStock && (
-                                  <span className="ml-2 text-xs text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded">
-                                    Hết hàng
-                                  </span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          );
+                           return (
+                               <SelectItem 
+                                 key={variant.name} 
+                                 value={variant.name} 
+                                 disabled={isOutOfStock}
+                                 className="cursor-pointer py-3"
+                               >
+                                   <div className="flex items-center gap-3">
+                                       {variantImage && (
+                                           <img src={variantImage} alt="" className="w-10 h-10 rounded object-cover border border-slate-200" />
+                                       )}
+                                       <span className="font-medium">{variant.name}</span>
+                                       {isOutOfStock && <span className="ml-2 text-[10px] text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded">HẾT HÀNG</span>}
+                                   </div>
+                               </SelectItem>
+                           )
                         })}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
 
             <div className="border-t pt-4">
-              <Label htmlFor="quantity" className="text-base font-semibold">
-                Số lượng
-              </Label>
-              <div className="flex items-center gap-4 mt-2">
-                <Button variant="outline" size="icon" onClick={decrementQuantity} disabled={quantity <= 1 || availableStock === 0}>
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  max={availableStock}
-                  value={quantity}
-                  onChange={(e) => {
-                    const val = Math.max(1, parseInt(e.target.value) || 1);
-                    setQuantity(availableStock !== undefined ? Math.min(val, availableStock) : val);
-                  }}
-                  className="w-20 text-center"
-                />
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={incrementQuantity}
-                  disabled={availableStock !== undefined && quantity >= availableStock}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+              <Label className="text-base font-semibold block mb-2">Số lượng</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center border rounded-md">
+                    <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1 || availableStock === 0} className="h-10 w-10 rounded-none"><Minus className="h-4 w-4" /></Button>
+                    <Input 
+                        type="number" 
+                        min="1" 
+                        max={availableStock} 
+                        value={quantity} 
+                        onChange={(e) => {
+                            const val = Math.max(1, parseInt(e.target.value) || 1);
+                            setQuantity(availableStock !== undefined ? Math.min(val, availableStock) : val);
+                        }}
+                        className="w-14 text-center border-0 h-10 focus-visible:ring-0 rounded-none px-0" 
+                    />
+                    <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={availableStock !== undefined && quantity >= availableStock} className="h-10 w-10 rounded-none"><Plus className="h-4 w-4" /></Button>
+                </div>
+                {availableStock !== undefined && (
+                    <span className="text-sm text-muted-foreground">
+                        {availableStock > 0 ? `Còn ${availableStock} sản phẩm` : <span className="text-red-500 font-medium">Hết hàng</span>}
+                    </span>
+                )}
               </div>
-              {availableStock !== undefined && (
-                <p className="text-sm mt-2 font-medium">
-                  {availableStock > 0 ? (
-                        <span className="text-green-600">Còn {availableStock} sản phẩm</span>
-                    ) : (
-                        <span className="text-red-600">Đã hết hàng</span>
-                    )}
-                </p>
-              )}
-              {availableStock === undefined && product.variants.length > 0 && (
-                <p className="text-sm text-muted-foreground mt-2">Vui lòng chọn phân loại để xem số lượng tồn kho.</p>
-              )}
             </div>
 
-            <div className="border-t pt-4 space-y-3">
-              {/* Hiển thị form đăng ký thông báo nếu hết hàng hoặc hết hạn */}
+            <div className="border-t pt-6 space-y-3">
               {(isExpired || availableStock === 0) ? (
                 <>
-                  <Button 
-                    onClick={handleAddToCart}
-                    className="w-full bg-gradient-primary gap-2"
-                    size="lg"
-                    disabled={true}
-                  >
+                  <Button disabled className="w-full bg-slate-200 text-slate-500 gap-2" size="lg">
                     {isExpired ? <CalendarOff className="h-5 w-4" /> : <ShoppingCart className="h-5 w-5" />}
                     {isExpired ? "Đã hết hạn order" : "Đã hết hàng"}
                   </Button>
-                  <ProductNotificationForm 
-                    productId={product.id} 
-                    productName={product.name}
-                  />
+                  <ProductNotificationForm productId={product.id} productName={product.name} />
                 </>
               ) : (
                 <Button 
-                  onClick={handleAddToCart}
-                  className="w-full bg-gradient-primary gap-2"
+                  onClick={handleAddToCart} 
+                  className="w-full bg-primary hover:bg-primary/90 text-white gap-2 shadow-lg shadow-primary/20" 
                   size="lg"
                   disabled={product.variants.length > 0 && !selectedVariant}
                 >
-                  <ShoppingCart className="h-5 w-5" />
-                  Thêm vào giỏ hàng
+                  <ShoppingCart className="h-5 w-5" /> Thêm vào giỏ hàng
                 </Button>
               )}
-              <Button 
-                onClick={() => navigate("/products")}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                Tiếp tục mua sắm
-              </Button>
+              <Button onClick={() => navigate("/products")} variant="outline" className="w-full" size="lg">Tiếp tục mua sắm</Button>
             </div>
           </div>
         </div>
 
-        {/* Related Products Section */}
+        {/* RELATED PRODUCTS */}
         {product.master && products.filter(p => p.master === product.master && p.id !== product.id).length > 0 && (
           <div className="border-t pt-12 mt-12">
-            <h2 className="text-2xl font-bold mb-6">Sản phẩm liên quan</h2>
-            <div className="relative">
-              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-                {products
-                  .filter(p => p.master === product.master && p.id !== product.id)
-                  .map((relatedProduct) => (
-                    <div key={relatedProduct.id} className="flex-shrink-0 w-[200px] snap-start">
-                      <ProductCard product={relatedProduct} />
-                    </div>
-                  ))}
-              </div>
+            <h2 className="text-xl md:text-2xl font-bold mb-6">Sản phẩm liên quan</h2>
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+                {products.filter(p => p.master === product.master && p.id !== product.id).map((related) => (
+                    <div key={related.id} className="flex-shrink-0 w-[180px] md:w-[220px] snap-start"><ProductCard product={related} /></div>
+                ))}
             </div>
           </div>
         )}
