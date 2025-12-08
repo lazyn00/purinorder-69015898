@@ -411,7 +411,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* --- THỜI GIAN SẢN XUẤT (Nằm sau Mô tả - Luôn hiển thị) --- */}
+            {/* --- THỜI GIAN SẢN XUẤT --- */}
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
               <p className="text-muted-foreground">
@@ -447,14 +447,13 @@ export default function ProductDetail() {
                 ))
               )}
 
-              {/* (Trường hợp 1 phân loại - ID 3 - GRID LAYOUT ĐỒNG ĐỀU & ẢNH GIỮA) */}
+              {/* (Trường hợp 1 phân loại - ID 3 - FINAL FIX CENTER) */}
               {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
                 <div>
                   <Label htmlFor="variant" className="text-base font-semibold">
                     Phân loại *
                   </Label>
                   
-                  {/* Grid: Tự động chia cột, auto-rows-fr giúp các hàng có chiều cao bằng nhau nếu cần */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
                     {product.variants.map((variant) => {
                       const variantImageIndex = product.variantImageMap?.[variant.name];
@@ -463,13 +462,13 @@ export default function ProductDetail() {
                       const isSelected = selectedVariant === variant.name;
                       
                       return (
-                        <div key={variant.name} className="h-full"> {/* h-full ở wrapper */}
+                        <div key={variant.name} className="h-full">
                           <button
                             type="button"
                             onClick={() => !isOutOfStock && handleVariantChange(variant.name)}
                             disabled={isOutOfStock}
                             className={`
-                              group relative w-full h-full flex flex-col items-center justify-center
+                              group relative w-full h-full flex flex-col items-center justify-center gap-2
                               p-3 rounded-xl border-2 transition-all duration-200
                               min-h-[80px]
                               ${isSelected 
@@ -479,13 +478,13 @@ export default function ProductDetail() {
                               ${isOutOfStock ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}
                             `}
                           >
-                            {/* PHẦN HIỂN THỊ ẢNH (Nếu có) - Đã thêm 'flex justify-center w-full' */}
+                            {/* PHẦN HIỂN THỊ ẢNH - Đã sửa: mx-auto để căn giữa tuyệt đối */}
                             {variantImage ? (
-                              <div className="mb-2 p-1 bg-white rounded-md border border-slate-100 shadow-sm shrink-0 flex justify-center w-full">
+                              <div className="p-1 bg-white rounded-md border border-slate-100 shadow-sm shrink-0 mx-auto">
                                  <img
                                   src={variantImage}
                                   alt={variant.name}
-                                  className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded"
+                                  className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded block"
                                 />
                               </div>
                             ) : null}
@@ -499,7 +498,6 @@ export default function ProductDetail() {
                                 {variant.name}
                               </span>
                               
-                              {/* Báo hết hàng */}
                               {isOutOfStock && (
                                 <span className="mt-1 text-[10px] font-bold uppercase tracking-wide text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
                                   Hết hàng
@@ -507,7 +505,7 @@ export default function ProductDetail() {
                               )}
                             </div>
 
-                            {/* Icon check nhỏ ở góc */}
+                            {/* Icon check */}
                             {isSelected && (
                               <div className="absolute top-2 right-2 text-primary">
                                 <div className="w-2 h-2 rounded-full bg-primary"></div>
