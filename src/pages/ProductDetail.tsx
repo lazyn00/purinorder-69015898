@@ -303,17 +303,22 @@ export default function ProductDetail() {
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Image Carousel (Giữ định dạng ảnh gốc, giới hạn 500px) */}
+          {/* Image Carousel (Đã sửa: Ảnh ngang/dọc tuỳ ý + Căn giữa tuyệt đối) */}
           <div className="space-y-4">
             <Carousel className="w-full" setApi={setCarouselApi}>
               <CarouselContent>
                 {product.images.map((image, index) => (
                   <CarouselItem key={index}>
-                    <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20">
+                    {/*
+                        - h-[500px]: Tạo một khung chiều cao cố định.
+                        - flex items-center justify-center: Căn giữa ảnh bên trong khung này.
+                    */}
+                    <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 h-[500px] w-full">
                       <img
                         src={image}
                         alt={`${product.name} - ${index + 1}`}
-                        className="w-auto h-auto max-w-full max-h-[500px] object-contain"
+                        // object-contain: Giữ tỷ lệ ảnh gốc, không bị méo, nằm gọn trong khung
+                        className="w-auto h-auto max-w-full max-h-full object-contain"
                       />
                     </div>
                   </CarouselItem>
@@ -411,7 +416,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* --- THỜI GIAN SẢN XUẤT (Nằm sau Mô tả - Luôn hiển thị) --- */}
+            {/* --- THỜI GIAN SẢN XUẤT (Sau mô tả - Luôn hiện) --- */}
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-2">Thời gian sản xuất</h3>
               <p className="text-muted-foreground">
@@ -447,7 +452,7 @@ export default function ProductDetail() {
                 ))
               )}
 
-              {/* (Trường hợp 1 phân loại - ID 3 - Dùng Dropdown có ảnh) */}
+              {/* (Trường hợp 1 phân loại - ID 3 - Dùng Dropdown) */}
               {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
                 <div>
                   <Label htmlFor="variant" className="text-base font-semibold">
@@ -477,7 +482,7 @@ export default function ProductDetail() {
                               className="cursor-pointer py-3"
                             >
                               <div className="flex items-center gap-3">
-                                {/* Hiển thị ảnh nhỏ trong dropdown nếu có */}
+                                {/* Thumbnail trong Dropdown */}
                                 {variantImage && (
                                   <img 
                                     src={variantImage} 
