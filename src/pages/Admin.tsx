@@ -23,6 +23,8 @@ const ADMIN_PASSWORD = "Nhuy7890";
 
 const PAYMENT_STATUSES = [
   "Chưa thanh toán",
+  "Đang xác nhận thanh toán",
+  "Đang xác nhận cọc",
   "Đã thanh toán",
   "Đã cọc",
   "Đã hoàn cọc"
@@ -43,6 +45,10 @@ const getPaymentStatusColor = (status: string) => {
   switch (status) {
     case "Chưa thanh toán":
       return "bg-red-100 text-red-800 border-red-200";
+    case "Đang xác nhận thanh toán": 
+      return "bg-blue-50 text-blue-700 border-blue-200"; // MỚI
+    case "Đang xác nhận cọc": 
+      return "bg-blue-50 text-blue-700 border-blue-200"; // MỚI
     case "Đã thanh toán":
       return "bg-green-100 text-green-800 border-green-200";
     case "Đã cọc":
