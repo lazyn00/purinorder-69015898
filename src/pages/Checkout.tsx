@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useCart, CartItem } from "@/contexts/CartContext";
+import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload } from "lucide-react";
+import { Loader2, ArrowLeft, Upload, Facebook } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { CartItem } from "@/contexts/CartContext"; // Import CartItem
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
@@ -19,6 +20,7 @@ const PAYMENT_INFO = {
   zalopay: "0931146787"
 };
 
+// === HÀM HELPER: LẤY ẢNH THEO VARIANT ===
 const getVariantImage = (item: CartItem) => {
   if (item.selectedVariant && item.variantImageMap) {
     const imageIndex = item.variantImageMap[item.selectedVariant];
@@ -26,8 +28,9 @@ const getVariantImage = (item: CartItem) => {
       return item.images[imageIndex];
     }
   }
-  return item.images[0]; 
+  return item.images[0]; // Trả về ảnh đầu tiên nếu không tìm thấy
 };
+// === KẾT THÚC HÀM HELPER ===
 
 export default function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
@@ -52,10 +55,12 @@ export default function Checkout() {
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
+  // Auto-fill delivery info from database when contact phone changes
   useEffect(() => {
     const fetchDeliveryInfo = async () => {
       if (contactInfo.phone.length >= 10) {
         try {
+          // First try to fetch from database
           const { data, error } = await supabase
             .from('orders')
             .select('delivery_name, delivery_phone, delivery_address')
@@ -95,29 +100,53 @@ export default function Checkout() {
     e.preventDefault();
     
     if (!contactInfo.fb || !contactInfo.email || !contactInfo.phone) {
-      toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ tất cả thông tin liên hệ.", variant: "destructive" });
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng điền đầy đủ tất cả thông tin liên hệ.",
+        variant: "destructive"
+      });
       return;
     }
     
+    // Nếu số điện thoại nhận hàng khác với số liên lạc thì phải điền
     if (deliveryInfo.phone && deliveryInfo.phone !== contactInfo.phone) {
+      // Có điền số khác -> kiểm tra đầy đủ thông tin nhận hàng
       if (!deliveryInfo.name || !deliveryInfo.address) {
-        toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ thông tin nhận hàng.", variant: "destructive" });
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng điền đầy đủ thông tin nhận hàng.",
+          variant: "destructive"
+        });
         return;
       }
     } else if (!deliveryInfo.phone) {
+      // Không điền số nhận hàng -> dùng số liên lạc, nhưng vẫn cần tên và địa chỉ
       if (!deliveryInfo.name || !deliveryInfo.address) {
-        toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ thông tin nhận hàng.", variant: "destructive" });
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng điền đầy đủ thông tin nhận hàng.",
+          variant: "destructive"
+        });
         return;
       }
     } else {
+      // deliveryInfo.phone === contactInfo.phone -> dùng chung, cần tên và địa chỉ
       if (!deliveryInfo.name || !deliveryInfo.address) {
-        toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ thông tin nhận hàng.", variant: "destructive" });
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng điền đầy đủ thông tin nhận hàng.",
+          variant: "destructive"
+        });
         return;
       }
     }
 
     if (!paymentProof) {
-      toast({ title: "Lỗi", description: "Vui lòng đăng bill chuyển khoản trước khi đặt hàng.", variant: "destructive" });
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng đăng bill chuyển khoản trước khi đặt hàng.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -135,7 +164,9 @@ export default function Checkout() {
           .from('payment-proofs')
           .upload(filePath, paymentProof);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          throw uploadError;
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('payment-proofs')
@@ -144,28 +175,26 @@ export default function Checkout() {
         paymentProofUrl = publicUrl;
       }
 
-      // --- LOGIC TRẠNG THÁI THANH TOÁN MỚI ---
-      // Nếu là cọc -> Đang xác nhận cọc
-      // Nếu là full -> Đang xác nhận thanh toán
-      const initialPaymentStatus = paymentType === 'deposit' 
-        ? 'Đang xác nhận cọc' 
-        : 'Đang xác nhận thanh toán';
-
+      // === TÁCH ĐỌN THEO MASTER (NHÓM ITEMS THEO MASTER) ===
       const masterGroups: { [key: string]: typeof cartItems } = {};
       
       cartItems.forEach(item => {
         const master = item.master || "no_master";
-        if (!masterGroups[master]) masterGroups[master] = [];
+        if (!masterGroups[master]) {
+          masterGroups[master] = [];
+        }
         masterGroups[master].push(item);
       });
 
       const masterKeys = Object.keys(masterGroups);
       const orderNumbers: string[] = [];
 
+      // TẠO TỪNG ĐƠN HÀNG CHO MỖI MASTER
       for (const master of masterKeys) {
         const groupItems = masterGroups[master];
         const groupTotal = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
+        // Generate order number cho đơn này
         const today = new Date();
         const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
         const orderNumber = `PO${dateStr}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
@@ -189,13 +218,15 @@ export default function Checkout() {
             payment_method: selectedMethod,
             payment_type: paymentType,
             payment_proof_url: paymentProofUrl,
-            // SỬ DỤNG TRẠNG THÁI ĐÃ CẬP NHẬT
-            payment_status: initialPaymentStatus,
+            payment_status: paymentType === 'deposit' ? 'Đang xác nhận cọc' : 'Đang xác nhận thanh toán',
             order_progress: 'Đang xử lý'
           } as any);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          throw insertError;
+        }
 
+        // === TỰ ĐỘNG TRỪ TỒN KHO TRONG DATABASE (CHO NHÓM NÀY) ===
         try {
           for (const item of groupItems) {
             if (item.selectedVariant) {
@@ -213,17 +244,59 @@ export default function Checkout() {
                   return v;
                 });
 
-                await supabase.from('products').update({ variants: updatedVariants }).eq('id', item.id);
+                await supabase
+                  .from('products')
+                  .update({ variants: updatedVariants })
+                  .eq('id', item.id);
               }
             } else if (item.stock !== undefined) {
-              await supabase.from('products').update({ stock: Math.max(0, (item.stock || 0) - item.quantity) }).eq('id', item.id);
+              await supabase
+                .from('products')
+                .update({ stock: Math.max(0, (item.stock || 0) - item.quantity) })
+                .eq('id', item.id);
             }
           }
         } catch (stockError) {
           console.warn('Không thể cập nhật tồn kho:', stockError);
         }
 
-        // Send Email
+        // Sync đơn này to Google Sheets
+        try {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-order-to-sheets`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+            },
+            body: JSON.stringify({
+              order: {
+                id: orderNumber,
+                order_number: orderNumber,
+                created_at: new Date().toISOString(),
+                customer_fb: contactInfo.fb,
+                customer_email: contactInfo.email,
+                customer_phone: contactInfo.phone,
+                delivery_name: deliveryInfo.name,
+                delivery_phone: finalDeliveryPhone,
+                delivery_address: deliveryInfo.address,
+                delivery_note: deliveryInfo.note,
+                items: groupItems,
+                total_price: groupTotal,
+                payment_method: selectedMethod,
+                payment_type: paymentType,
+                payment_proof_url: paymentProofUrl,
+                payment_status: paymentType === 'deposit' ? 'Đang xác nhận cọc' : 'Đang xác nhận thanh toán',
+                order_progress: 'Đang xử lý'
+              }
+            })
+          }).catch(err => {
+            console.warn('Failed to sync to Google Sheets:', err);
+          });
+        } catch (syncError) {
+          console.warn('Google Sheets sync error:', syncError);
+        }
+
+        // Send email cho đơn này
         try {
           await supabase.functions.invoke('send-order-email', {
             body: {
@@ -237,8 +310,8 @@ export default function Checkout() {
                 price: item.price
               })),
               totalPrice: groupTotal,
-              status: initialPaymentStatus, // Gửi trạng thái mới vào email
-              paymentStatus: initialPaymentStatus,
+              status: paymentType === 'deposit' ? 'Đang xác nhận cọc' : 'Đang xác nhận thanh toán',
+              paymentStatus: paymentType === 'deposit' ? 'Đang xác nhận cọc' : 'Đang xác nhận thanh toán',
               orderProgress: 'Đang xử lý',
               type: 'new_order',
               deliveryAddress: deliveryInfo.address
@@ -250,29 +323,44 @@ export default function Checkout() {
       }
 
       setIsSubmitting(false);
+      
       clearCart();
       
       if (orderNumbers.length === 1) {
-        toast({ title: "Đặt hàng thành công!", description: "Chúng tôi sẽ xác nhận thanh toán sớm nhất." });
+        toast({
+          title: "Đặt hàng thành công!",
+          description: "Chúng tôi sẽ liên hệ với bạn sớm nhất.",
+        });
         navigate(`/order-success?orderNumber=${orderNumbers[0]}`);
       } else {
-        toast({ title: `Đặt hàng thành công ${orderNumbers.length} đơn!`, description: `Đơn hàng đã được tách theo master: ${orderNumbers.join(', ')}` });
+        toast({
+          title: `Đặt hàng thành công ${orderNumbers.length} đơn!`,
+          description: `Đơn hàng đã được tách theo master: ${orderNumbers.join(', ')}`,
+        });
         navigate(`/order-success?orderNumber=${orderNumbers[0]}`);
       }
 
     } catch (error) {
       console.error("Error submitting order:", error);
       setIsSubmitting(false);
-      toast({ title: "Lỗi", description: "Đã có lỗi xảy ra. Vui lòng thử lại.", variant: "destructive" });
+      toast({
+        title: "Lỗi",
+        description: "Đã có lỗi xảy ra. Vui lòng thử lại.",
+        variant: "destructive"
+      });
     }
   };
 
   const getPaymentDetails = () => {
     switch (selectedMethod) {
-      case 'Vietcombank': return { label: "Vietcombank", number: PAYMENT_INFO.vietcombank };
-      case 'Momo': return { label: "Momo", number: PAYMENT_INFO.momo };
-      case 'Zalopay': return { label: "Zalopay", number: PAYMENT_INFO.zalopay };
-      default: return { label: "Vietcombank", number: PAYMENT_INFO.vietcombank };
+      case 'Vietcombank':
+        return { label: "Vietcombank", number: PAYMENT_INFO.vietcombank };
+      case 'Momo':
+        return { label: "Momo", number: PAYMENT_INFO.momo };
+      case 'Zalopay':
+        return { label: "Zalopay", number: PAYMENT_INFO.zalopay };
+      default:
+        return { label: "Vietcombank", number: PAYMENT_INFO.vietcombank };
     }
   };
   
@@ -282,9 +370,9 @@ export default function Checkout() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 text-center">
-          <h1 className="text-xl font-bold mb-4">Giỏ hàng trống</h1>
-          <p className="text-sm text-muted-foreground mb-6">Bạn chưa có sản phẩm nào để đặt hàng.</p>
-          <Button onClick={() => navigate("/products")} size="sm">
+          <h1 className="text-2xl font-bold mb-4">Giỏ hàng trống</h1>
+          <p className="text-muted-foreground mb-6">Bạn chưa có sản phẩm nào để đặt hàng.</p>
+          <Button onClick={() => navigate("/products")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại mua sắm
           </Button>
@@ -295,95 +383,106 @@ export default function Checkout() {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-xl px-4 py-8 md:py-10">
-        <Button variant="ghost" onClick={() => navigate("/products")} className="mb-4 gap-2 pl-0 hover:bg-transparent h-auto py-1">
+      <div className="container mx-auto max-w-2xl px-4 py-12">
+        <Button variant="ghost" onClick={() => navigate("/products")} className="mb-6 gap-2">
           <ArrowLeft className="h-4 w-4" />
-          <span className="text-sm">Tiếp tục mua sắm</span>
+          Tiếp tục mua sắm
         </Button>
       
-        <form onSubmit={handleSubmitOrder} className="space-y-6">
-          
-          <div className="rounded-lg border p-4 md:p-6 bg-white shadow-sm">
-            <h2 className="text-lg font-bold mb-4">Thông tin liên hệ</h2>
-            <div className="space-y-3">
+        <form onSubmit={handleSubmitOrder} className="space-y-8">
+          <div className="rounded-lg border p-6">
+            <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="contact-fb" className="text-sm">Link Facebook / Instagram *</Label>
-                <Input id="contact-fb" className="h-9 text-sm mt-1" value={contactInfo.fb} onChange={(e) => setContactInfo({...contactInfo, fb: e.target.value})} placeholder="https://..." required />
+                <Label htmlFor="contact-fb">Link Facebook / Instagram *</Label>
+                <Input id="contact-fb" value={contactInfo.fb} onChange={(e) => setContactInfo({...contactInfo, fb: e.target.value})} placeholder="https://..." required />
               </div>
               <div>
-                <Label htmlFor="contact-email" className="text-sm">Email *</Label>
-                <Input id="contact-email" type="email" className="h-9 text-sm mt-1" value={contactInfo.email} onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})} placeholder="email@example.com" required />
+                <Label htmlFor="contact-email">Email *</Label>
+                <Input id="contact-email" type="email" value={contactInfo.email} onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})} placeholder="email@example.com" required />
               </div>
               <div>
-                <Label htmlFor="contact-phone" className="text-sm">Số điện thoại *</Label>
-                <Input id="contact-phone" type="tel" className="h-9 text-sm mt-1" value={contactInfo.phone} onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})} placeholder="090..." required />
+                <Label htmlFor="contact-phone">Số điện thoại *</Label>
+                <Input id="contact-phone" type="tel" value={contactInfo.phone} onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})} placeholder="090..." required />
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border p-4 md:p-6 bg-white shadow-sm">
-            <h2 className="text-lg font-bold mb-4">Thông tin nhận hàng</h2>
-            <div className="space-y-3">
+          <div className="rounded-lg border p-6">
+            <h2 className="text-2xl font-semibold mb-6">Thông tin nhận hàng</h2>
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="delivery-name" className="text-sm">Họ và tên người nhận *</Label>
-                <Input id="delivery-name" className="h-9 text-sm mt-1" value={deliveryInfo.name} onChange={(e) => setDeliveryInfo({...deliveryInfo, name: e.target.value})} placeholder="Nguyễn Văn A" required />
-              </div>
+                <Label htmlFor="delivery-name">Họ và tên người nhận *</Label>
+                <Input id="delivery-name" value={deliveryInfo.name} onChange={(e) => setDeliveryInfo({...deliveryInfo, name: e.target.value})} placeholder="Nguyễn Văn A" required />
+                </div>
               <div>
-                <Label htmlFor="delivery-phone" className="text-sm">Số điện thoại nhận hàng <span className="text-xs text-muted-foreground font-normal">(Bỏ trống nếu giống SĐT liên lạc)</span></Label>
+                <Label htmlFor="delivery-phone">Số điện thoại nhận hàng {contactInfo.phone && "(Bỏ trống nếu giống SĐT liên lạc)"}</Label>
                 <Input 
                   id="delivery-phone" 
                   type="tel" 
-                  className="h-9 text-sm mt-1"
                   value={deliveryInfo.phone} 
                   onChange={(e) => setDeliveryInfo({...deliveryInfo, phone: e.target.value})} 
                   placeholder={contactInfo.phone || "090..."} 
                 />
               </div>
               <div>
-                <Label htmlFor="delivery-address" className="text-sm">Địa chỉ nhận hàng *</Label>
-                <Input id="delivery-address" className="h-9 text-sm mt-1" value={deliveryInfo.address} onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})} placeholder="Số nhà, đường, phường, quận, thành phố" required />
+                <Label htmlFor="delivery-address">Địa chỉ nhận hàng *</Label>
+                <Input id="delivery-address" value={deliveryInfo.address} onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})} placeholder="Số nhà, đường, phường, quận, thành phố" required />
               </div>
               <div>
-                <Label htmlFor="delivery-note" className="text-sm">Ghi chú (Tùy chọn)</Label>
+                <Label htmlFor="delivery-note">Ghi chú (Tùy chọn)</Label>
                 <Textarea 
                   id="delivery-note" 
                   value={deliveryInfo.note} 
                   onChange={(e) => setDeliveryInfo({...deliveryInfo, note: e.target.value})} 
-                  placeholder="Ví dụ: Giao ngoài giờ hành chính..."
-                  className="resize-none text-sm mt-1"
-                  rows={2}
+                  placeholder="Ví dụ: Giao ngoài giờ hành chính, gọi trước khi giao..."
+                  className="resize-none"
+                  rows={3}
                 />
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border p-4 md:p-6 bg-white shadow-sm">
-            <h2 className="text-lg font-bold mb-4">Thanh toán</h2>
-            <div className="space-y-4">
+          <div className="rounded-lg border p-6">
+            <h2 className="text-2xl font-semibold mb-6">Thanh toán</h2>
+            <div className="space-y-6">
               <div>
-                <Label className="text-sm font-semibold mb-2 block">Hình thức thanh toán</Label>
-                <div className="space-y-2">
-                  <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                    <input type="radio" name="paymentType" value="full" checked={paymentType === 'full'} onChange={(e) => setPaymentType(e.target.value as "full")} className="mt-1" />
+                <Label className="font-semibold mb-3 block">Hình thức thanh toán</Label>
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <input 
+                      type="radio" 
+                      name="paymentType" 
+                      value="full" 
+                      checked={paymentType === 'full'} 
+                      onChange={(e) => setPaymentType(e.target.value as "full")}
+                      className="mt-1"
+                    />
                     <div>
-                      <div className="text-sm font-medium">Thanh toán đủ 100% ({totalPrice.toLocaleString('vi-VN')}đ)</div>
+                      <div className="font-medium">Thanh toán đủ 100% ({totalPrice.toLocaleString('vi-VN')}đ)</div>
                     </div>
                   </label>
                   
-                  <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                    <input type="radio" name="paymentType" value="deposit" checked={paymentType === 'deposit'} onChange={(e) => setPaymentType(e.target.value as "deposit")} className="mt-1" />
+                  <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <input 
+                      type="radio" 
+                      name="paymentType" 
+                      value="deposit" 
+                      checked={paymentType === 'deposit'} 
+                      onChange={(e) => setPaymentType(e.target.value as "deposit")}
+                      className="mt-1"
+                    />
                     <div>
-                      <div className="text-sm font-medium">Đặt cọc 50% ({(totalPrice * 0.5).toLocaleString('vi-VN')}đ)</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">Hoàn cọc trong 1 tháng</div>
+                      <div className="font-medium">Đặt cọc 50% ({(totalPrice * 0.5).toLocaleString('vi-VN')}đ) - Hẹn hoàn cọc trong 1 tháng</div>
                     </div>
                   </label>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="paymentMethod" className="text-sm font-semibold">Chọn phương thức chuyển khoản</Label>
+                <Label htmlFor="paymentMethod" className="font-semibold">Chọn phương thức thanh toán</Label>
                 <Select value={selectedMethod} onValueChange={setSelectedMethod}>
-                  <SelectTrigger id="paymentMethod" className="mt-1 h-9 text-sm">
+                  <SelectTrigger id="paymentMethod" className="mt-2">
                     <SelectValue placeholder="Chọn ngân hàng/ví điện tử" />
                   </SelectTrigger>
                   <SelectContent>
@@ -394,79 +493,78 @@ export default function Checkout() {
                 </Select>
               </div>
 
-              <div className="bg-muted/50 p-3 rounded-md space-y-1 text-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold">Thông tin chuyển khoản</p>
+              <div className="bg-muted/50 p-4 rounded-md space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-lg">Chuyển khoản</p>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs px-2"
                     onClick={() => {
                       const text = `${PAYMENT_INFO.accountName}\n${paymentDetails.label}: ${paymentDetails.number}`;
                       navigator.clipboard.writeText(text);
-                      toast({ title: "Đã copy", description: "Đã copy thông tin chuyển khoản" });
+                      toast({
+                        title: "Đã copy",
+                        description: "Thông tin chuyển khoản đã được copy vào clipboard"
+                      });
                     }}
                   >
                     Copy
                   </Button>
                 </div>
-                <p>Chủ TK: <span className="font-bold">{PAYMENT_INFO.accountName}</span></p>
-                <p>Ngân hàng: <span className="font-bold">{paymentDetails.label}</span></p>
-                <p>Số TK: <span className="font-bold">{paymentDetails.number}</span></p>
+                <p>Chủ tài khoản: <span className="font-bold">{PAYMENT_INFO.accountName}</span></p>
+                <p>Ngân hàng/Ví: <span className="font-bold">{paymentDetails.label}</span></p>
+                <p>Số tài khoản: <span className="font-bold">{paymentDetails.number}</span></p>
               </div>
               
-              <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 bg-primary/5">
-                <Label htmlFor="payment-proof" className="font-semibold text-sm mb-2 block">Đăng bill chuyển khoản *</Label>
+              <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
+                <Label htmlFor="payment-proof" className="font-semibold text-lg mb-3 block">Đăng bill chuyển khoản *</Label>
                 <Input 
                   id="payment-proof" 
                   type="file" 
                   accept="image/*" 
                   onChange={handleFileChange} 
-                  required 
-                  className="cursor-pointer h-9 text-sm"
+                  required
+                  className="cursor-pointer"
                 />
                 {paymentProof && (
-                  <div className="mt-2 p-2 bg-white rounded border flex items-center gap-2">
-                    <Upload className="h-3 w-3 text-primary" />
-                    <span className="text-xs font-medium truncate max-w-[200px]">{paymentProof.name}</span>
+                  <div className="mt-3 p-3 bg-background rounded-md flex items-center gap-2">
+                    <Upload className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">{paymentProof.name}</span>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground mt-2">* Bắt buộc gửi bill trước khi đặt hàng</p>
+                <p className="text-sm text-muted-foreground mt-2">* Bắt buộc gửi bill trước khi bấm đặt hàng ngay</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border p-4 md:p-6 bg-white shadow-sm">
-            <h2 className="text-lg font-bold mb-4">Đơn hàng của bạn</h2>
-            <div className="space-y-3">
+          <div className="rounded-lg border p-6">
+            <h2 className="text-2xl font-semibold mb-6">Giỏ hàng</h2>
+            <div className="space-y-4">
               {cartItems.map((item) => (
-                <div key={`${item.id}-${item.selectedVariant}`} className="flex items-start gap-3 py-2 border-b last:border-0">
-                  <img src={getVariantImage(item)} alt={item.name} className="w-12 h-12 object-cover rounded border" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.name}</p>
-                    <div className="flex justify-between items-center mt-1">
-                        <p className="text-xs text-muted-foreground">
-                            {item.selectedVariant && <span>{item.selectedVariant} • </span>}
-                            x{item.quantity}
-                        </p>
-                        <p className="text-sm font-medium">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</p>
-                    </div>
+                <div key={`${item.id}-${item.selectedVariant}`} className="flex items-center gap-4">
+                  <img src={getVariantImage(item)} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                  <div className="flex-1">
+                    <p className="font-medium">x{item.quantity} {item.name}</p>
+                    {item.selectedVariant && <p className="text-sm text-muted-foreground">{item.selectedVariant}</p>}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-lg border p-4 bg-white shadow-sm sticky bottom-0 md:static">
-            <div className="flex justify-between items-center text-base font-medium mb-4">
-              <span>Tổng thanh toán:</span>
-              <span className="text-xl font-bold text-primary">
+          <div className="rounded-lg border p-6 space-y-4">
+            <div className="flex justify-between items-center text-lg font-medium">
+              <span>Tổng cộng:</span>
+              <span className="text-2xl font-bold text-primary">
                 {totalPrice.toLocaleString('vi-VN')}đ
               </span>
             </div>
-            <Separator className="mb-4" />
-            <Button type="submit" className="w-full text-base font-semibold h-11 shadow-lg" size="lg" disabled={isSubmitting}>
+            <Separator />
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Đặt hàng ngay"}
             </Button>
           </div>
