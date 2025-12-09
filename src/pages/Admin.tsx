@@ -46,9 +46,9 @@ const getPaymentStatusColor = (status: string) => {
     case "Chưa thanh toán":
       return "bg-red-100 text-red-800 border-red-200";
     case "Đang xác nhận thanh toán":
-      return "bg-blue-50 text-blue-700 border-blue-200"; // MỚI
+      return "bg-blue-50 text-blue-700 border-blue-200";
     case "Đang xác nhận cọc":
-      return "bg-blue-50 text-blue-700 border-blue-200"; // MỚI
+      return "bg-blue-50 text-blue-700 border-blue-200";
     case "Đã thanh toán":
       return "bg-green-100 text-green-800 border-green-200";
     case "Đã cọc":
@@ -107,6 +107,18 @@ interface Order {
   surcharge: number;
 }
 
+// ========== THÊM INTERFACE CHO THÔNG BÁO ADMIN ==========
+interface AdminNotification {
+  id: string;
+  type: 'new_order' | 'delivery_update' | 'payment_proof';
+  order_id: string;
+  order_number: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+// ========================================================
+
 const COLORS = ['#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#60a5fa', '#fb923c'];
 const ORDERS_PER_PAGE = 20;
 
@@ -150,13 +162,22 @@ export default function Admin() {
   const [notifications, setNotifications] = useState<ProductNotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
+  
+  // ========== THÊM STATE CHO THÔNG BÁO ADMIN ==========
+  const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  // =====================================================
+  
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // ========== TÍNH SỐ THÔNG BÁO CHƯA ĐỌC ==========
+  const unreadCount = adminNotifications.filter(n => !n.is_read).length;
+  // =================================================
 
   // Filter orders based on search and filters
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-      // Tìm kiếm trong tên, SĐT, mã đơn VÀ tên sản phẩm
       const matchesSearch = searchTerm === "" || 
         order.delivery_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.delivery_phone.includes(searchTerm) ||
@@ -296,11 +317,10 @@ export default function Admin() {
 
   // Tính toán tiền công và tiền chênh theo từng sản phẩm/variant
   const costStatistics = useMemo(() => {
-    let totalServiceFee = 0; // Tổng tiền công
-    let totalProfit = 0; // Tổng tiền chênh
+    let totalServiceFee = 0;
+    let totalProfit = 0;
     let productsWithActualCost = 0;
 
-    // Tạo map từ product id -> product data
     const productMap = new Map<number, ProductData>();
     products.forEach(p => productMap.set(p.id, p));
 
@@ -314,7 +334,6 @@ export default function Admin() {
 
         const quantity = item.quantity || 1;
         
-        // Lấy dữ liệu cost của variant nếu có
         let variantActualRate = product.actual_rate;
         let variantActualCan = product.actual_can;
         let variantActualPack = product.actual_pack;
@@ -322,14 +341,11 @@ export default function Admin() {
         let variantTe = product.te;
         let itemPrice = item.price || product.price;
 
-        // Nếu item có selectedVariant và product có variants, tìm variant tương ứng
         if (item.selectedVariant && (product as any).variants) {
           const variants = (product as any).variants as any[];
           const matchedVariant = variants.find((v: any) => v.name === item.selectedVariant);
           if (matchedVariant) {
-            // Sử dụng giá của variant
             itemPrice = matchedVariant.price || itemPrice;
-            // Nếu variant có actual costs riêng, sử dụng
             if (matchedVariant.actual_rate !== undefined) variantActualRate = matchedVariant.actual_rate;
             if (matchedVariant.actual_can !== undefined) variantActualCan = matchedVariant.actual_can;
             if (matchedVariant.actual_pack !== undefined) variantActualPack = matchedVariant.actual_pack;
@@ -338,12 +354,10 @@ export default function Admin() {
           }
         }
         
-        // Tính tiền công
         if (variantCong) {
           totalServiceFee += (variantCong * quantity);
         }
 
-        // Tính tiền chênh nếu có đủ dữ liệu actual
         if (variantActualRate || variantActualCan || variantActualPack) {
           const te = variantTe || 0;
           const actualRate = variantActualRate || product.rate || 0;
@@ -379,14 +393,103 @@ export default function Admin() {
     }
   };
 
+  // ========== FETCH THÔNG BÁO ADMIN ==========
+  const fetchAdminNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      setAdminNotifications((data as AdminNotification[]) || []);
+    } catch (error) {
+      console.error('Error fetching admin notifications:', error);
+    }
+  };
+
+  // ĐÁNH DẤU ĐÃ ĐỌC THÔNG BÁO
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await supabase
+        .from('admin_notifications')
+        .update({ is_read: true })
+        .eq('id', id);
+      
+      setAdminNotifications(prev => 
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // ĐÁNH DẤU TẤT CẢ ĐÃ ĐỌC
+  const markAllAsRead = async () => {
+    try {
+      const unreadIds = adminNotifications.filter(n => !n.is_read).map(n => n.id);
+      if (unreadIds.length === 0) return;
+
+      await supabase
+        .from('admin_notifications')
+        .update({ is_read: true })
+        .in('id', unreadIds);
+      
+      setAdminNotifications(prev => 
+        prev.map(n => ({ ...n, is_read: true }))
+      );
+
+      toast({
+        title: "Đã đánh dấu tất cả đã đọc",
+      });
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+  // ============================================
+
   useEffect(() => {
     const adminSession = sessionStorage.getItem('admin_logged_in');
     if (adminSession === 'true') {
       setIsLoggedIn(true);
       fetchOrders();
       fetchProducts();
+      fetchAdminNotifications(); // THÊM: Fetch thông báo khi login
     }
   }, []);
+
+  // ========== REALTIME SUBSCRIPTION CHO THÔNG BÁO ==========
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const channel = supabase
+      .channel('admin-notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'admin_notifications'
+        },
+        (payload) => {
+          console.log('New notification received:', payload);
+          setAdminNotifications(prev => [payload.new as AdminNotification, ...prev]);
+          
+          // Hiển thị toast khi có thông báo mới
+          toast({
+            title: "🔔 Thông báo mới",
+            description: (payload.new as AdminNotification).message,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isLoggedIn, toast]);
+  // =========================================================
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -396,6 +499,7 @@ export default function Admin() {
       sessionStorage.setItem('admin_logged_in', 'true');
       fetchOrders();
       fetchProducts();
+      fetchAdminNotifications(); // THÊM: Fetch thông báo khi login
       toast({
         title: "Đăng nhập thành công",
         description: "Chào mừng Admin!",
@@ -762,7 +866,6 @@ Purin Order`.trim();
       return;
     }
 
-    // Tạo nội dung email cho tất cả đơn hàng
     const allEmailsContent = ordersWithEmail.map(order => {
       return `
 ════════════════════════════════════════
@@ -834,7 +937,6 @@ ${generateEmailContent(order)}
         description: `Đã gửi email cho khách hàng đăng ký sản phẩm ${productName}`,
       });
 
-      // Refresh notifications
       fetchNotifications();
     } catch (error) {
       console.error(error);
@@ -845,6 +947,21 @@ ${generateEmailContent(order)}
       });
     }
   };
+
+  // ========== HELPER: LẤY ICON CHO LOẠI THÔNG BÁO ==========
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'new_order':
+        return '🛒';
+      case 'delivery_update':
+        return '📦';
+      case 'payment_proof':
+        return '💳';
+      default:
+        return '🔔';
+    }
+  };
+  // ==========================================================
 
   if (!isLoggedIn) {
     return (
@@ -889,13 +1006,96 @@ ${generateEmailContent(order)}
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
+        {/* ========== HEADER VỚI CHUÔNG THÔNG BÁO ========== */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Quản lý Admin</h1>
-          <Button onClick={handleLogout} variant="outline">
-            <LogOut className="h-4 w-4 mr-2" />
-            Đăng xuất
-          </Button>
+          
+          <div className="flex items-center gap-4">
+            {/* CHUÔNG THÔNG BÁO */}
+            <div className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+              
+              {/* DROPDOWN THÔNG BÁO */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-card border rounded-lg shadow-lg z-50 max-h-[70vh] overflow-hidden">
+                  <div className="p-3 border-b font-semibold flex items-center justify-between sticky top-0 bg-card">
+                    <span className="flex items-center gap-2">
+                      <Bell className="h-4 w-4" />
+                      Thông báo ({unreadCount} chưa đọc)
+                    </span>
+                    {unreadCount > 0 && (
+                      <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                        Đọc tất cả
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="overflow-y-auto max-h-[60vh]">
+                    {adminNotifications.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground">
+                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>Chưa có thông báo nào</p>
+                      </div>
+                    ) : (
+                      adminNotifications.map(notif => (
+                        <div 
+                          key={notif.id}
+                          className={`p-3 border-b hover:bg-muted/50 cursor-pointer transition-colors ${
+                            !notif.is_read ? 'bg-blue-50 dark:bg-blue-950/30' : ''
+                          }`}
+                          onClick={() => markNotificationAsRead(notif.id)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="text-xl">{getNotificationIcon(notif.type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm flex items-center gap-2">
+                                {notif.message}
+                                {!notif.is_read && (
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                                <span>#{notif.order_number}</span>
+                                <span>•</span>
+                                <span>{new Date(notif.created_at).toLocaleString('vi-VN')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Button onClick={handleLogout} variant="outline">
+              <LogOut className="h-4 w-4 mr-2" />
+              Đăng xuất
+            </Button>
+          </div>
         </div>
+        {/* ================================================== */}
+
+        {/* CLICK OUTSIDE TO CLOSE NOTIFICATIONS */}
+        {showNotifications && (
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowNotifications(false)}
+          />
+        )}
 
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -913,8 +1113,8 @@ ${generateEmailContent(order)}
               <TabsTrigger value="orders" className="h-10 w-10 p-0" title="Đơn hàng">
                 <ShoppingCart className="h-5 w-5" />
               </TabsTrigger>
-              <TabsTrigger value="notifications" onClick={fetchNotifications} className="h-10 w-10 p-0" title="Thông báo">
-                <Bell className="h-5 w-5" />
+              <TabsTrigger value="notifications" onClick={fetchNotifications} className="h-10 w-10 p-0" title="Thông báo sản phẩm">
+                <Mail className="h-5 w-5" />
               </TabsTrigger>
             </TabsList>
 
@@ -957,7 +1157,7 @@ ${generateEmailContent(order)}
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                  <div className="text-2xl font-bold text-primary">
+                    <div className="text-2xl font-bold text-primary">
                       {statistics.progressCounts['Đã hoàn thành'] || 0}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -965,7 +1165,6 @@ ${generateEmailContent(order)}
                     </p>
                   </CardContent>
                 </Card>
-
               </div>
 
               {/* Biểu đồ */}
@@ -1179,7 +1378,7 @@ ${generateEmailContent(order)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                      {paginatedOrders.map((order) => (
+                    {paginatedOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="sticky left-0 bg-background">
                           <Checkbox
@@ -1510,7 +1709,6 @@ ${generateEmailContent(order)}
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* Group notifications by product */}
                       {Object.entries(
                         notifications.reduce((acc, notif) => {
                           if (!acc[notif.product_id]) {
