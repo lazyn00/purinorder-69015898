@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Share2 } from "lucide-react";
+// Thay đổi 1: Thêm import Eye
+import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Share2, Eye } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { OrderCountdown } from "@/components/OrderCountdown";
 import { useCart, Product } from "@/contexts/CartContext";
@@ -21,6 +22,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+// Thay đổi 2: Thêm import supabase
+import { supabase } from "@/integrations/supabase/client";
 
 const getVariantStock = (product: Product, variantName: string): number | undefined => {
     if (!product.variants || product.variants.length === 0) return product.stock;
@@ -46,6 +49,9 @@ export default function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
   const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
+  
+  // Thay đổi 3: Thêm state viewCount
+  const [viewCount, setViewCount] = useState(0);
 
   useEffect(() => {
     if (!isLoading && products.length > 0) {
@@ -53,6 +59,35 @@ export default function ProductDetail() {
       setProduct(foundProduct);
     }
   }, [isLoading, products, id]);
+
+  // Thay đổi 4: Logic track view và fetch view count
+  useEffect(() => {
+    if (!id) return;
+    
+    const productId = Number(id);
+    
+    // Record view
+    const recordView = async () => {
+      // Lưu ý: Đảm bảo bảng 'product_views' đã tồn tại trong Supabase
+      const { error } = await supabase.from('product_views').insert({ product_id: productId });
+      if (error) console.error("Error recording view:", error);
+    };
+    
+    // Fetch view count
+    const fetchViewCount = async () => {
+      const { count, error } = await supabase
+        .from('product_views')
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', productId);
+      
+      if (!error) {
+        setViewCount(count || 0);
+      }
+    };
+    
+    recordView();
+    fetchViewCount();
+  }, [id]);
 
   useEffect(() => {
     if (product) {
@@ -242,7 +277,14 @@ export default function ProductDetail() {
                  <div className="space-y-1">
                     {product.status && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 mb-1">{product.status}</Badge>}
                     <h1 className="text-lg md:text-2xl font-bold leading-tight text-foreground">{product.name}</h1>
-                    {product.master && <p className="text-muted-foreground text-xs">Master: {product.master}</p>}
+                    
+                    {/* Thay đổi 5: Hiển thị lượt xem */}
+                    <div className="flex items-center gap-1 text-muted-foreground text-sm pt-1">
+                      <Eye className="h-4 w-4" />
+                      <span>{viewCount.toLocaleString('vi-VN')} lượt xem</span>
+                    </div>
+
+                    {product.master && <p className="text-muted-foreground text-xs pt-1">Master: {product.master}</p>}
                  </div>
                  <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 -mt-1 text-muted-foreground"><Share2 className="h-4 w-4" /></Button>
               </div>
