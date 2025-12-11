@@ -227,6 +227,24 @@ export type Database = {
         }
         Relationships: []
       }
+      product_views: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
