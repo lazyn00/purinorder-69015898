@@ -206,6 +206,7 @@ export default function TrackOrder() {
   const handleUploadSecondPayment = async (orderId: string, file: File) => {
     setUploadingOrderId(orderId);
     try {
+      const order = orders.find(o => o.id === orderId);
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -229,10 +230,20 @@ export default function TrackOrder() {
 
       if (updateError) throw updateError;
 
-      setOrders(orders.map(order => 
-        order.id === orderId 
-          ? { ...order, second_payment_proof_url: publicUrl } 
-          : order
+      // Gửi thông báo cho admin
+      if (order) {
+        await supabase.from('admin_notifications').insert({
+          type: 'payment_proof',
+          order_id: orderId,
+          order_number: order.order_number || orderId.slice(0, 8),
+          message: `Khách hàng đã upload bill bổ sung cho đơn #${order.order_number || orderId.slice(0, 8)}`
+        });
+      }
+
+      setOrders(orders.map(o => 
+        o.id === orderId 
+          ? { ...o, second_payment_proof_url: publicUrl } 
+          : o
       ));
 
       toast({
@@ -275,6 +286,14 @@ export default function TrackOrder() {
           ? { ...o, ...newDeliveryData } 
           : o
       ));
+
+      // Gửi thông báo cho admin về cập nhật thông tin giao hàng
+      await supabase.from('admin_notifications').insert({
+        type: 'delivery_update',
+        order_id: orderId,
+        order_number: order.order_number || orderId.slice(0, 8),
+        message: `Khách hàng đã cập nhật thông tin giao hàng cho đơn #${order.order_number || orderId.slice(0, 8)}`
+      });
 
       setEditingOrderId(null);
       setTempDeliveryData({}); 
@@ -420,6 +439,41 @@ export default function TrackOrder() {
                       <div className="flex justify-between text-orange-600">
                         <span>Phụ thu:</span>
                         <span className="font-bold">+{order.surcharge.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
+                    
+                    {/* Hiển thị thông tin cọc và deadline hoàn cọc */}
+                    {order.payment_type === 'deposit' && order.payment_status === 'Đã cọc' && (
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-amber-800 dark:text-amber-200 font-medium">💰 Còn thiếu:</span>
+                          <span className="font-bold text-amber-600 dark:text-amber-400 text-lg">
+                            {Math.round(order.total_price / 2).toLocaleString('vi-VN')}đ
+                          </span>
+                        </div>
+                        <div className="text-xs text-amber-700 dark:text-amber-300">
+                          <span className="font-medium">⏰ Deadline hoàn cọc: </span>
+                          {(() => {
+                            // Deadline là 7 ngày sau ngày đặt hàng
+                            const orderDate = new Date(order.created_at);
+                            const deadline = new Date(orderDate);
+                            deadline.setDate(deadline.getDate() + 7);
+                            const now = new Date();
+                            const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                            
+                            if (daysLeft < 0) {
+                              return <span className="text-red-500 font-bold">Đã quá hạn!</span>;
+                            } else if (daysLeft === 0) {
+                              return <span className="text-red-500 font-bold">Hôm nay!</span>;
+                            } else if (daysLeft <= 2) {
+                              return <span className="text-orange-500 font-bold">{deadline.toLocaleDateString('vi-VN')} (còn {daysLeft} ngày)</span>;
+                            }
+                            return <span>{deadline.toLocaleDateString('vi-VN')} (còn {daysLeft} ngày)</span>;
+                          })()}
+                        </div>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          Vui lòng thanh toán 50% còn lại trước deadline để hoàn tất đơn hàng.
+                        </p>
                       </div>
                     )}
                     

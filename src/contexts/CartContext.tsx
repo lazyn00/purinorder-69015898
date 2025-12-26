@@ -21,6 +21,8 @@ export interface Product {
   stock?: number;
   priceDisplay: string;
   productionTime?: string;
+  size?: string;
+  includes?: string;
 }
 
 export interface CartItem extends Product {
