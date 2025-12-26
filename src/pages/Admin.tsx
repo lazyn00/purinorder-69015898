@@ -1245,27 +1245,8 @@ ${generateEmailContent(order)}
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
-              {/* Bộ lọc thời gian */}
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { value: '7d', label: '7 ngày' },
-                  { value: '30d', label: '30 ngày' },
-                  { value: '3m', label: '3 tháng' },
-                  { value: '1y', label: '1 năm' }
-                ].map((period) => (
-                  <Button
-                    key={period.value}
-                    variant={revenuePeriod === period.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setRevenuePeriod(period.value as any)}
-                  >
-                    {period.label}
-                  </Button>
-                ))}
-              </div>
-
               {/* Tổng quan */}
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
@@ -1276,37 +1257,22 @@ ${generateEmailContent(order)}
                       {statistics.totalRevenue.toLocaleString('vi-VN')}đ
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Tất cả (không tính huỷ)
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-primary/30 bg-primary/5">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Doanh thu kỳ này</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-primary">
-                      {statistics.periodRevenue.toLocaleString('vi-VN')}đ
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {revenuePeriod === '7d' ? '7 ngày' : revenuePeriod === '30d' ? '30 ngày' : revenuePeriod === '3m' ? '3 tháng' : '1 năm'} gần nhất
+                      Không tính đơn đã huỷ
                     </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Đơn kỳ này</CardTitle>
+                    <CardTitle className="text-sm font-medium">Tổng đơn hàng</CardTitle>
                     <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-primary">
-                      {statistics.periodOrders}
+                      {statistics.totalOrders}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Trong {revenuePeriod === '7d' ? '7 ngày' : revenuePeriod === '30d' ? '30 ngày' : revenuePeriod === '3m' ? '3 tháng' : '1 năm'}
+                      Tất cả đơn hàng
                     </p>
                   </CardContent>
                 </Card>
@@ -1330,10 +1296,28 @@ ${generateEmailContent(order)}
               {/* Biểu đồ */}
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm sm:text-base">
                       Doanh thu {revenuePeriod === '7d' ? '7 ngày' : revenuePeriod === '30d' ? '30 ngày' : revenuePeriod === '3m' ? '3 tháng' : '1 năm'} gần nhất
                     </CardTitle>
+                    <div className="flex gap-1">
+                      {[
+                        { value: '7d', label: '7N' },
+                        { value: '30d', label: '30N' },
+                        { value: '3m', label: '3T' },
+                        { value: '1y', label: '1N' }
+                      ].map((period) => (
+                        <Button
+                          key={period.value}
+                          variant={revenuePeriod === period.value ? 'default' : 'ghost'}
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setRevenuePeriod(period.value as any)}
+                        >
+                          {period.label}
+                        </Button>
+                      ))}
+                    </div>
                   </CardHeader>
                   <CardContent className="px-2 sm:px-6">
                     <ResponsiveContainer width="100%" height={250}>
