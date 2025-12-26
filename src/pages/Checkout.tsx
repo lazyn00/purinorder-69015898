@@ -15,9 +15,9 @@ import { CartItem } from "@/contexts/CartContext"; // Import CartItem
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
-  vietcombank: "0441000787416",
-  momo: "0931146787",
-  zalopay: "0931146787"
+  vpbank: "0395939035",
+  momo: "0395939035",
+  zalopay: "0395939035"
 };
 
 // === HÀM HELPER: LẤY ẢNH THEO VARIANT ===
@@ -51,7 +51,7 @@ export default function Checkout() {
     note: ""
   });
   
-  const [selectedMethod, setSelectedMethod] = useState("Vietcombank");
+  const [selectedMethod, setSelectedMethod] = useState("VPBank");
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
@@ -353,14 +353,14 @@ export default function Checkout() {
 
   const getPaymentDetails = () => {
     switch (selectedMethod) {
-      case 'Vietcombank':
-        return { label: "Vietcombank", number: PAYMENT_INFO.vietcombank };
+      case 'VPBank':
+        return { label: "VPBank", number: PAYMENT_INFO.VPBank };
       case 'Momo':
         return { label: "Momo", number: PAYMENT_INFO.momo };
       case 'Zalopay':
         return { label: "Zalopay", number: PAYMENT_INFO.zalopay };
       default:
-        return { label: "Vietcombank", number: PAYMENT_INFO.vietcombank };
+        return { label: "VPBank", number: PAYMENT_INFO.VPBank };
     }
   };
   
