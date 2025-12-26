@@ -429,26 +429,23 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Nút Mua */}
+            {/* Nút Mua - Luôn hiện */}
             <div className="space-y-2">
-              {(isExpired || availableStock === 0) ? (
-                <>
-                  <Button disabled className="w-full bg-slate-100 text-slate-400 gap-2 h-11 text-sm font-medium" size="lg">
-                    {isExpired ? <CalendarOff className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-                    {isExpired ? "Đã hết hạn order" : "Hết hàng tạm thời"}
-                  </Button>
-                  <ProductNotificationForm productId={product.id} productName={product.name} />
-                </>
-              ) : (
-                <Button 
-                  onClick={handleAddToCart} 
-                  className="w-full bg-primary hover:bg-primary/90 text-white gap-2 shadow-lg shadow-primary/20 h-11 text-base font-semibold" 
-                  size="lg"
-                  disabled={product.variants.length > 0 && !selectedVariant}
-                >
-                  <ShoppingCart className="h-5 w-5" /> Thêm vào giỏ
-                </Button>
+              <Button 
+                onClick={handleAddToCart} 
+                className="w-full bg-primary hover:bg-primary/90 text-white gap-2 shadow-lg shadow-primary/20 h-11 text-base font-semibold" 
+                size="lg"
+                disabled={isExpired || availableStock === 0}
+              >
+                <ShoppingCart className="h-5 w-5" /> 
+                {isExpired ? "Đã hết hạn order" : availableStock === 0 ? "Hết hàng tạm thời" : "Thêm vào giỏ"}
+              </Button>
+              
+              {/* Form đăng ký thông báo khi hết hàng hoặc hết hạn */}
+              {(isExpired || availableStock === 0) && (
+                <ProductNotificationForm productId={product.id} productName={product.name} />
               )}
+              
               <Button onClick={() => navigate("/products")} variant="ghost" className="w-full h-9 text-xs text-muted-foreground hover:text-foreground">Xem thêm sản phẩm khác</Button>
             </div>
           </div>
