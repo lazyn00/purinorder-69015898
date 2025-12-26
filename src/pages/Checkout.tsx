@@ -354,7 +354,7 @@ export default function Checkout() {
   const getPaymentDetails = () => {
     switch (selectedMethod) {
       case 'VPBank':
-        return { label: "VPBank", number: PAYMENT_INFO.VPBank };
+        return { label: "VPBank", number: PAYMENT_INFO.vpbank };
       case 'Momo':
         return { label: "Momo", number: PAYMENT_INFO.momo };
       case 'Zalopay':
