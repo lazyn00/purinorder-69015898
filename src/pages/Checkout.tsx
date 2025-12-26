@@ -360,7 +360,7 @@ export default function Checkout() {
       case 'Zalopay':
         return { label: "Zalopay", number: PAYMENT_INFO.zalopay };
       default:
-        return { label: "VPBank", number: PAYMENT_INFO.VPBank };
+        return { label: "VPBank", number: PAYMENT_INFO.vpbank };
     }
   };
   
