@@ -1,3 +1,4 @@
+import React from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -52,6 +53,10 @@ export default function ProductDetail() {
   
   // Thay đổi 3: Thêm state viewCount
   const [viewCount, setViewCount] = useState(0);
+  
+  // State để highlight phân loại khi chưa chọn
+  const [highlightVariant, setHighlightVariant] = useState(false);
+  const variantRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isLoading && products.length > 0) {
@@ -176,6 +181,10 @@ export default function ProductDetail() {
 
     if (!isReadyToAdd) {
       toast({ title: "Vui lòng chọn phân loại", description: "Bạn cần chọn phân loại sản phẩm", variant: "destructive" });
+      // Scroll và highlight phần chọn phân loại
+      setHighlightVariant(true);
+      variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => setHighlightVariant(false), 2000);
       return;
     }
     if (availableStock !== undefined && quantity > availableStock) {
@@ -340,7 +349,10 @@ export default function ProductDetail() {
             </div>
 
             {/* Phân loại */}
-            <div className="space-y-3 pt-2">
+            <div 
+              ref={variantRef}
+              className={`space-y-3 pt-2 transition-all duration-300 ${highlightVariant ? 'ring-2 ring-primary ring-offset-2 rounded-lg p-2 bg-primary/5 animate-pulse' : ''}`}
+            >
               {product.optionGroups && product.optionGroups.length > 0 && (
                 product.optionGroups.map((group) => (
                   <div key={group.name}>

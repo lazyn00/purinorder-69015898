@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          order_id: string
+          order_number: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          order_id: string
+          order_number?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          order_id?: string
+          order_number?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
@@ -122,6 +152,24 @@ export type Database = {
           notified_at?: string | null
           product_id?: number
           product_name?: string
+        }
+        Relationships: []
+      }
+      product_views: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: number
         }
         Relationships: []
       }
