@@ -7,9 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
-  vietcombank: "0441000787416",
-  momo: "0931146787",
-  zalopay: "0931146787"
+  vpbank: "0395939035",
+  momo: "0395939035",
+  zalopay: "0395939035"
 };
 
 export default function Contact() {
@@ -54,10 +54,10 @@ export default function Contact() {
                 <Button
                   variant="outline"
                   className="w-full justify-between h-auto py-3"
-                  onClick={() => handleCopy("Vietcombank", PAYMENT_INFO.vietcombank)}
+                  onClick={() => handleCopy("VPBank", PAYMENT_INFO.vpbank)}
                 >
-                  <span className="font-medium">Vietcombank</span>
-                  {copiedItem === "Vietcombank" ? (
+                  <span className="font-medium">VPBank</span>
+                  {copiedItem === "VPBank" ? (
                     <Check className="h-4 w-4 text-green-600" />
                   ) : (
                     <Copy className="h-4 w-4" />
