@@ -128,30 +128,33 @@ export type Database = {
       product_notifications: {
         Row: {
           created_at: string | null
-          email: string
+          email: string | null
           id: string
           notified: boolean | null
           notified_at: string | null
           product_id: number
           product_name: string
+          social_link: string | null
         }
         Insert: {
           created_at?: string | null
-          email: string
+          email?: string | null
           id?: string
           notified?: boolean | null
           notified_at?: string | null
           product_id: number
           product_name: string
+          social_link?: string | null
         }
         Update: {
           created_at?: string | null
-          email?: string
+          email?: string | null
           id?: string
           notified?: boolean | null
           notified_at?: string | null
           product_id?: number
           product_name?: string
+          social_link?: string | null
         }
         Relationships: []
       }

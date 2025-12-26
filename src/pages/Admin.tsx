@@ -126,7 +126,8 @@ interface ProductNotification {
   id: string;
   product_id: number;
   product_name: string;
-  email: string;
+  email: string | null;
+  social_link: string | null;
   notified: boolean;
   created_at: string;
 }
@@ -162,6 +163,7 @@ export default function Admin() {
   const [notifications, setNotifications] = useState<ProductNotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
+  const [productSearchTerm, setProductSearchTerm] = useState("");
   
   // ========== THÊM STATE CHO THÔNG BÁO ADMIN ==========
   const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
@@ -272,6 +274,9 @@ export default function Admin() {
       .sort((a, b) => b.value - a.value);
   }, [productStats]);
 
+  // State cho khoảng thời gian thống kê
+  const [revenuePeriod, setRevenuePeriod] = useState<'7d' | '30d' | '3m' | '1y'>('7d');
+
   // Tính toán thống kê doanh thu
   const statistics = useMemo(() => {
     const totalRevenue = orders.reduce((sum, order) => {
@@ -291,25 +296,75 @@ export default function Admin() {
       return acc;
     }, {} as Record<string, number>);
 
-    // Doanh thu theo ngày (7 ngày gần nhất)
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
+    // Tính số ngày dựa theo khoảng thời gian
+    const getDaysCount = () => {
+      switch (revenuePeriod) {
+        case '7d': return 7;
+        case '30d': return 30;
+        case '3m': return 90;
+        case '1y': return 365;
+        default: return 7;
+      }
+    };
+
+    const daysCount = getDaysCount();
+    const dateList = Array.from({ length: daysCount }, (_, i) => {
       const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
+      date.setDate(date.getDate() - (daysCount - 1 - i));
       return date.toISOString().split('T')[0];
     });
 
-    const revenueByDay = last7Days.map(date => {
+    // Nhóm dữ liệu theo ngày hoặc tháng tùy khoảng thời gian
+    const getGroupKey = (dateStr: string) => {
+      const date = new Date(dateStr);
+      if (revenuePeriod === '1y') {
+        return date.toLocaleDateString('vi-VN', { month: '2-digit', year: '2-digit' });
+      } else if (revenuePeriod === '3m') {
+        // Nhóm theo tuần
+        const weekNum = Math.floor((new Date().getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        return `T${Math.floor((daysCount - weekNum * 7) / 7)}`;
+      }
+      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    };
+
+    const revenueMap = new Map<string, { revenue: number; orders: number }>();
+
+    dateList.forEach(date => {
+      const key = getGroupKey(date);
       const dayOrders = orders.filter(order => {
         const orderDate = new Date(order.created_at).toISOString().split('T')[0];
         return orderDate === date && order.order_progress !== 'Đã huỷ';
       });
       const revenue = dayOrders.reduce((sum, order) => sum + order.total_price, 0);
-      return {
-        date: new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-        revenue: revenue / 1000,
-        orders: dayOrders.length
-      };
+      
+      const existing = revenueMap.get(key) || { revenue: 0, orders: 0 };
+      revenueMap.set(key, {
+        revenue: existing.revenue + revenue,
+        orders: existing.orders + dayOrders.length
+      });
     });
+
+    const revenueByDay = Array.from(revenueMap.entries()).map(([date, data]) => ({
+      date,
+      revenue: data.revenue / 1000,
+      orders: data.orders
+    }));
+
+    // Tính doanh thu theo khoảng thời gian được chọn
+    const periodStartDate = new Date();
+    periodStartDate.setDate(periodStartDate.getDate() - daysCount);
+    
+    const periodRevenue = orders
+      .filter(order => {
+        const orderDate = new Date(order.created_at);
+        return orderDate >= periodStartDate && order.order_progress !== 'Đã huỷ';
+      })
+      .reduce((sum, order) => sum + order.total_price, 0);
+
+    const periodOrders = orders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate >= periodStartDate;
+    }).length;
 
     // Phân bố thanh toán
     const paymentDistribution = Object.entries(paymentStatusCounts)
@@ -329,6 +384,8 @@ export default function Admin() {
 
     return {
       totalRevenue,
+      periodRevenue,
+      periodOrders,
       totalOrders: orders.length,
       paymentStatusCounts,
       progressCounts,
@@ -336,7 +393,7 @@ export default function Admin() {
       paymentDistribution,
       progressDistribution
     };
-  }, [orders]);
+  }, [orders, revenuePeriod]);
 
   // Tính toán tiền công và tiền chênh theo từng sản phẩm/variant
   const costStatistics = useMemo(() => {
@@ -1188,8 +1245,27 @@ ${generateEmailContent(order)}
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
+              {/* Bộ lọc thời gian */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: '7d', label: '7 ngày' },
+                  { value: '30d', label: '30 ngày' },
+                  { value: '3m', label: '3 tháng' },
+                  { value: '1y', label: '1 năm' }
+                ].map((period) => (
+                  <Button
+                    key={period.value}
+                    variant={revenuePeriod === period.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setRevenuePeriod(period.value as any)}
+                  >
+                    {period.label}
+                  </Button>
+                ))}
+              </div>
+
               {/* Tổng quan */}
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
@@ -1200,22 +1276,37 @@ ${generateEmailContent(order)}
                       {statistics.totalRevenue.toLocaleString('vi-VN')}đ
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Không tính đơn đã huỷ
+                      Tất cả (không tính huỷ)
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Doanh thu kỳ này</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-primary">
+                      {statistics.periodRevenue.toLocaleString('vi-VN')}đ
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {revenuePeriod === '7d' ? '7 ngày' : revenuePeriod === '30d' ? '30 ngày' : revenuePeriod === '3m' ? '3 tháng' : '1 năm'} gần nhất
                     </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Tổng đơn hàng</CardTitle>
+                    <CardTitle className="text-sm font-medium">Đơn kỳ này</CardTitle>
                     <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-primary">
-                      {statistics.totalOrders}
+                      {statistics.periodOrders}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Tất cả đơn hàng
+                      Trong {revenuePeriod === '7d' ? '7 ngày' : revenuePeriod === '30d' ? '30 ngày' : revenuePeriod === '3m' ? '3 tháng' : '1 năm'}
                     </p>
                   </CardContent>
                 </Card>
@@ -1240,7 +1331,9 @@ ${generateEmailContent(order)}
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm sm:text-base">Doanh thu 7 ngày gần nhất</CardTitle>
+                    <CardTitle className="text-sm sm:text-base">
+                      Doanh thu {revenuePeriod === '7d' ? '7 ngày' : revenuePeriod === '30d' ? '30 ngày' : revenuePeriod === '3m' ? '3 tháng' : '1 năm'} gần nhất
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="px-2 sm:px-6">
                     <ResponsiveContainer width="100%" height={250}>
@@ -1250,7 +1343,7 @@ ${generateEmailContent(order)}
                         <YAxis tick={{ fontSize: 10 }} />
                         <Tooltip 
                           formatter={(value: number) => `${(value * 1000).toLocaleString('vi-VN')}đ`}
-                          labelFormatter={(label) => `Ngày ${label}`}
+                          labelFormatter={(label) => `${label}`}
                         />
                         <Legend wrapperStyle={{ fontSize: '12px' }} />
                         <Bar dataKey="revenue" fill="hsl(var(--primary))" name="Doanh thu (k)" />
@@ -1351,22 +1444,42 @@ ${generateEmailContent(order)}
               </div>
 
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Danh sách sản phẩm đã bán</CardTitle>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Tìm sản phẩm..."
+                      value={productSearchTerm}
+                      onChange={(e) => setProductSearchTerm(e.target.value)}
+                      className="pl-10 h-9"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    {productStats.map((product) => (
-                      <div key={product.name} className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 p-3 border rounded">
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {productStats
+                      .filter(product => 
+                        productSearchTerm === '' ||
+                        product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+                        product.productName.toLowerCase().includes(productSearchTerm.toLowerCase())
+                      )
+                      .map((product) => (
+                      <div key={product.name} className="flex items-center justify-between gap-2 p-2 border rounded hover:bg-muted/50">
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm sm:text-base break-words">{product.name}</p>
-                          <p className="text-xs sm:text-sm text-muted-foreground break-words">{product.productName}</p>
+                          <p className="font-medium text-sm truncate">{product.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{product.productName}</p>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-bold text-sm sm:text-base">{product.count} sp</p>
-                        </div>
+                        <Badge variant="secondary" className="shrink-0">{product.count}</Badge>
                       </div>
                     ))}
+                    {productStats.filter(product => 
+                      productSearchTerm === '' ||
+                      product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+                      product.productName.toLowerCase().includes(productSearchTerm.toLowerCase())
+                    ).length === 0 && (
+                      <p className="text-center text-muted-foreground py-4">Không tìm thấy sản phẩm</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1872,9 +1985,24 @@ ${generateEmailContent(order)}
                                     className="flex items-center justify-between p-2 rounded-lg border bg-card text-sm"
                                   >
                                     <div className="flex items-center gap-3">
-                                      <Mail className="h-4 w-4 text-muted-foreground" />
+                                      {notif.social_link ? (
+                                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                                      ) : (
+                                        <Mail className="h-4 w-4 text-muted-foreground" />
+                                      )}
                                       <div>
-                                        <div className="font-medium">{notif.email}</div>
+                                        <div className="font-medium">
+                                          {notif.social_link ? (
+                                            <a 
+                                              href={notif.social_link.startsWith('http') ? notif.social_link : `https://${notif.social_link}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-primary hover:underline"
+                                            >
+                                              {notif.social_link}
+                                            </a>
+                                          ) : notif.email || "N/A"}
+                                        </div>
                                         <div className="text-xs text-muted-foreground">
                                           Đăng ký: {new Date(notif.created_at).toLocaleDateString('vi-VN')}
                                         </div>
