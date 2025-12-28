@@ -52,9 +52,9 @@ const getStatusColor = (status: string) => {
     case "Chưa thanh toán":
       return "bg-red-100 text-red-800 border-red-200";
     case "Đang xác nhận thanh toán":
-      return "bg-blue-50 text-blue-700 border-blue-200"; // MỚI
+      return "bg-blue-50 text-blue-700 border-blue-200";
     case "Đang xác nhận cọc":
-      return "bg-blue-50 text-blue-700 border-blue-200"; // MỚI
+      return "bg-blue-50 text-blue-700 border-blue-200";
     case "Đã thanh toán":
       return "bg-green-100 text-green-800 border-green-200";
     case "Đã cọc":
@@ -454,10 +454,11 @@ export default function TrackOrder() {
                         <div className="text-xs text-amber-700 dark:text-amber-300">
                           <span className="font-medium">⏰ Deadline hoàn cọc: </span>
                           {(() => {
-                            // Deadline là 7 ngày sau ngày đặt hàng
+                            // Deadline là 1 tháng sau ngày đặt hàng
                             const orderDate = new Date(order.created_at);
                             const deadline = new Date(orderDate);
-                            deadline.setDate(deadline.getDate() + 7);
+                            deadline.setMonth(deadline.getMonth() + 1); // CẬP NHẬT Ở ĐÂY
+                            
                             const now = new Date();
                             const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                             
@@ -465,7 +466,7 @@ export default function TrackOrder() {
                               return <span className="text-red-500 font-bold">Đã quá hạn!</span>;
                             } else if (daysLeft === 0) {
                               return <span className="text-red-500 font-bold">Hôm nay!</span>;
-                            } else if (daysLeft <= 2) {
+                            } else if (daysLeft <= 3) {
                               return <span className="text-orange-500 font-bold">{deadline.toLocaleDateString('vi-VN')} (còn {daysLeft} ngày)</span>;
                             }
                             return <span>{deadline.toLocaleDateString('vi-VN')} (còn {daysLeft} ngày)</span>;
