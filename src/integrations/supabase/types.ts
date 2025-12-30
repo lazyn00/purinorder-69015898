@@ -46,6 +46,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          agree_cancel_low_quantity: boolean | null
           created_at: string
           customer_email: string | null
           customer_fb: string | null
@@ -72,6 +73,7 @@ export type Database = {
           tracking_code: string | null
         }
         Insert: {
+          agree_cancel_low_quantity?: boolean | null
           created_at?: string
           customer_email?: string | null
           customer_fb?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           tracking_code?: string | null
         }
         Update: {
+          agree_cancel_low_quantity?: boolean | null
           created_at?: string
           customer_email?: string | null
           customer_fb?: string | null
@@ -274,6 +277,75 @@ export type Database = {
           total?: number | null
           updated_at?: string | null
           variant_image_map?: Json | null
+          variants?: Json | null
+        }
+        Relationships: []
+      }
+      user_listings: {
+        Row: {
+          admin_note: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          images: Json
+          listing_code: string
+          name: string
+          price: number | null
+          product_id: number | null
+          seller_account_name: string
+          seller_bank_account: string
+          seller_bank_name: string
+          seller_phone: string
+          seller_social: string
+          status: string
+          subcategory: string
+          tag: string
+          updated_at: string
+          variants: Json | null
+        }
+        Insert: {
+          admin_note?: string | null
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: Json
+          listing_code: string
+          name: string
+          price?: number | null
+          product_id?: number | null
+          seller_account_name: string
+          seller_bank_account: string
+          seller_bank_name: string
+          seller_phone: string
+          seller_social: string
+          status?: string
+          subcategory: string
+          tag: string
+          updated_at?: string
+          variants?: Json | null
+        }
+        Update: {
+          admin_note?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: Json
+          listing_code?: string
+          name?: string
+          price?: number | null
+          product_id?: number | null
+          seller_account_name?: string
+          seller_bank_account?: string
+          seller_bank_name?: string
+          seller_phone?: string
+          seller_social?: string
+          status?: string
+          subcategory?: string
+          tag?: string
+          updated_at?: string
           variants?: Json | null
         }
         Relationships: []
