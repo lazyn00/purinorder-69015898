@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +145,29 @@ interface ProductData {
   variants?: any[];
 }
 
+interface UserListing {
+  id: string;
+  listing_code: string;
+  name: string;
+  description: string | null;
+  category: string;
+  subcategory: string;
+  tag: string;
+  price: number | null;
+  images: string[];
+  variants: { name: string; price: number }[] | null;
+  seller_phone: string;
+  seller_social: string;
+  seller_bank_name: string;
+  seller_bank_account: string;
+  seller_account_name: string;
+  status: string;
+  admin_note: string | null;
+  product_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
@@ -164,6 +187,15 @@ export default function Admin() {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  
+  // ========== STATE CHO QUẢN LÝ ĐĂNG BÁN ==========
+  const [userListings, setUserListings] = useState<UserListing[]>([]);
+  const [loadingListings, setLoadingListings] = useState(false);
+  const [listingStatusFilter, setListingStatusFilter] = useState<string>("all");
+  const [listingSearchTerm, setListingSearchTerm] = useState("");
+  const [expandedListingId, setExpandedListingId] = useState<string | null>(null);
+  const [adminNoteInputs, setAdminNoteInputs] = useState<{[key: string]: string}>({});
+  // ================================================
   
   // ========== THÊM STATE CHO THÔNG BÁO ADMIN ==========
   const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
@@ -1028,7 +1060,126 @@ ${generateEmailContent(order)}
     }
   };
 
-  // ========== HELPER: LẤY ICON CHO LOẠI THÔNG BÁO ==========
+  // ========== FETCH USER LISTINGS ==========
+  const fetchUserListings = async () => {
+    setLoadingListings(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_listings')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUserListings((data as any) || []);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách đăng bán",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingListings(false);
+    }
+  };
+
+  // ========== UPDATE LISTING STATUS ==========
+  const updateListingStatus = async (listingId: string, newStatus: string) => {
+    try {
+      const updateData: any = { status: newStatus };
+      const adminNote = adminNoteInputs[listingId];
+      if (adminNote) {
+        updateData.admin_note = adminNote;
+      }
+
+      const { error } = await supabase
+        .from('user_listings')
+        .update(updateData)
+        .eq('id', listingId);
+
+      if (error) throw error;
+
+      setUserListings(listings => 
+        listings.map(l => l.id === listingId ? { ...l, ...updateData } : l)
+      );
+
+      toast({
+        title: "Cập nhật thành công",
+        description: `Trạng thái: ${newStatus}`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật trạng thái",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ========== DELETE LISTING ==========
+  const deleteListing = async (listingId: string) => {
+    if (!confirm("Bạn có chắc muốn xóa bài đăng này?")) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_listings')
+        .delete()
+        .eq('id', listingId);
+
+      if (error) throw error;
+
+      setUserListings(listings => listings.filter(l => l.id !== listingId));
+
+      toast({
+        title: "Đã xóa",
+        description: "Bài đăng đã được xóa",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa bài đăng",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ========== FILTERED LISTINGS ==========
+  const filteredListings = useMemo(() => {
+    return userListings.filter(listing => {
+      const matchesSearch = listingSearchTerm === "" ||
+        listing.name.toLowerCase().includes(listingSearchTerm.toLowerCase()) ||
+        listing.listing_code.toLowerCase().includes(listingSearchTerm.toLowerCase()) ||
+        listing.seller_phone.includes(listingSearchTerm);
+      
+      const matchesStatus = listingStatusFilter === "all" || listing.status === listingStatusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [userListings, listingSearchTerm, listingStatusFilter]);
+
+  const getListingStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      case 'sold': return 'bg-blue-100 text-blue-800 border-blue-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getListingStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Chờ duyệt';
+      case 'approved': return 'Đã duyệt';
+      case 'rejected': return 'Từ chối';
+      case 'sold': return 'Đã bán';
+      default: return status;
+    }
+  };
+  // ==========================================
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'new_order':
@@ -1238,6 +1389,14 @@ ${generateEmailContent(order)}
               </TabsTrigger>
               <TabsTrigger value="orders" className="h-10 w-10 p-0" title="Đơn hàng">
                 <ShoppingCart className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="listings" onClick={fetchUserListings} className="h-10 w-10 p-0 relative" title="Duyệt sản phẩm đăng bán">
+                <ClipboardList className="h-5 w-5" />
+                {userListings.filter(l => l.status === 'pending').length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 text-[10px] rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
+                    {userListings.filter(l => l.status === 'pending').length}
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="notifications" onClick={fetchNotifications} className="h-10 w-10 p-0" title="Thông báo sản phẩm">
                 <Mail className="h-5 w-5" />
@@ -2015,6 +2174,243 @@ ${generateEmailContent(order)}
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* ========== TAB DUYỆT SẢN PHẨM ĐĂNG BÁN ========== */}
+            <TabsContent value="listings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5" />
+                    Quản lý sản phẩm đăng bán
+                  </CardTitle>
+                  <CardDescription>
+                    Duyệt và quản lý các bài đăng bán từ người dùng
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Filters */}
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Tìm theo tên, mã bài, SĐT..."
+                        value={listingSearchTerm}
+                        onChange={(e) => setListingSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Select value={listingStatusFilter} onValueChange={setListingStatusFilter}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Trạng thái" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả</SelectItem>
+                        <SelectItem value="pending">Chờ duyệt</SelectItem>
+                        <SelectItem value="approved">Đã duyệt</SelectItem>
+                        <SelectItem value="rejected">Từ chối</SelectItem>
+                        <SelectItem value="sold">Đã bán</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {loadingListings ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : filteredListings.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Chưa có bài đăng nào
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredListings.map((listing) => (
+                        <Card key={listing.id} className="overflow-hidden">
+                          <div className="p-4">
+                            <div className="flex flex-col md:flex-row gap-4">
+                              {/* Images */}
+                              <div className="flex gap-2 flex-shrink-0">
+                                {(listing.images as string[]).slice(0, 3).map((img, idx) => (
+                                  <a key={idx} href={img} target="_blank" rel="noopener noreferrer">
+                                    <img 
+                                      src={img} 
+                                      alt={`${listing.name} ${idx + 1}`}
+                                      className="w-16 h-16 object-cover rounded border hover:opacity-80 transition"
+                                    />
+                                  </a>
+                                ))}
+                                {(listing.images as string[]).length > 3 && (
+                                  <div className="w-16 h-16 rounded border bg-muted flex items-center justify-center text-sm text-muted-foreground">
+                                    +{(listing.images as string[]).length - 3}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <h3 className="font-semibold text-lg">{listing.name}</h3>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                      <span className="font-mono">{listing.listing_code}</span>
+                                      <span>•</span>
+                                      <span>{listing.category} / {listing.subcategory}</span>
+                                      <span>•</span>
+                                      <Badge variant="outline">{listing.tag}</Badge>
+                                    </div>
+                                  </div>
+                                  <Badge className={getListingStatusColor(listing.status)}>
+                                    {getListingStatusLabel(listing.status)}
+                                  </Badge>
+                                </div>
+
+                                {listing.description && (
+                                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                                    {listing.description}
+                                  </p>
+                                )}
+
+                                {/* Price / Variants */}
+                                <div className="mt-2">
+                                  {listing.variants && listing.variants.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {(listing.variants as { name: string; price: number }[]).map((v, idx) => (
+                                        <Badge key={idx} variant="secondary" className="text-xs">
+                                          {v.name}: {v.price.toLocaleString('vi-VN')}đ
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  ) : listing.price ? (
+                                    <span className="font-semibold text-primary">
+                                      {listing.price.toLocaleString('vi-VN')}đ
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">Liên hệ</span>
+                                  )}
+                                </div>
+
+                                {/* Seller Info */}
+                                <div className="mt-3 pt-3 border-t">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-0 text-sm"
+                                    onClick={() => setExpandedListingId(
+                                      expandedListingId === listing.id ? null : listing.id
+                                    )}
+                                  >
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    {expandedListingId === listing.id ? 'Ẩn' : 'Xem'} thông tin người bán
+                                  </Button>
+
+                                  {expandedListingId === listing.id && (
+                                    <div className="mt-2 p-3 bg-muted/50 rounded-lg text-sm space-y-1">
+                                      <p><strong>SĐT:</strong> {listing.seller_phone}</p>
+                                      <p>
+                                        <strong>MXH:</strong>{' '}
+                                        <a 
+                                          href={listing.seller_social.startsWith('http') ? listing.seller_social : `https://${listing.seller_social}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:underline"
+                                        >
+                                          {listing.seller_social}
+                                        </a>
+                                      </p>
+                                      <p><strong>Ngân hàng:</strong> {listing.seller_bank_name}</p>
+                                      <p><strong>STK:</strong> {listing.seller_bank_account}</p>
+                                      <p><strong>Tên TK:</strong> {listing.seller_account_name}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Đăng lúc: {new Date(listing.created_at).toLocaleString('vi-VN')}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Admin Actions */}
+                                <div className="mt-3 pt-3 border-t flex flex-wrap items-center gap-2">
+                                  <Input
+                                    placeholder="Ghi chú admin..."
+                                    className="flex-1 h-8 text-sm min-w-[150px]"
+                                    value={adminNoteInputs[listing.id] ?? (listing.admin_note || "")}
+                                    onChange={(e) => setAdminNoteInputs({
+                                      ...adminNoteInputs,
+                                      [listing.id]: e.target.value
+                                    })}
+                                  />
+                                  
+                                  {listing.status === 'pending' && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        className="gap-1"
+                                        onClick={() => updateListingStatus(listing.id, 'approved')}
+                                      >
+                                        <Check className="h-4 w-4" />
+                                        Duyệt
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        className="gap-1"
+                                        onClick={() => updateListingStatus(listing.id, 'rejected')}
+                                      >
+                                        <X className="h-4 w-4" />
+                                        Từ chối
+                                      </Button>
+                                    </>
+                                  )}
+
+                                  {listing.status === 'approved' && (
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => updateListingStatus(listing.id, 'sold')}
+                                    >
+                                      Đánh dấu đã bán
+                                    </Button>
+                                  )}
+
+                                  <Select
+                                    value={listing.status}
+                                    onValueChange={(value) => updateListingStatus(listing.id, value)}
+                                  >
+                                    <SelectTrigger className="w-[120px] h-8">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="pending">Chờ duyệt</SelectItem>
+                                      <SelectItem value="approved">Đã duyệt</SelectItem>
+                                      <SelectItem value="rejected">Từ chối</SelectItem>
+                                      <SelectItem value="sold">Đã bán</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => deleteListing(listing.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+
+                                {listing.admin_note && (
+                                  <div className="mt-2 text-sm text-muted-foreground italic">
+                                    Ghi chú: {listing.admin_note}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            {/* ================================================== */}
           </Tabs>
         )}
       </div>
