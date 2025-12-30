@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Upload, Facebook } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext"; // Import CartItem
@@ -43,6 +44,8 @@ export default function Checkout() {
     email: "",
     phone: ""
   });
+  
+  const [agreeCancelLowQuantity, setAgreeCancelLowQuantity] = useState(false);
   
   const [deliveryInfo, setDeliveryInfo] = useState({
     name: "",
@@ -557,6 +560,20 @@ export default function Checkout() {
           </div>
 
           <div className="rounded-lg border p-6 space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox 
+                id="agree-cancel"
+                checked={agreeCancelLowQuantity}
+                onCheckedChange={(checked) => setAgreeCancelLowQuantity(checked as boolean)}
+                className="mt-0.5"
+              />
+              <span className="text-sm text-muted-foreground leading-relaxed">
+                Nếu số lượng gom ít, phụ thu cao sẽ huỷ đơn
+              </span>
+            </label>
+            
+            <Separator />
+            
             <div className="flex justify-between items-center text-lg font-medium">
               <span>Tổng cộng:</span>
               <span className="text-2xl font-bold text-primary">
