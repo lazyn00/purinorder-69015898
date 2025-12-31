@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react"; // Thêm useMemo
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Filter, ArrowUpDown, Search, ArrowLeft } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { useParams, useNavigate } from "react-router-dom";
+// 1. Thêm import supabase
+import { supabase } from "@/integrations/supabase/client";
 
-// Cập nhật interface Product để bao gồm isUserListing
+// Interface Product
 interface Product {
     id: number;
     name: string;
@@ -22,7 +24,25 @@ interface Product {
     status?: string;
     orderDeadline?: string | null;
     stock?: number;
-    isUserListing?: boolean; // Thêm trường này
+    isUserListing?: boolean;
+    listingId?: string; // Thêm trường này
+    listingCode?: string; // Thêm trường này
+}
+
+// 2. Định nghĩa Interface cho User Listing từ Supabase
+interface UserListing {
+  id: string;
+  listing_code: string;
+  name: string;
+  description: string | null;
+  category: string;
+  subcategory: string;
+  tag: string;
+  price: number | null;
+  images: string[];
+  variants: { name: string; price: number }[] | null;
+  status: string;
+  created_at: string;
 }
 
 const CATEGORY_MAP: { [key: string]: string } = {
@@ -30,7 +50,6 @@ const CATEGORY_MAP: { [key: string]: string } = {
   "merch": "Merch",
   "fashion": "Thời Trang",
   "khac": "Khác",
-  // Không cần map pass-gom ở đây vì logic lọc sẽ xử lý riêng
 };
 
 const CATEGORY_TITLES: { [key: string]: string } = {
@@ -38,33 +57,51 @@ const CATEGORY_TITLES: { [key: string]: string } = {
   "merch": "Merch",
   "fashion": "Thời Trang",
   "khac": "Khác",
-  "pass-gom": "Pass / Gom" // Thêm tiêu đề cho trang Pass/Gom
+  "pass-gom": "Mua bán trao đổi"
 };
 
-// === HÀM HELPER: KIỂM TRA TỒN KHO ===
+// 3. Hàm chuyển đổi User Listing thành Product (Copy từ Products.tsx)
+const convertListingToProduct = (listing: UserListing): Product => {
+  const variants = listing.variants || [];
+  const minPrice = variants.length > 0 
+    ? Math.min(...variants.map(v => v.price))
+    : (listing.price || 0);
+  
+  return {
+    id: -parseInt(listing.id.replace(/-/g, '').slice(0, 8), 16),
+    name: listing.name,
+    price: listing.price || minPrice,
+    images: listing.images as string[],
+    category: listing.category,
+    subcategory: listing.subcategory,
+    artist: '',
+    variants: variants.map(v => ({ name: v.name, price: v.price })),
+    status: listing.tag, 
+    orderDeadline: null,
+    stock: 1, 
+    isUserListing: true,
+    listingId: listing.id,
+    listingCode: listing.listing_code,
+  } as Product;
+};
+
 const getAvailableStock = (product: Product): number => {
-    // User listing luôn available nếu được hiển thị (đã lọc approved ở context/fetching)
     if (product.isUserListing) return 1;
 
     const hasVariantStock = product.variants?.some(v => v.stock !== undefined);
-    
     if (hasVariantStock) {
         return product.variants
             ?.filter(v => v.stock !== undefined)
             .reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
     } 
-
-    if (product.stock === undefined || product.stock === null) {
-        return 999999; 
-    }
-    
+    if (product.stock === undefined || product.stock === null) return 999999;
     return product.stock;
 }
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
-  const { products, isLoading } = useCart();
+  const { products: contextProducts, isLoading: isContextLoading } = useCart(); // Đổi tên biến để tránh nhầm lẫn
   
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [selectedArtist, setSelectedArtist] = useState<string>("all");
@@ -72,32 +109,61 @@ export default function CategoryPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const productsPerPage = 50;
+  
+  // 4. State để lưu user listings fetched từ Supabase
+  const [userListings, setUserListings] = useState<UserListing[]>([]);
+  const [loadingListings, setLoadingListings] = useState(true);
 
   const categoryName = category ? CATEGORY_MAP[category] : "";
   
-  // === LOGIC LỌC SẢN PHẨM THEO DANH MỤC ===
-  const categoryProducts = products.filter((p: any) => {
+  // 5. Fetch User Listings từ Supabase
+  useEffect(() => {
+    const fetchUserListings = async () => {
+      try {
+        // Chỉ fetch nếu đang ở trang Pass/Gom hoặc muốn hiển thị chung (tùy logic, ở đây fetch hết cho chắc)
+        const { data, error } = await supabase
+          .from('user_listings')
+          .select('*')
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setUserListings((data as any) || []);
+      } catch (error) {
+        console.error('Error fetching user listings:', error);
+      } finally {
+        setLoadingListings(false);
+      }
+    };
+
+    fetchUserListings();
+  }, []);
+
+  // 6. Gộp Context Products và User Listings
+  const allProducts = useMemo(() => {
+    const convertedListings = userListings.map(convertListingToProduct);
+    return [...contextProducts, ...convertedListings];
+  }, [contextProducts, userListings]);
+
+  // === LOGIC LỌC SẢN PHẨM ===
+  const categoryProducts = allProducts.filter((p: any) => {
     if (category === 'pass-gom') {
-        // Nếu đang ở trang Pass/Gom, lọc các sản phẩm là User Listing
         return p.isUserListing === true;
     }
-    // Ngược lại lọc theo tên danh mục thông thường, và LOẠI TRỪ user listing (để không bị trùng)
+    // Lọc theo category thường VÀ loại trừ user listing (để tránh trùng lặp nếu logic khác thay đổi)
     return p.category === categoryName && !p.isUserListing;
   });
 
-  // Get unique subcategories and artists based on the filtered list
   const subcategories = ["all", ...Array.from(new Set(categoryProducts.map((p: any) => p.subcategory).filter(Boolean)))];
   const artists = ["all", ...Array.from(new Set(categoryProducts.map((p: any) => p.artist).filter(Boolean)))];
 
   const isProductAvailable = (product: Product) => {
     const availableStock = getAvailableStock(product);
     const hasStock = availableStock > 0;
-    // User listing không check deadline theo cách thông thường, hoặc deadline null
     const notExpired = !product.orderDeadline || new Date(product.orderDeadline) > new Date();
     return hasStock && notExpired;
   };
 
-  // Filter products by user selection (Subcategory, Artist, Search)
   let filteredProducts = categoryProducts.filter((product: any) => {
     const subcategoryMatch = selectedSubcategory === "all" || product.subcategory === selectedSubcategory;
     const artistMatch = selectedArtist === "all" || product.artist === selectedArtist;
@@ -108,7 +174,6 @@ export default function CategoryPage() {
     return subcategoryMatch && artistMatch && searchMatch;
   });
 
-  // Sort products
   filteredProducts = [...filteredProducts].sort((a: any, b: any) => {
     const aAvailable = isProductAvailable(a as Product);
     const bAvailable = isProductAvailable(b as Product);
@@ -123,10 +188,9 @@ export default function CategoryPage() {
     } else if (sortBy === "name") {
       return a.name.localeCompare(b.name);
     }
-    return Math.abs(b.id) - Math.abs(a.id); // User listing IDs are negative, using abs for magnitude comparison if needed, or just standard sort
+    return Math.abs(b.id) - Math.abs(a.id);
   });
 
-  // Pagination
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
   const endIndex = startIndex + productsPerPage;
@@ -136,7 +200,8 @@ export default function CategoryPage() {
     setCurrentPage(1);
   };
 
-  if (isLoading) {
+  // Check loading của cả 2 nguồn
+  if (isContextLoading || loadingListings) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center h-[50vh]">
@@ -146,7 +211,6 @@ export default function CategoryPage() {
     );
   }
 
-  // Tiêu đề hiển thị
   const displayTitle = category ? CATEGORY_TITLES[category] : "";
 
   return (
@@ -165,7 +229,7 @@ export default function CategoryPage() {
           <h1 className="text-4xl font-bold mb-4">{displayTitle}</h1>
           <p className="text-muted-foreground">
             {category === 'pass-gom' 
-                ? "Sản phẩm được đăng bán/gom bởi cộng đồng"
+                ? "Khám phá các sản phẩm đang tìm chủ"
                 : `Khám phá các sản phẩm ${displayTitle.toLowerCase()}`
             }
           </p>
