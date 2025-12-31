@@ -7,7 +7,6 @@ import { CategoryPreview } from "@/components/CategoryPreview";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Interface cho user listing từ Supabase
 interface UserListing {
   id: string;
   listing_code: string;
@@ -23,7 +22,6 @@ interface UserListing {
   created_at: string;
 }
 
-// Chuyển đổi UserListing thành Product format
 const convertListingToProduct = (listing: UserListing): Product => {
   const variants = listing.variants || [];
   const minPrice = variants.length > 0 
@@ -31,7 +29,7 @@ const convertListingToProduct = (listing: UserListing): Product => {
     : (listing.price || 0);
   
   return {
-    id: -parseInt(listing.id.replace(/-/g, '').slice(0, 8), 16), // Negative ID để phân biệt với products thường
+    id: -parseInt(listing.id.replace(/-/g, '').slice(0, 8), 16),
     name: listing.name,
     price: listing.price || minPrice,
     description: listing.description || '',
@@ -42,11 +40,10 @@ const convertListingToProduct = (listing: UserListing): Product => {
     variants: variants.map(v => ({ name: v.name, price: v.price })),
     optionGroups: [],
     feesIncluded: true,
-    status: listing.tag, // Pass hoặc Gom
+    status: listing.tag, 
     orderDeadline: null,
-    stock: 1, // Mặc định còn hàng
+    stock: 1, 
     priceDisplay: `${minPrice.toLocaleString('vi-VN')}đ`,
-    // Thêm thông tin để route đúng
     listingId: listing.id,
     listingCode: listing.listing_code,
     isUserListing: true,
@@ -59,7 +56,6 @@ export default function Products() {
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
 
-  // Fetch approved user listings
   useEffect(() => {
     const fetchUserListings = async () => {
       try {
@@ -81,54 +77,39 @@ export default function Products() {
     fetchUserListings();
   }, []);
 
-  // Chuyển đổi user listings thành products
   const listingProducts = useMemo(() => {
     return userListings.map(convertListingToProduct);
   }, [userListings]);
 
-  // Kết hợp products từ Google Sheet và user listings
   const allProducts = useMemo(() => {
     return [...products, ...listingProducts];
   }, [products, listingProducts]);
 
-  // === HÀM KIỂM TRA TÍNH KHẢ DỤNG CỦA SẢN PHẨM ===
   const isProductAvailable = (product: any) => {
-    // User listings luôn available nếu đã approved
     if (product.isUserListing) return true;
-    
-    // Kiểm tra deadline
     const notExpired = !product.orderDeadline || new Date(product.orderDeadline) > new Date();
-    
-    // Kiểm tra stock: nếu không có thông tin stock, coi là có hàng
     let hasStock = true;
     if (product.stock !== undefined && product.stock !== null) {
       hasStock = product.stock > 0;
     } else if (product.variants?.some((v: any) => v.stock !== undefined)) {
-      // Nếu có variant với stock, tính tổng
       const totalStock = product.variants
         .filter((v: any) => v.stock !== undefined)
         .reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
       hasStock = totalStock > 0;
     }
-    // Nếu không có thông tin stock nào, coi là có hàng (hasStock = true)
-    
     return hasStock && notExpired;
   };
 
-  // === SẮP XẾP SẢN PHẨM: CÒN HÀNG LÊN TRƯỚC, SAU ĐÓ THEO ID GIẢM DẦN ===
   const sortedProducts = [...allProducts].sort((a, b) => {
     const aAvailable = isProductAvailable(a);
     const bAvailable = isProductAvailable(b);
     if (aAvailable && !bAvailable) return -1;
     if (!aAvailable && bAvailable) return 1;
-    // User listings đứng trước (ID âm)
     if ((a as any).isUserListing && !(b as any).isUserListing) return -1;
     if (!(a as any).isUserListing && (b as any).isUserListing) return 1;
-    // Default: sort by ID descending (newest first)
     return Math.abs(b.id) - Math.abs(a.id);
   });
 
-  // === BƯỚC LỌC 1: Lọc theo từ khóa tìm kiếm (Áp dụng trên danh sách đã sắp xếp) ===
   const searchMatchedProducts = searchQuery
     ? sortedProducts.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -139,10 +120,8 @@ export default function Products() {
       )
     : sortedProducts;
 
-  // === BƯỚC LỌC 2: LUÔN ẨN SẢN PHẨM HẾT HÀNG/HẾT HẠN ===
   const filteredProducts = searchMatchedProducts.filter(isProductAvailable);
 
-  // === NHÓM SẢN PHẨM THEO DANH MỤC LỚN ===
   const passGom = filteredProducts.filter(p => (p as any).isUserListing);
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll" && !(p as any).isUserListing);
   const merch = filteredProducts.filter(p => p.category === "Merch" && !(p as any).isUserListing);
@@ -171,7 +150,6 @@ export default function Products() {
           </p>
         </div>
 
-        {/* Search Bar */}
         <div className="mb-12">
           <div className="relative max-w-2xl mx-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -185,17 +163,7 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Category Previews */}
         <div className="space-y-16">
-          {/* Pass/Gom từ người dùng */}
-          {passGom.length > 0 && (
-            <CategoryPreview
-              title="Pass / Gom"
-              categorySlug="pass-gom"
-              products={passGom}
-            />
-          )}
-          
           {outfitDoll.length > 0 && (
             <CategoryPreview
               title="Outfit & Doll"
@@ -222,6 +190,15 @@ export default function Products() {
               title="Khác"
               categorySlug="khac"
               products={other}
+            />
+          )}
+
+          {/* Đã di chuyển danh mục Pass/Gom xuống cuối cùng */}
+          {passGom.length > 0 && (
+            <CategoryPreview
+              title="Pass / Gom"
+              categorySlug="pass-gom"
+              products={passGom}
             />
           )}
         </div>
