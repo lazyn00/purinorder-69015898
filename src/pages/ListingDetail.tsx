@@ -11,6 +11,7 @@ import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input"; // Thêm Input
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Carousel,
@@ -30,7 +31,7 @@ interface UserListing {
   tag: string;
   price: number | null;
   images: string[];
-  variants: { name: string; price: number; image?: string }[] | null; // Cập nhật interface variants
+  variants: { name: string; price: number; image?: string }[] | null;
   seller_social: string;
   status: string;
   created_at: string;
@@ -100,8 +101,6 @@ export default function ListingDetail() {
     
     if (variant) {
       setCurrentPrice(variant.price);
-      
-      // Logic tự động scroll tới ảnh của variant (nếu có)
       if (variant.image && listing?.images) {
         const imageIndex = listing.images.findIndex(img => img === variant.image);
         if (imageIndex !== -1 && carouselApi) {
@@ -242,7 +241,6 @@ export default function ListingDetail() {
               <div className="flex justify-between items-start gap-2">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    {/* Badge đã được đồng bộ màu sắc ở ProductCard, ở đây dùng màu mặc định cho detail */}
                     <Badge variant={listing.tag === "Pass" ? "secondary" : "default"} className="text-[10px] px-2 py-0 h-5">
                       {listing.tag}
                     </Badge>
@@ -251,7 +249,6 @@ export default function ListingDetail() {
                     </Badge>
                   </div>
                   <h1 className="text-lg md:text-2xl font-bold leading-tight text-foreground">{listing.name}</h1>
-                  {/* [ĐÃ ẨN] Mã bài đăng theo yêu cầu */}
                 </div>
                 <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 -mt-1 text-muted-foreground">
                   <Share2 className="h-4 w-4" />
@@ -293,7 +290,6 @@ export default function ListingDetail() {
                         <SelectItem key={variant.name} value={variant.name} className="text-sm">
                           <div className="flex justify-between items-center w-full">
                             <span>{variant.name}</span>
-                            {/* [ĐÃ ẨN] Giá tiền trong dropdown theo yêu cầu */}
                           </div>
                         </SelectItem>
                       ))}
@@ -303,48 +299,74 @@ export default function ListingDetail() {
               </div>
             )}
 
-            {/* Số lượng & Actions */}
-            <div className="pt-3 space-y-3 border-t">
-              <div className="flex items-center gap-4">
-                <Label className="text-sm font-medium text-muted-foreground">Số lượng</Label>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" onClick={decrementQuantity} className="h-9 w-9">
-                    <Minus className="h-4 w-4" />
+            {/* Số lượng - GIỐNG PRODUCT DETAIL */}
+            <div className="flex items-center justify-between border-t pt-4">
+              <Label className="text-sm font-medium text-muted-foreground">Số lượng</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center border rounded-md h-9">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={decrementQuantity} 
+                    disabled={quantity <= 1} 
+                    className="h-full w-8 rounded-none"
+                  >
+                    <Minus className="h-3 w-3" />
                   </Button>
-                  <span className="w-10 text-center font-semibold text-lg">{quantity}</span>
-                  <Button variant="outline" size="icon" onClick={incrementQuantity} className="h-9 w-9">
-                    <Plus className="h-4 w-4" />
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    value={quantity} 
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-12 text-center border-0 h-full focus-visible:ring-0 rounded-none px-0 text-sm font-medium shadow-none" 
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={incrementQuantity} 
+                    className="h-full w-8 rounded-none"
+                  >
+                    <Plus className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={handleAddToCart} size="lg" className="flex-1 gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  Thêm vào giỏ
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="flex-1 gap-2"
-                  onClick={handleContactSeller}
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  Liên hệ người bán
-                </Button>
-              </div>
+            {/* Actions Button - CÂN ĐỐI, KHÔNG BẸP */}
+            <div className="space-y-2 pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                        onClick={handleAddToCart} 
+                        size="lg" 
+                        className="h-11 text-base font-semibold bg-primary text-primary-foreground shadow-sm gap-2"
+                    >
+                        <ShoppingCart className="h-5 w-5" />
+                        Thêm vào giỏ
+                    </Button>
+                    
+                    <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="h-11 text-base font-semibold gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                        onClick={handleContactSeller}
+                    >
+                        <MessageCircle className="h-5 w-5" />
+                        Liên hệ
+                    </Button>
+                </div>
 
-              {/* Link MXH của người bán */}
-              <a 
-                href={listing.seller_social.startsWith('http') ? listing.seller_social : `https://${listing.seller_social}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                <ExternalLink className="h-4 w-4" />
-                <span>{listing.seller_social}</span>
-              </a>
+                {/* Link MXH (Dạng text nhỏ bên dưới) */}
+                <div className="text-center pt-1">
+                     <a 
+                        href={listing.seller_social.startsWith('http') ? listing.seller_social : `https://${listing.seller_social}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors hover:underline"
+                    >
+                        <ExternalLink className="h-3 w-3" />
+                        Xem trang cá nhân của người bán
+                    </a>
+                </div>
             </div>
           </div>
         </div>
