@@ -30,7 +30,7 @@ interface UserListing {
   tag: string;
   price: number | null;
   images: string[];
-  variants: { name: string; price: number }[] | null;
+  variants: { name: string; price: number; image?: string }[] | null; // Cập nhật interface variants
   seller_social: string;
   status: string;
   created_at: string;
@@ -95,9 +95,20 @@ export default function ListingDetail() {
   
   const handleVariantChange = (variantName: string) => {
     setSelectedVariant(variantName);
-    const variants = (listing?.variants as { name: string; price: number }[]) || [];
+    const variants = (listing?.variants as { name: string; price: number; image?: string }[]) || [];
     const variant = variants.find(v => v.name === variantName);
-    if (variant) setCurrentPrice(variant.price);
+    
+    if (variant) {
+      setCurrentPrice(variant.price);
+      
+      // Logic tự động scroll tới ảnh của variant (nếu có)
+      if (variant.image && listing?.images) {
+        const imageIndex = listing.images.findIndex(img => img === variant.image);
+        if (imageIndex !== -1 && carouselApi) {
+          carouselApi.scrollTo(imageIndex);
+        }
+      }
+    }
   };
 
   const handleAddToCart = () => {
@@ -115,7 +126,6 @@ export default function ListingDetail() {
       return;
     }
 
-    // Chuyển đổi listing thành Product format để thêm vào giỏ
     const productToAdd: Product = {
       id: -Math.abs(parseInt(listing.id.replace(/-/g, '').slice(0, 8), 16)),
       name: listing.name,
@@ -232,7 +242,8 @@ export default function ListingDetail() {
               <div className="flex justify-between items-start gap-2">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Badge variant="default" className="bg-amber-500 hover:bg-amber-600 text-white text-[10px] px-2 py-0 h-5">
+                    {/* Badge đã được đồng bộ màu sắc ở ProductCard, ở đây dùng màu mặc định cho detail */}
+                    <Badge variant={listing.tag === "Pass" ? "secondary" : "default"} className="text-[10px] px-2 py-0 h-5">
                       {listing.tag}
                     </Badge>
                     <Badge variant="outline" className="text-[10px] px-2 py-0 h-5">
@@ -240,7 +251,7 @@ export default function ListingDetail() {
                     </Badge>
                   </div>
                   <h1 className="text-lg md:text-2xl font-bold leading-tight text-foreground">{listing.name}</h1>
-                  <p className="text-muted-foreground text-xs">Mã: {listing.listing_code}</p>
+                  {/* [ĐÃ ẨN] Mã bài đăng theo yêu cầu */}
                 </div>
                 <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 -mt-1 text-muted-foreground">
                   <Share2 className="h-4 w-4" />
@@ -282,9 +293,7 @@ export default function ListingDetail() {
                         <SelectItem key={variant.name} value={variant.name} className="text-sm">
                           <div className="flex justify-between items-center w-full">
                             <span>{variant.name}</span>
-                            <span className="ml-2 font-medium text-primary">
-                              {variant.price.toLocaleString('vi-VN')}đ
-                            </span>
+                            {/* [ĐÃ ẨN] Giá tiền trong dropdown theo yêu cầu */}
                           </div>
                         </SelectItem>
                       ))}
