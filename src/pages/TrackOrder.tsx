@@ -84,20 +84,53 @@ const getStatusColor = (status: string) => {
 
 const getTrackingUrl = (provider: string, code: string): string | null => {
   const lowerProvider = provider.toLowerCase();
-  if (lowerProvider.includes('spx') || lowerProvider === 'shopee express') {
+  // Shopee Express
+  if (lowerProvider.includes('spx') || lowerProvider === 'shopee express' || lowerProvider.includes('shopee')) {
     return `https://spx.vn/track?${code}`;
   }
+  // Giao Hàng Nhanh
   if (lowerProvider.includes('ghn') || lowerProvider === 'giao hàng nhanh') {
     return `https://donhang.ghn.vn/?order_code=${code}`;
   }
+  // Giao Hàng Tiết Kiệm
   if (lowerProvider.includes('ghtk') || lowerProvider === 'giao hàng tiết kiệm') {
     return `https://i.ghtk.vn/${code}`;
   }
-  if (lowerProvider.includes('j&t') || lowerProvider.includes('jnt')) {
+  // J&T Express
+  if (lowerProvider.includes('j&t') || lowerProvider.includes('jnt') || lowerProvider.includes('j & t')) {
     return `https://jtexpress.vn/vi/tracking?billcodes=${code}`;
   }
-  if (lowerProvider.includes('viettel') || lowerProvider.includes('vtp')) {
-    return `https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/?key=${code}`;
+  // Viettel Post
+  if (lowerProvider.includes('viettel') || lowerProvider.includes('vtp') || lowerProvider.includes('vtpost')) {
+    return `https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/${code}`;
+  }
+  // Vietnam Post (VNPost, EMS)
+  if (lowerProvider.includes('vnpost') || lowerProvider.includes('vietnam post') || lowerProvider.includes('ems') || lowerProvider.includes('bưu điện')) {
+    return `https://www.vnpost.vn/vi-vn/tra-cuu?key=${code}`;
+  }
+  // Best Express
+  if (lowerProvider.includes('best') || lowerProvider.includes('best express')) {
+    return `https://best-inc.vn/track?bills=${code}`;
+  }
+  // Ninja Van
+  if (lowerProvider.includes('ninja') || lowerProvider.includes('ninjavan')) {
+    return `https://www.ninjavan.co/vi-vn/tracking?id=${code}`;
+  }
+  // Kerry Express
+  if (lowerProvider.includes('kerry')) {
+    return `https://vn.kerryexpress.com/vi/track/?track=${code}`;
+  }
+  // Lalamove
+  if (lowerProvider.includes('lalamove') || lowerProvider.includes('lala')) {
+    return `https://www.lalamove.com/vi-vn/`;
+  }
+  // Grab Express
+  if (lowerProvider.includes('grab')) {
+    return null; // Grab không có trang tracking công khai
+  }
+  // Ahamove
+  if (lowerProvider.includes('ahamove') || lowerProvider.includes('aha')) {
+    return null; // Ahamove tracking trong app
   }
   return null;
 };
