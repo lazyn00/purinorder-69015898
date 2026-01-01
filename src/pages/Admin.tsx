@@ -17,6 +17,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { productsData } from "@/data/products";
+import { SHIPPING_PROVIDERS, findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
 
 const ADMIN_USERNAME = "Admin";
 const ADMIN_PASSWORD = "Nhuy7890";
@@ -1976,23 +1977,63 @@ ${generateEmailContent(order)}
                         <TableCell>
                           {order.shipping_provider && order.tracking_code ? (
                             <div className="text-xs space-y-1">
-                              <div className="font-medium">{order.shipping_provider}</div>
-                              <div className="text-muted-foreground">{order.tracking_code}</div>
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  const provider = findProviderByName(order.shipping_provider);
+                                  return provider ? (
+                                    <img 
+                                      src={provider.logo} 
+                                      alt={provider.name}
+                                      className="h-5 w-auto object-contain"
+                                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                                    />
+                                  ) : null;
+                                })()}
+                                <span className="font-medium">{order.shipping_provider}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground font-mono">{order.tracking_code}</span>
+                                {(() => {
+                                  const url = getTrackingUrlFromProvider(order.shipping_provider, order.tracking_code);
+                                  return url ? (
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  ) : null;
+                                })()}
+                              </div>
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <Input
-                                placeholder="Nhà vận chuyển"
-                                className="h-7 text-xs"
+                              <Select
                                 value={shippingInfo[order.id]?.provider || ""}
-                                onChange={(e) => setShippingInfo({
+                                onValueChange={(value) => setShippingInfo({
                                   ...shippingInfo,
                                   [order.id]: {
                                     ...shippingInfo[order.id],
-                                    provider: e.target.value
+                                    provider: value
                                   }
                                 })}
-                              />
+                              >
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue placeholder="Chọn ĐVVC" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {SHIPPING_PROVIDERS.map((p) => (
+                                    <SelectItem key={p.id} value={p.shortName}>
+                                      <div className="flex items-center gap-2">
+                                        <img 
+                                          src={p.logo} 
+                                          alt={p.name}
+                                          className="h-4 w-auto object-contain"
+                                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                        <span>{p.shortName}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               <Input
                                 placeholder="Mã vận đơn"
                                 className="h-7 text-xs"
