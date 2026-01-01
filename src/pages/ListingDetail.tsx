@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import type { CarouselApi } from "@/components/ui/carousel";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, ArrowLeft, Share2, ExternalLink, MessageCircle } from "lucide-react";
+import { ShoppingCart, Minus, Plus, ArrowLeft, Share2, ExternalLink, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { MiddlemanPolicy } from "@/components/MiddlemanPolicy";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +54,7 @@ export default function ListingDetail() {
   const [currentPrice, setCurrentPrice] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<string>(""); 
   const [highlightVariant, setHighlightVariant] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
   const variantRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -367,6 +369,22 @@ export default function ListingDetail() {
                         Xem trang cá nhân của người bán
                     </a>
                 </div>
+            </div>
+
+            {/* Middleman Policy Collapsible */}
+            <div className="border rounded-lg overflow-hidden">
+              <button
+                onClick={() => setShowPolicy(!showPolicy)}
+                className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 transition-colors"
+              >
+                <span className="font-medium text-sm">📋 Chính sách giao dịch trung gian</span>
+                {showPolicy ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              {showPolicy && (
+                <div className="p-4 border-t">
+                  <MiddlemanPolicy />
+                </div>
+              )}
             </div>
           </div>
         </div>
