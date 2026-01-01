@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown, Copy, Filter } from "lucide-react";
+import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown, Copy, Filter, CheckCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -113,6 +113,7 @@ export default function TrackOrder() {
   const [productSearch, setProductSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [progressFilter, setProgressFilter] = useState<string>("all");
+  const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
   
   const { toast } = useToast();
 
@@ -311,6 +312,36 @@ export default function TrackOrder() {
       });
     } finally {
       setIsUpdatingDelivery(false);
+    }
+  };
+
+  const handleConfirmComplete = async (orderId: string) => {
+    setConfirmingOrderId(orderId);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ order_progress: 'Đã hoàn thành' })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      setOrders(orders.map(o =>
+        o.id === orderId ? { ...o, order_progress: 'Đã hoàn thành' } : o
+      ));
+
+      toast({
+        title: "Thành công",
+        description: "Đơn hàng đã được xác nhận hoàn thành!",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể xác nhận đơn hàng. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setConfirmingOrderId(null);
     }
   };
 
@@ -564,6 +595,30 @@ export default function TrackOrder() {
                             </a>
                           )}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Confirm Complete Button - Only show for orders in "Đang giao" status */}
+                    {order.order_progress === 'Đang giao' && (
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
+                        <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-2">
+                          ✨ Bạn đã nhận được hàng và hài lòng? Xác nhận hoàn thành đơn hàng nhé!
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          💡 Lưu ý: Sau 7 ngày kể từ khi đơn "Đang giao", đơn sẽ tự động được xác nhận hoàn thành.
+                        </p>
+                        <Button
+                          onClick={() => handleConfirmComplete(order.id)}
+                          disabled={confirmingOrderId === order.id}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          {confirmingOrderId === order.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                          )}
+                          Xác nhận đã nhận hàng
+                        </Button>
                       </div>
                     )}
 

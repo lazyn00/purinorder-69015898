@@ -11,6 +11,7 @@ import { Loader2, Plus, X, Search, Edit, Image, Link as LinkIcon, CheckCircle2, 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { MiddlemanPolicy } from "@/components/MiddlemanPolicy";
 
 const CATEGORIES = [
   { value: "Outfit & Doll", label: "Outfit & Doll" },
@@ -25,6 +26,13 @@ const SUBCATEGORIES: Record<string, string[]> = {
   "Thời trang": ["Áo", "Quần", "Váy", "Phụ kiện", "Khác"],
   "Khác": ["Khác"],
 };
+
+const ARTISTS = [
+  "BTS", "BLACKPINK", "NewJeans", "Stray Kids", "SEVENTEEN", "TWICE", "aespa", 
+  "IVE", "LE SSERAFIM", "NCT", "EXO", "Red Velvet", "TXT", "ENHYPEN",
+  "(G)I-DLE", "ITZY", "Kep1er", "NMIXX", "RIIZE", "ZEROBASEONE",
+  "Khác"
+];
 
 interface Variant {
   name: string;
@@ -46,6 +54,8 @@ export default function SellProduct() {
   const [customSubcategory, setCustomSubcategory] = useState("");
   const [tag, setTag] = useState<"Pass" | "Gom">("Pass");
   const [availability, setAvailability] = useState<"available" | "order">("available"); // Tình trạng hàng
+  const [artist, setArtist] = useState("");
+  const [customArtist, setCustomArtist] = useState("");
   const [price, setPrice] = useState<string>("");
   
   // Variants
@@ -444,6 +454,25 @@ export default function SellProduct() {
                     <div><Input value={customSubcategory} onChange={(e) => setCustomSubcategory(e.target.value)} placeholder="Nhập danh mục nhỏ..." /></div>
                   )}
 
+                  {/* Artist Selection */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Nghệ sĩ / Artist</Label>
+                      <Select value={artist} onValueChange={setArtist}>
+                        <SelectTrigger><SelectValue placeholder="Chọn nghệ sĩ" /></SelectTrigger>
+                        <SelectContent>
+                          {ARTISTS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {artist === "Khác" && (
+                      <div>
+                        <Label>Nghệ sĩ khác</Label>
+                        <Input value={customArtist} onChange={(e) => setCustomArtist(e.target.value)} placeholder="Nhập tên nghệ sĩ..." />
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <Label>Loại *</Label>
                     <RadioGroup value={tag} onValueChange={(v) => setTag(v as "Pass" | "Gom")} className="flex gap-4 mt-2">
@@ -560,6 +589,9 @@ export default function SellProduct() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Middleman Policy */}
+              <MiddlemanPolicy />
 
               <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
