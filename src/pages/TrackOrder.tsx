@@ -11,7 +11,7 @@ import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, Arr
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
 const ORDER_PROGRESS_OPTIONS = [
   "Đang xử lý",
   "Đã đặt hàng",
@@ -82,57 +82,9 @@ const getStatusColor = (status: string) => {
   }
 };
 
+// Sử dụng hàm từ shippingProviders.ts
 const getTrackingUrl = (provider: string, code: string): string | null => {
-  const lowerProvider = provider.toLowerCase();
-  // Shopee Express
-  if (lowerProvider.includes('spx') || lowerProvider === 'shopee express' || lowerProvider.includes('shopee')) {
-    return `https://spx.vn/track?${code}`;
-  }
-  // Giao Hàng Nhanh
-  if (lowerProvider.includes('ghn') || lowerProvider === 'giao hàng nhanh') {
-    return `https://donhang.ghn.vn/?order_code=${code}`;
-  }
-  // Giao Hàng Tiết Kiệm
-  if (lowerProvider.includes('ghtk') || lowerProvider === 'giao hàng tiết kiệm') {
-    return `https://i.ghtk.vn/${code}`;
-  }
-  // J&T Express
-  if (lowerProvider.includes('j&t') || lowerProvider.includes('jnt') || lowerProvider.includes('j & t')) {
-    return `https://jtexpress.vn/vi/tracking?billcodes=${code}`;
-  }
-  // Viettel Post
-  if (lowerProvider.includes('viettel') || lowerProvider.includes('vtp') || lowerProvider.includes('vtpost')) {
-    return `https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/${code}`;
-  }
-  // Vietnam Post (VNPost, EMS)
-  if (lowerProvider.includes('vnpost') || lowerProvider.includes('vietnam post') || lowerProvider.includes('ems') || lowerProvider.includes('bưu điện')) {
-    return `https://www.vnpost.vn/vi-vn/tra-cuu?key=${code}`;
-  }
-  // Best Express
-  if (lowerProvider.includes('best') || lowerProvider.includes('best express')) {
-    return `https://best-inc.vn/track?bills=${code}`;
-  }
-  // Ninja Van
-  if (lowerProvider.includes('ninja') || lowerProvider.includes('ninjavan')) {
-    return `https://www.ninjavan.co/vi-vn/tracking?id=${code}`;
-  }
-  // Kerry Express
-  if (lowerProvider.includes('kerry')) {
-    return `https://vn.kerryexpress.com/vi/track/?track=${code}`;
-  }
-  // Lalamove
-  if (lowerProvider.includes('lalamove') || lowerProvider.includes('lala')) {
-    return `https://www.lalamove.com/vi-vn/`;
-  }
-  // Grab Express
-  if (lowerProvider.includes('grab')) {
-    return null; // Grab không có trang tracking công khai
-  }
-  // Ahamove
-  if (lowerProvider.includes('ahamove') || lowerProvider.includes('aha')) {
-    return null; // Ahamove tracking trong app
-  }
-  return null;
+  return getTrackingUrlFromProvider(provider, code);
 };
 
 export default function TrackOrder() {
@@ -608,28 +560,42 @@ export default function TrackOrder() {
                     )}
 
                     {/* Shipping Info */}
-                    {order.shipping_provider && order.tracking_code && (
-                      <div className="bg-blue-50 dark:bg-blue-950/30 rounded p-3 space-y-1">
-                        <p className="font-medium flex items-center gap-1">
-                          <Truck className="h-4 w-4" /> Vận chuyển:
-                        </p>
-                        <p>{order.shipping_provider}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-blue-600">{order.tracking_code}</span>
-                          {getTrackingUrl(order.shipping_provider, order.tracking_code) && (
-                            <a
-                              href={getTrackingUrl(order.shipping_provider, order.tracking_code)!}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              Tra cứu
-                            </a>
-                          )}
+                    {order.shipping_provider && order.tracking_code && (() => {
+                      const provider = findProviderByName(order.shipping_provider);
+                      const trackingUrl = getTrackingUrl(order.shipping_provider, order.tracking_code);
+                      return (
+                        <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 space-y-2">
+                          <p className="font-medium flex items-center gap-1 text-sm">
+                            <Truck className="h-4 w-4" /> Vận chuyển
+                          </p>
+                          <div className="flex items-center gap-3">
+                            {provider && (
+                              <img 
+                                src={provider.logo} 
+                                alt={provider.name}
+                                className="h-6 w-auto object-contain"
+                                onError={(e) => (e.currentTarget.style.display = 'none')}
+                              />
+                            )}
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{order.shipping_provider}</p>
+                              <p className="font-mono text-blue-600 dark:text-blue-400 text-sm">{order.tracking_code}</p>
+                            </div>
+                            {trackingUrl && (
+                              <a
+                                href={trackingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-full"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Tra cứu
+                              </a>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Confirm Complete Button - Only show for orders in "Đang giao" status */}
                     {order.order_progress === 'Đang giao' && (
