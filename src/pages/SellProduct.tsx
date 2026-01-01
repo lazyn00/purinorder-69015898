@@ -372,10 +372,10 @@ export default function SellProduct() {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-3xl px-4 py-12">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Đăng bán sản phẩm</h1>
-          <p className="text-muted-foreground">Pass/Gom hàng K-pop, C-pop, Anime cùng Purin Order</p>
+      <div className="container mx-auto max-w-3xl px-3 sm:px-4 py-6 sm:py-12">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">Đăng bán sản phẩm</h1>
+          <p className="text-muted-foreground text-sm">Pass/Gom hàng K-pop, C-pop, Anime cùng Purin Order</p>
         </div>
 
         {submittedCode && (
@@ -442,20 +442,20 @@ export default function SellProduct() {
                     <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <Label>Danh mục *</Label>
+                      <Label className="text-sm">Danh mục *</Label>
                       <Select value={category} onValueChange={(v) => { setCategory(v); setSubcategory(""); }}>
-                        <SelectTrigger><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
+                        <SelectTrigger className="text-sm"><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
                         <SelectContent>
                           {CATEGORIES.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label>Danh mục nhỏ *</Label>
+                      <Label className="text-sm">Danh mục nhỏ *</Label>
                       <Select value={subcategory} onValueChange={setSubcategory} disabled={!category}>
-                        <SelectTrigger><SelectValue placeholder="Chọn danh mục nhỏ" /></SelectTrigger>
+                        <SelectTrigger className="text-sm"><SelectValue placeholder="Chọn danh mục nhỏ" /></SelectTrigger>
                         <SelectContent>
                           {category && SUBCATEGORIES[category]?.map(sub => <SelectItem key={sub} value={sub}>{sub}</SelectItem>)}
                         </SelectContent>
@@ -468,11 +468,11 @@ export default function SellProduct() {
                   )}
 
                   {/* Artist Selection */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <Label>Nghệ sĩ / Artist</Label>
+                      <Label className="text-sm">Nghệ sĩ / Artist</Label>
                       <Select value={artist} onValueChange={setArtist}>
-                        <SelectTrigger><SelectValue placeholder="Chọn nghệ sĩ" /></SelectTrigger>
+                        <SelectTrigger className="text-sm"><SelectValue placeholder="Chọn nghệ sĩ" /></SelectTrigger>
                         <SelectContent>
                           {ARTISTS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                         </SelectContent>
@@ -480,8 +480,8 @@ export default function SellProduct() {
                     </div>
                     {artist === "Khác" && (
                       <div>
-                        <Label>Nghệ sĩ khác</Label>
-                        <Input value={customArtist} onChange={(e) => setCustomArtist(e.target.value)} placeholder="Nhập tên nghệ sĩ..." />
+                        <Label className="text-sm">Nghệ sĩ khác</Label>
+                        <Input value={customArtist} onChange={(e) => setCustomArtist(e.target.value)} placeholder="Nhập tên nghệ sĩ..." className="text-sm" />
                       </div>
                     )}
                   </div>
@@ -561,24 +561,26 @@ export default function SellProduct() {
                     ))}
                     
                     <div className="flex flex-col gap-2 p-3 border rounded-md border-dashed">
-                      <div className="flex gap-2">
-                        <Input placeholder="Tên phân loại (VD: Màu hồng)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} className="flex-[2]" />
-                        <Input type="number" placeholder="Giá" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} className="flex-1" />
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input placeholder="Tên phân loại (VD: Màu hồng)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} className="flex-[2] text-sm" />
+                        <Input type="number" placeholder="Giá" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} className="flex-1 text-sm" />
                       </div>
-                      <div className="flex gap-2 items-center">
-                        <Label className="text-xs text-muted-foreground whitespace-nowrap">Gán ảnh:</Label>
-                        <Select value={newVariantImageIndex} onValueChange={setNewVariantImageIndex}>
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Chọn ảnh" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Không có ảnh</SelectItem>
-                            {(imageUploadType === "link" ? imageLinks : uploadedPreviewUrls).map((_, idx) => (
-                              <SelectItem key={idx} value={idx.toString()}>Ảnh số {idx + 1}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button type="button" variant="secondary" size="sm" onClick={addVariant} className="ml-auto">
+                      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                        <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                          <Label className="text-xs text-muted-foreground whitespace-nowrap">Gán ảnh:</Label>
+                          <Select value={newVariantImageIndex} onValueChange={setNewVariantImageIndex}>
+                            <SelectTrigger className="h-8 text-xs flex-1">
+                              <SelectValue placeholder="Chọn ảnh" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Không có ảnh</SelectItem>
+                              {(imageUploadType === "link" ? imageLinks : uploadedPreviewUrls).map((_, idx) => (
+                                <SelectItem key={idx} value={idx.toString()}>Ảnh số {idx + 1}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button type="button" variant="secondary" size="sm" onClick={addVariant} className="w-full sm:w-auto">
                           <Plus className="h-4 w-4 mr-1" /> Thêm phân loại
                         </Button>
                       </div>
@@ -591,14 +593,14 @@ export default function SellProduct() {
               <Card>
                 <CardHeader><CardTitle>Thông tin liên hệ & Thanh toán</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><Label>SĐT *</Label><Input value={sellerPhone} onChange={(e) => setSellerPhone(e.target.value)} /></div>
-                    <div><Label>Link MXH *</Label><Input value={sellerSocial} onChange={(e) => setSellerSocial(e.target.value)} /></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div><Label className="text-sm">SĐT *</Label><Input value={sellerPhone} onChange={(e) => setSellerPhone(e.target.value)} className="text-sm" /></div>
+                    <div><Label className="text-sm">Link MXH *</Label><Input value={sellerSocial} onChange={(e) => setSellerSocial(e.target.value)} className="text-sm" /></div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div><Label>Ngân hàng</Label><Input value={sellerBankName} onChange={(e) => setSellerBankName(e.target.value)} /></div>
-                     <div><Label>Số tài khoản</Label><Input value={sellerBankAccount} onChange={(e) => setSellerBankAccount(e.target.value)} /></div>
-                     <div><Label>Chủ tài khoản</Label><Input value={sellerAccountName} onChange={(e) => setSellerAccountName(e.target.value)} /></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                     <div><Label className="text-sm">Ngân hàng</Label><Input value={sellerBankName} onChange={(e) => setSellerBankName(e.target.value)} className="text-sm" /></div>
+                     <div><Label className="text-sm">Số tài khoản</Label><Input value={sellerBankAccount} onChange={(e) => setSellerBankAccount(e.target.value)} className="text-sm" /></div>
+                     <div><Label className="text-sm">Chủ tài khoản</Label><Input value={sellerAccountName} onChange={(e) => setSellerAccountName(e.target.value)} className="text-sm" /></div>
                   </div>
                 </CardContent>
               </Card>

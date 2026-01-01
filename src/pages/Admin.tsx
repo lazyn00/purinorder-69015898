@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { productsData } from "@/data/products";
 import { SHIPPING_PROVIDERS, findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 const ADMIN_USERNAME = "Admin";
 const ADMIN_PASSWORD = "Nhuy7890";
@@ -307,8 +312,11 @@ export default function Admin() {
       .sort((a, b) => b.value - a.value);
   }, [productStats]);
 
-  // State cho khoảng thời gian thống kê
-  const [revenuePeriod, setRevenuePeriod] = useState<'7d' | '30d' | '3m' | '1y'>('7d');
+  // State cho khoảng thời gian thống kê - date range picker
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+    from: new Date(new Date().setDate(new Date().getDate() - 30)),
+    to: new Date()
+  });
 
   // Tính toán thống kê doanh thu
   const statistics = useMemo(() => {
@@ -329,33 +337,26 @@ export default function Admin() {
       return acc;
     }, {} as Record<string, number>);
 
-    // Tính số ngày dựa theo khoảng thời gian
-    const getDaysCount = () => {
-      switch (revenuePeriod) {
-        case '7d': return 7;
-        case '30d': return 30;
-        case '3m': return 90;
-        case '1y': return 365;
-        default: return 7;
-      }
-    };
+    // Tính số ngày dựa theo date range
+    const startDate = dateRange.from;
+    const endDate = dateRange.to;
+    const daysCount = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    const daysCount = getDaysCount();
     const dateList = Array.from({ length: daysCount }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (daysCount - 1 - i));
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
       return date.toISOString().split('T')[0];
     });
 
     // Nhóm dữ liệu theo ngày hoặc tháng tùy khoảng thời gian
     const getGroupKey = (dateStr: string) => {
       const date = new Date(dateStr);
-      if (revenuePeriod === '1y') {
+      if (daysCount > 90) {
         return date.toLocaleDateString('vi-VN', { month: '2-digit', year: '2-digit' });
-      } else if (revenuePeriod === '3m') {
+      } else if (daysCount > 31) {
         // Nhóm theo tuần
-        const weekNum = Math.floor((new Date().getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
-        return `T${Math.floor((daysCount - weekNum * 7) / 7)}`;
+        const weekNumber = Math.floor((date.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        return `Tuần ${weekNumber + 1}`;
       }
       return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
     };
@@ -384,19 +385,16 @@ export default function Admin() {
     }));
 
     // Tính doanh thu theo khoảng thời gian được chọn
-    const periodStartDate = new Date();
-    periodStartDate.setDate(periodStartDate.getDate() - daysCount);
-    
     const periodRevenue = orders
       .filter(order => {
         const orderDate = new Date(order.created_at);
-        return orderDate >= periodStartDate && order.order_progress !== 'Đã huỷ';
+        return orderDate >= startDate && orderDate <= endDate && order.order_progress !== 'Đã huỷ';
       })
       .reduce((sum, order) => sum + order.total_price, 0);
 
     const periodOrders = orders.filter(order => {
       const orderDate = new Date(order.created_at);
-      return orderDate >= periodStartDate;
+      return orderDate >= startDate && orderDate <= endDate;
     }).length;
 
     // Phân bố thanh toán
@@ -424,9 +422,10 @@ export default function Admin() {
       progressCounts,
       revenueByDay,
       paymentDistribution,
-      progressDistribution
+      progressDistribution,
+      daysCount: Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)) + 1
     };
-  }, [orders, revenuePeriod]);
+  }, [orders, dateRange]);
 
   // Tính toán tiền công và tiền chênh theo từng sản phẩm/variant
   const costStatistics = useMemo(() => {
@@ -1456,27 +1455,48 @@ ${generateEmailContent(order)}
               {/* Biểu đồ */}
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <CardTitle className="text-sm sm:text-base">
-                      Doanh thu {revenuePeriod === '7d' ? '7 ngày' : revenuePeriod === '30d' ? '30 ngày' : revenuePeriod === '3m' ? '3 tháng' : '1 năm'} gần nhất
+                      Doanh thu ({statistics.daysCount} ngày)
                     </CardTitle>
-                    <div className="flex gap-1">
-                      {[
-                        { value: '7d', label: '7N' },
-                        { value: '30d', label: '30N' },
-                        { value: '3m', label: '3T' },
-                        { value: '1y', label: '1N' }
-                      ].map((period) => (
-                        <Button
-                          key={period.value}
-                          variant={revenuePeriod === period.value ? 'default' : 'ghost'}
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => setRevenuePeriod(period.value as any)}
-                        >
-                          {period.label}
-                        </Button>
-                      ))}
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 text-xs justify-start">
+                            <CalendarIcon className="mr-1 h-3 w-3" />
+                            {format(dateRange.from, "dd/MM/yy", { locale: vi })}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={dateRange.from}
+                            onSelect={(date) => date && setDateRange(prev => ({ ...prev, from: date }))}
+                            disabled={(date) => date > dateRange.to || date > new Date()}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <span className="text-muted-foreground self-center text-xs">→</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 text-xs justify-start">
+                            <CalendarIcon className="mr-1 h-3 w-3" />
+                            {format(dateRange.to, "dd/MM/yy", { locale: vi })}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="single"
+                            selected={dateRange.to}
+                            onSelect={(date) => date && setDateRange(prev => ({ ...prev, to: date }))}
+                            disabled={(date) => date < dateRange.from || date > new Date()}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </CardHeader>
                   <CardContent className="px-2 sm:px-6">
