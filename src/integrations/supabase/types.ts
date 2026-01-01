@@ -46,6 +46,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          additional_bills: Json | null
           agree_cancel_low_quantity: boolean | null
           created_at: string
           customer_email: string | null
@@ -73,6 +74,7 @@ export type Database = {
           tracking_code: string | null
         }
         Insert: {
+          additional_bills?: Json | null
           agree_cancel_low_quantity?: boolean | null
           created_at?: string
           customer_email?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           tracking_code?: string | null
         }
         Update: {
+          additional_bills?: Json | null
           agree_cancel_low_quantity?: boolean | null
           created_at?: string
           customer_email?: string | null

@@ -11,6 +11,8 @@ import { Loader2, Plus, X, Search, Edit, Image, Link as LinkIcon, CheckCircle2, 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MiddlemanPolicy } from "@/components/MiddlemanPolicy";
 
 const CATEGORIES = [
@@ -51,6 +53,7 @@ export default function SellProduct() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
+  const [agreePolicy, setAgreePolicy] = useState(false);
   const [customSubcategory, setCustomSubcategory] = useState("");
   const [tag, setTag] = useState<"Pass" | "Gom">("Pass");
   const [availability, setAvailability] = useState<"available" | "order">("available"); // Tình trạng hàng
@@ -153,6 +156,16 @@ export default function SellProduct() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check policy agreement
+    if (!agreePolicy) {
+      toast({
+        title: "Chưa đồng ý chính sách",
+        description: "Vui lòng đọc và đồng ý với chính sách giao dịch trung gian.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Validation
     if (!customCode || !name || !category || !sellerPhone || !sellerSocial || !sellerBankName || !sellerBankAccount || !sellerAccountName) {
@@ -590,10 +603,36 @@ export default function SellProduct() {
                 </CardContent>
               </Card>
 
-              {/* Middleman Policy */}
-              <MiddlemanPolicy />
+              {/* Policy Agreement Checkbox */}
+              <div className="flex items-start gap-3 p-4 border rounded-lg bg-muted/30">
+                <Checkbox 
+                  id="agreePolicy" 
+                  checked={agreePolicy} 
+                  onCheckedChange={(checked) => setAgreePolicy(checked === true)}
+                  className="mt-0.5"
+                />
+                <div className="text-sm">
+                  <label htmlFor="agreePolicy" className="cursor-pointer">
+                    Tôi đã đọc và đồng ý với{" "}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button type="button" className="text-primary underline hover:no-underline font-medium">
+                          chính sách giao dịch trung gian
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Chính sách giao dịch trung gian</DialogTitle>
+                        </DialogHeader>
+                        <MiddlemanPolicy />
+                      </DialogContent>
+                    </Dialog>
+                    {" "}của Purin Order
+                  </label>
+                </div>
+              </div>
 
-              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !agreePolicy}>
                 {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
                 {isEditing ? "Lưu thay đổi" : "Đăng bán"}
               </Button>
