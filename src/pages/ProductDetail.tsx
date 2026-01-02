@@ -250,9 +250,17 @@ Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖
   const generateThreadsPost = () => {
     if (!product) return "";
     const productUrl = `${window.location.origin}/product/${product.id}`;
-    return `✨ ${product.name}
-💰 ${currentPrice.toLocaleString('vi-VN')}đ
-🔗 ${productUrl}`;
+    const priceText = `${currentPrice.toLocaleString('vi-VN')} VND ${product.feesIncluded ? '(ff)' : '+ phí nđ'}`;
+    const deadlineInfo = product.orderDeadline 
+      ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' }).replace(',', '')}`
+      : "";
+    const productionInfo = product.productionTime ? `\n\n❗️Sản xuất ${product.productionTime}, only ck, có cọc 50%` : "";
+    
+    return `${product.name} 💛
+
+🏷️ ${priceText}${deadlineInfo}${productionInfo}
+
+Xinh đẹp 10 điểm, chấm ${productUrl}`;
   };
 
   const handleCopyFacebookPost = () => {
