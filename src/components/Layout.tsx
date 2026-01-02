@@ -39,7 +39,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <header className="border-b bg-card">
         <nav className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="text-2xl font-heading font-bold text-primary">
+            <Link to="/" className="text-2xl font-bold text-primary">
               🍮 Purin Order
             </Link>
 
