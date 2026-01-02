@@ -39,6 +39,20 @@ const getVariantStock = (product: Product, variantName: string): number | undefi
     return product.stock;
 };
 
+// Convert text to Unicode Bold (Mathematical Bold)
+const toBoldUnicode = (text: string): string => {
+  const boldMap: { [key: string]: string } = {
+    'A': '𝐀', 'B': '𝐁', 'C': '𝐂', 'D': '𝐃', 'E': '𝐄', 'F': '𝐅', 'G': '𝐆', 'H': '𝐇', 'I': '𝐈',
+    'J': '𝐉', 'K': '𝐊', 'L': '𝐋', 'M': '𝐌', 'N': '𝐍', 'O': '𝐎', 'P': '𝐏', 'Q': '𝐐', 'R': '𝐑',
+    'S': '𝐒', 'T': '𝐓', 'U': '𝐔', 'V': '𝐕', 'W': '𝐖', 'X': '𝐗', 'Y': '𝐘', 'Z': '𝐙',
+    'a': '𝐚', 'b': '𝐛', 'c': '𝐜', 'd': '𝐝', 'e': '𝐞', 'f': '𝐟', 'g': '𝐠', 'h': '𝐡', 'i': '𝐢',
+    'j': '𝐣', 'k': '𝐤', 'l': '𝐥', 'm': '𝐦', 'n': '𝐧', 'o': '𝐨', 'p': '𝐩', 'q': '𝐪', 'r': '𝐫',
+    's': '𝐬', 't': '𝐭', 'u': '𝐮', 'v': '𝐯', 'w': '𝐰', 'x': '𝐱', 'y': '𝐲', 'z': '𝐳',
+    '0': '𝟎', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', '5': '𝟓', '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗'
+  };
+  return text.split('').map(char => boldMap[char] || char).join('');
+};
+
 // Emoji mapping by category/subcategory
 const getCategoryEmoji = (category?: string, subcategory?: string): string => {
   const text = `${category || ''} ${subcategory || ''}`.toLowerCase();
@@ -252,6 +266,7 @@ export default function ProductDetail() {
     if (!product) return "";
     const productUrl = `${window.location.origin}/product/${product.id}`;
     const statusPrefix = product.status ? `[${product.status.toLowerCase()}] ` : "";
+    const boldTitle = toBoldUnicode(product.name);
     const priceText = `${currentPrice.toLocaleString('vi-VN')}k ${product.feesIncluded ? 'ff' : 'chưa ff'}`;
     const masterInfo = product.master ? `\n\nMaster: ${product.master}` : "";
     const artistInfo = product.artist ? `\n\nThuộc tính: ${product.artist}` : "";
@@ -263,7 +278,7 @@ export default function ProductDetail() {
     const productionInfo = product.productionTime ? `\n\n❗️Lưu ý:\n\n• Thời gian sản xuất: ${product.productionTime}` : "";
     const cta = customCta || "Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖";
     
-    return `${statusPrefix}${product.name} ${emoji}
+    return `${statusPrefix}${boldTitle} ${emoji}
 
 🍮 Link order: ${productUrl}${masterInfo}${artistInfo}${sizeInfo}
 
@@ -277,6 +292,7 @@ ${cta}
   const generateThreadsPost = (customCta?: string) => {
     if (!product) return "";
     const productUrl = `${window.location.origin}/product/${product.id}`;
+    const boldTitle = toBoldUnicode(product.name);
     const priceText = `${currentPrice.toLocaleString('vi-VN')} VND ${product.feesIncluded ? '(ff)' : '+ phí nđ'}`;
     const deadlineInfo = product.orderDeadline 
       ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' }).replace(',', '')}`
@@ -284,7 +300,7 @@ ${cta}
     const productionInfo = product.productionTime ? `\n\n❗️Sản xuất ${product.productionTime}, only ck, có cọc 50%` : "";
     const cta = customCta || "Xinh đẹp 10 điểm, chấm";
     
-    return `${product.name} ${emoji}
+    return `${boldTitle} ${emoji}
 
 🏷️ ${priceText}${deadlineInfo}${productionInfo}
 
