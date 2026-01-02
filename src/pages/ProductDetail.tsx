@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-// Thay đổi 1: Thêm import Eye
 import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Share2, Eye, Copy, Facebook } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,7 +28,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-// Thay đổi 2: Thêm import supabase
 import { supabase } from "@/integrations/supabase/client";
 
 const getVariantStock = (product: Product, variantName: string): number | undefined => {
@@ -37,20 +35,6 @@ const getVariantStock = (product: Product, variantName: string): number | undefi
     const variant = product.variants.find(v => v.name === variantName);
     if (variant && variant.stock !== undefined) return variant.stock;
     return product.stock;
-};
-
-// Convert text to Unicode Bold (Mathematical Bold)
-const toBoldUnicode = (text: string): string => {
-  const boldMap: { [key: string]: string } = {
-    'A': '𝐀', 'B': '𝐁', 'C': '𝐂', 'D': '𝐃', 'E': '𝐄', 'F': '𝐅', 'G': '𝐆', 'H': '𝐇', 'I': '𝐈',
-    'J': '𝐉', 'K': '𝐊', 'L': '𝐋', 'M': '𝐌', 'N': '𝐍', 'O': '𝐎', 'P': '𝐏', 'Q': '𝐐', 'R': '𝐑',
-    'S': '𝐒', 'T': '𝐓', 'U': '𝐔', 'V': '𝐕', 'W': '𝐖', 'X': '𝐗', 'Y': '𝐘', 'Z': '𝐙',
-    'a': '𝐚', 'b': '𝐛', 'c': '𝐜', 'd': '𝐝', 'e': '𝐞', 'f': '𝐟', 'g': '𝐠', 'h': '𝐡', 'i': '𝐢',
-    'j': '𝐣', 'k': '𝐤', 'l': '𝐥', 'm': '𝐦', 'n': '𝐧', 'o': '𝐨', 'p': '𝐩', 'q': '𝐪', 'r': '𝐫',
-    's': '𝐬', 't': '𝐭', 'u': '𝐮', 'v': '𝐯', 'w': '𝐰', 'x': '𝐱', 'y': '𝐲', 'z': '𝐳',
-    '0': '𝟎', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', '5': '𝟓', '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗'
-  };
-  return text.split('').map(char => boldMap[char] || char).join('');
 };
 
 // Emoji mapping by category/subcategory
@@ -95,10 +79,8 @@ export default function ProductDetail() {
   const [isExpired, setIsExpired] = useState(false);
   const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
   
-  // Thay đổi 3: Thêm state viewCount
   const [viewCount, setViewCount] = useState(0);
   
-  // State để highlight phân loại khi chưa chọn
   const [highlightVariant, setHighlightVariant] = useState(false);
   const variantRef = React.useRef<HTMLDivElement>(null);
 
@@ -109,20 +91,16 @@ export default function ProductDetail() {
     }
   }, [isLoading, products, id]);
 
-  // Thay đổi 4: Logic track view và fetch view count
   useEffect(() => {
     if (!id) return;
     
     const productId = Number(id);
     
-    // Record view
     const recordView = async () => {
-      // Lưu ý: Đảm bảo bảng 'product_views' đã tồn tại trong Supabase
       const { error } = await supabase.from('product_views').insert({ product_id: productId });
       if (error) console.error("Error recording view:", error);
     };
     
-    // Fetch view count
     const fetchViewCount = async () => {
       const { count, error } = await supabase
         .from('product_views')
@@ -225,7 +203,6 @@ export default function ProductDetail() {
 
     if (!isReadyToAdd) {
       toast({ title: "Vui lòng chọn phân loại", description: "Bạn cần chọn phân loại sản phẩm", variant: "destructive" });
-      // Scroll và highlight phần chọn phân loại
       setHighlightVariant(true);
       variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setTimeout(() => setHighlightVariant(false), 2000);
@@ -262,37 +239,56 @@ export default function ProductDetail() {
 
   const emoji = getCategoryEmoji(product?.category, product?.subcategory);
 
+  // --- CẬP NHẬT: Format bài Facebook mới ---
   const generateFacebookPost = (customCta?: string) => {
     if (!product) return "";
     const productUrl = `${window.location.origin}/product/${product.id}`;
     const statusPrefix = product.status ? `[${product.status.toLowerCase()}] ` : "";
-    const boldTitle = toBoldUnicode(product.name);
-    const priceText = `${currentPrice.toLocaleString('vi-VN')}k ${product.feesIncluded ? 'ff' : 'chưa ff'}`;
-    const masterInfo = product.master ? `\n\nMaster: ${product.master}` : "";
-    const artistInfo = product.artist ? `\n\nThuộc tính: ${product.artist}` : "";
-    const sizeInfo = product.size ? `\n\nKích thước: ${product.size}` : "";
-    const includesInfo = product.includes ? `\n\nBao gồm: ${product.includes}` : "";
-    const deadlineInfo = product.orderDeadline 
-      ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' }).replace(',', '')}`
-      : "";
-    const productionInfo = product.productionTime ? `\n\n❗️Lưu ý:\n\n• Thời gian sản xuất: ${product.productionTime}` : "";
+    const title = product.name;
+
+    // Cụm 1: Thông tin chi tiết (Master, Artist, Size)
+    const details = [
+      product.master ? `Master: ${product.master}` : null,
+      product.artist ? `Thuộc tính: ${product.artist}` : null,
+      product.size ? `Kích thước: ${product.size}` : null
+    ].filter(Boolean).join('\n');
+
+    // Cụm 2: Giá và Bao gồm
+    const priceInfo = [
+      `Giá: ${currentPrice.toLocaleString('vi-VN')}k ${product.feesIncluded ? 'ff' : 'chưa ff'}`,
+      product.includes ? `Bao gồm: ${product.includes}` : null
+    ].filter(Boolean).join('\n');
+
+    // Cụm 3: Deadline
+    const deadlineText = product.orderDeadline 
+      ? `🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' }).replace(',', '')}`
+      : null;
+
+    // Cụm 4: Lưu ý
+    let notes = "";
+    if (product.productionTime) {
+        notes = `❗️Lưu ý:\n• Thời gian sản xuất: ${product.productionTime}\n• Only ck, có nhận cọc 50% hoàn trong 1 tháng`;
+    }
+
     const cta = customCta || "Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖";
     
-    return `${statusPrefix}${boldTitle} ${emoji}
-
-🍮 Link order: ${productUrl}${masterInfo}${artistInfo}${sizeInfo}
-
-Giá: ${priceText}${includesInfo}${deadlineInfo}${productionInfo}
-
-${cta}
-
-#plushdoll #purin_doll #order #purin_order #doll`;
+    // Ghép tất cả các cụm lại, cách nhau 2 dòng (\n\n) để tạo khoảng trống
+    return [
+      `${statusPrefix}${title} ${emoji}`,
+      `🍮 Link order: ${productUrl}`,
+      details,
+      priceInfo,
+      deadlineText,
+      notes,
+      cta,
+      "#plushdoll #purin_doll #order #purin_order #doll"
+    ].filter(Boolean).join('\n\n');
   };
 
   const generateThreadsPost = (customCta?: string) => {
     if (!product) return "";
     const productUrl = `${window.location.origin}/product/${product.id}`;
-    const boldTitle = toBoldUnicode(product.name);
+    const title = product.name;
     const priceText = `${currentPrice.toLocaleString('vi-VN')} VND ${product.feesIncluded ? '(ff)' : '+ phí nđ'}`;
     const deadlineInfo = product.orderDeadline 
       ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' }).replace(',', '')}`
@@ -300,7 +296,7 @@ ${cta}
     const productionInfo = product.productionTime ? `\n\n❗️Sản xuất ${product.productionTime}, only ck, có cọc 50%` : "";
     const cta = customCta || "Xinh đẹp 10 điểm, chấm";
     
-    return `${boldTitle} ${emoji}
+    return `${title} ${emoji}
 
 🏷️ ${priceText}${deadlineInfo}${productionInfo}
 
@@ -390,7 +386,6 @@ ${cta} ${productUrl}`;
                     {product.status && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 mb-1">{product.status}</Badge>}
                     <h1 className="text-lg md:text-2xl font-bold leading-tight text-foreground">{product.name}</h1>
                     
-                    {/* Thay đổi 5: Hiển thị lượt xem */}
                     <div className="flex items-center gap-1 text-muted-foreground text-sm pt-1">
                       <Eye className="h-4 w-4" />
                       <span>{viewCount.toLocaleString('vi-VN')} lượt xem</span>
@@ -438,13 +433,12 @@ ${cta} ${productUrl}`;
             {/* --- KHUNG THÔNG TIN CỐ ĐỊNH (Always Show - Fill "Không" if empty) --- */}
             <div className="border rounded-lg divide-y divide-border/60">
               
-              {/* 1. MÔ TẢ SẢN PHẨM - Đã chỉnh lại layout ngang hàng */}
+              {/* 1. MÔ TẢ SẢN PHẨM */}
               <div className="p-3 md:p-4 flex items-baseline">
                 <span className="font-medium text-sm text-muted-foreground w-32 flex-shrink-0">Mô tả</span>
                 <span className="text-sm text-foreground/90">
                   {product.description ? (
                     typeof product.description === 'string' 
-                      // Thay thế các ký tự xuống dòng (\n) thành dấu cách để văn bản liền mạch
                       ? product.description.split(/\r?\n|\\n/).filter(line => line.trim()).join(' ')
                       : product.description.join(' ') 
                   ) : "Không"}
@@ -563,7 +557,6 @@ ${cta} ${productUrl}`;
                 {isExpired ? "Đã hết hạn order" : availableStock === 0 ? "Hết hàng tạm thời" : "Thêm vào giỏ"}
               </Button>
               
-              {/* Form đăng ký thông báo khi hết hàng hoặc hết hạn */}
               {(isExpired || availableStock === 0) && (
                 <ProductNotificationForm productId={product.id} productName={product.name} />
               )}
