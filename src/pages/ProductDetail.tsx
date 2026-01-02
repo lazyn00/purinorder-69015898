@@ -9,7 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 // Thay đổi 1: Thêm import Eye
-import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Share2, Eye } from "lucide-react";
+import { ShoppingCart, Minus, Plus, CalendarOff, ArrowLeft, Share2, Eye, Copy, Facebook } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { OrderCountdown } from "@/components/OrderCountdown";
 import { useCart, Product } from "@/contexts/CartContext";
@@ -216,6 +222,47 @@ export default function ProductDetail() {
     }
   };
 
+  const generateFacebookPost = () => {
+    if (!product) return "";
+    const productUrl = `${window.location.origin}/product/${product.id}`;
+    const variantsInfo = product.variants && product.variants.length > 0 
+      ? `\n\n📦 Phân loại:\n${product.variants.map(v => `• ${v.name}: ${v.price.toLocaleString('vi-VN')}đ`).join('\n')}`
+      : "";
+    const descInfo = product.description ? `\n\n📝 Mô tả: ${product.description}` : "";
+    const statusInfo = product.status ? `\n🏷️ Tình trạng: ${product.status}` : "";
+    const deadlineInfo = product.orderDeadline 
+      ? `\n⏰ Hạn order: ${new Date(product.orderDeadline).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+      : "";
+    
+    return `✨ ${product.name} ✨
+
+💰 Giá: ${currentPrice.toLocaleString('vi-VN')}đ ${product.feesIncluded ? '(Full phí)' : '(Chưa full phí)'}${statusInfo}${deadlineInfo}${descInfo}${variantsInfo}
+
+🔗 Link đặt hàng: ${productUrl}
+
+💬 Inbox để đặt hàng nhanh nhé!`;
+  };
+
+  const generateThreadsPost = () => {
+    if (!product) return "";
+    const productUrl = `${window.location.origin}/product/${product.id}`;
+    return `✨ ${product.name}
+💰 ${currentPrice.toLocaleString('vi-VN')}đ
+🔗 ${productUrl}`;
+  };
+
+  const handleCopyFacebookPost = () => {
+    const post = generateFacebookPost();
+    navigator.clipboard.writeText(post);
+    toast({ title: "Đã copy bài Facebook", description: "Dán vào bài đăng của bạn" });
+  };
+
+  const handleCopyThreadsPost = () => {
+    const post = generateThreadsPost();
+    navigator.clipboard.writeText(post);
+    toast({ title: "Đã copy bài Threads", description: "Dán vào bài đăng của bạn" });
+  };
+
   if (isLoading) return <Layout><div className="container mx-auto py-12 flex justify-center h-[50vh]"><LoadingPudding /></div></Layout>;
   if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
 
@@ -295,7 +342,26 @@ export default function ProductDetail() {
 
                     {product.master && <p className="text-muted-foreground text-xs pt-1">Master: {product.master}</p>}
                  </div>
-                 <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 -mt-1 text-muted-foreground"><Share2 className="h-4 w-4" /></Button>
+                 <div className="flex items-center gap-1 -mt-1">
+                   <DropdownMenu>
+                     <DropdownMenuTrigger asChild>
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                         <Copy className="h-4 w-4" />
+                       </Button>
+                     </DropdownMenuTrigger>
+                     <DropdownMenuContent align="end">
+                       <DropdownMenuItem onClick={handleCopyFacebookPost} className="gap-2 cursor-pointer">
+                         <Facebook className="h-4 w-4 text-blue-600" />
+                         <span>Xuất bài Facebook</span>
+                       </DropdownMenuItem>
+                       <DropdownMenuItem onClick={handleCopyThreadsPost} className="gap-2 cursor-pointer">
+                         <span className="h-4 w-4 flex items-center justify-center text-xs font-bold">@</span>
+                         <span>Xuất bài Threads</span>
+                       </DropdownMenuItem>
+                     </DropdownMenuContent>
+                   </DropdownMenu>
+                   <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 text-muted-foreground"><Share2 className="h-4 w-4" /></Button>
+                 </div>
               </div>
             </div>
 
