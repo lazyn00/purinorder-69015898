@@ -225,22 +225,26 @@ export default function ProductDetail() {
   const generateFacebookPost = () => {
     if (!product) return "";
     const productUrl = `${window.location.origin}/product/${product.id}`;
-    const variantsInfo = product.variants && product.variants.length > 0 
-      ? `\n\n📦 Phân loại:\n${product.variants.map(v => `• ${v.name}: ${v.price.toLocaleString('vi-VN')}đ`).join('\n')}`
-      : "";
-    const descInfo = product.description ? `\n\n📝 Mô tả: ${product.description}` : "";
-    const statusInfo = product.status ? `\n🏷️ Tình trạng: ${product.status}` : "";
+    const statusPrefix = product.status ? `[${product.status.toLowerCase()}] ` : "";
+    const priceText = `${currentPrice.toLocaleString('vi-VN')}k ${product.feesIncluded ? 'ff' : 'chưa ff'}`;
+    const masterInfo = product.master ? `\n\nMaster: ${product.master}` : "";
+    const artistInfo = product.artist ? `\n\nThuộc tính: ${product.artist}` : "";
+    const sizeInfo = product.size ? `\n\nKích thước: ${product.size}` : "";
+    const includesInfo = product.includes ? `\n\nBao gồm: ${product.includes}` : "";
     const deadlineInfo = product.orderDeadline 
-      ? `\n⏰ Hạn order: ${new Date(product.orderDeadline).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+      ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' }).replace(',', '')}`
       : "";
+    const productionInfo = product.productionTime ? `\n\n❗️Lưu ý:\n\n• Thời gian sản xuất: ${product.productionTime}` : "";
     
-    return `✨ ${product.name} ✨
+    return `${statusPrefix}${product.name} 💛
 
-💰 Giá: ${currentPrice.toLocaleString('vi-VN')}đ ${product.feesIncluded ? '(Full phí)' : '(Chưa full phí)'}${statusInfo}${deadlineInfo}${descInfo}${variantsInfo}
+🍮 Link order: ${productUrl}${masterInfo}${artistInfo}${sizeInfo}
 
-🔗 Link đặt hàng: ${productUrl}
+Giá: ${priceText}${includesInfo}${deadlineInfo}${productionInfo}
 
-💬 Inbox để đặt hàng nhanh nhé!`;
+Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖
+
+#plushdoll #purin_doll #order #purin_order #doll`;
   };
 
   const generateThreadsPost = () => {
