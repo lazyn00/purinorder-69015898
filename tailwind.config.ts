@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['Quicksand', 'sans-serif'],
         quicksand: ['Quicksand', 'sans-serif'],
+        heading: ['Lora', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",

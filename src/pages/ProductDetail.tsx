@@ -39,6 +39,30 @@ const getVariantStock = (product: Product, variantName: string): number | undefi
     return product.stock;
 };
 
+// Emoji mapping by category/subcategory
+const getCategoryEmoji = (category?: string, subcategory?: string): string => {
+  const text = `${category || ''} ${subcategory || ''}`.toLowerCase();
+  if (text.includes('chó') || text.includes('dog') || text.includes('puppy')) return '🐶';
+  if (text.includes('mèo') || text.includes('cat') || text.includes('kitty')) return '🐱';
+  if (text.includes('gấu') || text.includes('bear')) return '🐻';
+  if (text.includes('thỏ') || text.includes('bunny') || text.includes('rabbit')) return '🐰';
+  if (text.includes('gà') || text.includes('chicken')) return '🐔';
+  if (text.includes('vịt') || text.includes('duck')) return '🦆';
+  if (text.includes('cáo') || text.includes('fox')) return '🦊';
+  if (text.includes('heo') || text.includes('pig')) return '🐷';
+  if (text.includes('bò') || text.includes('cow')) return '🐮';
+  if (text.includes('cừu') || text.includes('sheep')) return '🐑';
+  if (text.includes('sư tử') || text.includes('lion')) return '🦁';
+  if (text.includes('khủng long') || text.includes('dino')) return '🦕';
+  if (text.includes('cá') || text.includes('fish')) return '🐟';
+  if (text.includes('bướm') || text.includes('butterfly')) return '🦋';
+  if (text.includes('ong') || text.includes('bee')) return '🐝';
+  if (text.includes('hoa') || text.includes('flower')) return '🌸';
+  if (text.includes('trái cây') || text.includes('fruit')) return '🍓';
+  if (text.includes('bánh') || text.includes('cake')) return '🍰';
+  return '💛'; // default
+};
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -222,7 +246,9 @@ export default function ProductDetail() {
     }
   };
 
-  const generateFacebookPost = () => {
+  const emoji = getCategoryEmoji(product?.category, product?.subcategory);
+
+  const generateFacebookPost = (customCta?: string) => {
     if (!product) return "";
     const productUrl = `${window.location.origin}/product/${product.id}`;
     const statusPrefix = product.status ? `[${product.status.toLowerCase()}] ` : "";
@@ -235,19 +261,20 @@ export default function ProductDetail() {
       ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' }).replace(',', '')}`
       : "";
     const productionInfo = product.productionTime ? `\n\n❗️Lưu ý:\n\n• Thời gian sản xuất: ${product.productionTime}` : "";
+    const cta = customCta || "Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖";
     
-    return `${statusPrefix}${product.name} 💛
+    return `${statusPrefix}${product.name} ${emoji}
 
 🍮 Link order: ${productUrl}${masterInfo}${artistInfo}${sizeInfo}
 
 Giá: ${priceText}${includesInfo}${deadlineInfo}${productionInfo}
 
-Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖
+${cta}
 
 #plushdoll #purin_doll #order #purin_order #doll`;
   };
 
-  const generateThreadsPost = () => {
+  const generateThreadsPost = (customCta?: string) => {
     if (!product) return "";
     const productUrl = `${window.location.origin}/product/${product.id}`;
     const priceText = `${currentPrice.toLocaleString('vi-VN')} VND ${product.feesIncluded ? '(ff)' : '+ phí nđ'}`;
@@ -255,12 +282,13 @@ Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖
       ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' }).replace(',', '')}`
       : "";
     const productionInfo = product.productionTime ? `\n\n❗️Sản xuất ${product.productionTime}, only ck, có cọc 50%` : "";
+    const cta = customCta || "Xinh đẹp 10 điểm, chấm";
     
-    return `${product.name} 💛
+    return `${product.name} ${emoji}
 
 🏷️ ${priceText}${deadlineInfo}${productionInfo}
 
-Xinh đẹp 10 điểm, chấm ${productUrl}`;
+${cta} ${productUrl}`;
   };
 
   const handleCopyFacebookPost = () => {
