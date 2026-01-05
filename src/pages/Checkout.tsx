@@ -451,35 +451,49 @@ export default function Checkout() {
             <div className="space-y-6">
               <div>
                 <Label className="font-semibold mb-3 block">Hình thức thanh toán</Label>
-                <div className="space-y-3">
-                  <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                    <input 
-                      type="radio" 
-                      name="paymentType" 
-                      value="full" 
-                      checked={paymentType === 'full'} 
-                      onChange={(e) => setPaymentType(e.target.value as "full")}
-                      className="mt-1"
-                    />
-                    <div>
-                      <div className="font-medium">Thanh toán đủ 100% ({totalPrice.toLocaleString('vi-VN')}đ)</div>
-                    </div>
-                  </label>
+                {(() => {
+                  // Kiểm tra có sản phẩm nào không cho phép đặt cọc không
+                  const hasNoDepositItem = cartItems.some(item => (item as any).deposit_allowed === false);
                   
-                  <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                    <input 
-                      type="radio" 
-                      name="paymentType" 
-                      value="deposit" 
-                      checked={paymentType === 'deposit'} 
-                      onChange={(e) => setPaymentType(e.target.value as "deposit")}
-                      className="mt-1"
-                    />
-                    <div>
-                      <div className="font-medium">Đặt cọc 50% ({(totalPrice * 0.5).toLocaleString('vi-VN')}đ) - Hẹn hoàn cọc trong 1 tháng</div>
+                  return (
+                    <div className="space-y-3">
+                      <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                        <input 
+                          type="radio" 
+                          name="paymentType" 
+                          value="full" 
+                          checked={paymentType === 'full'} 
+                          onChange={(e) => setPaymentType(e.target.value as "full")}
+                          className="mt-1"
+                        />
+                        <div>
+                          <div className="font-medium">Thanh toán đủ 100% ({totalPrice.toLocaleString('vi-VN')}đ)</div>
+                        </div>
+                      </label>
+                      
+                      {hasNoDepositItem ? (
+                        <div className="p-4 border rounded-lg bg-muted/30 text-muted-foreground">
+                          <div className="font-medium">Đặt cọc 50% - Không khả dụng</div>
+                          <p className="text-sm mt-1">Một số sản phẩm trong giỏ hàng không hỗ trợ đặt cọc. Vui lòng thanh toán đủ.</p>
+                        </div>
+                      ) : (
+                        <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                          <input 
+                            type="radio" 
+                            name="paymentType" 
+                            value="deposit" 
+                            checked={paymentType === 'deposit'} 
+                            onChange={(e) => setPaymentType(e.target.value as "deposit")}
+                            className="mt-1"
+                          />
+                          <div>
+                            <div className="font-medium">Đặt cọc 50% ({(totalPrice * 0.5).toLocaleString('vi-VN')}đ) - Hẹn hoàn cọc trong 1 tháng</div>
+                          </div>
+                        </label>
+                      )}
                     </div>
-                  </label>
-                </div>
+                  );
+                })()}
               </div>
 
               <div>

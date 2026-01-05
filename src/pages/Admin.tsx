@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Settings } from "lucide-react";
+import ProductManagementTab from "@/components/admin/ProductManagementTab";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -1401,6 +1402,9 @@ ${generateEmailContent(order)}
               <TabsTrigger value="notifications" onClick={fetchNotifications} className="h-10 w-10 p-0" title="Thông báo sản phẩm">
                 <Mail className="h-5 w-5" />
               </TabsTrigger>
+              <TabsTrigger value="product-management" className="h-10 w-10 p-0" title="Quản lý sản phẩm">
+                <Settings className="h-5 w-5" />
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
@@ -2472,6 +2476,12 @@ ${generateEmailContent(order)}
               </Card>
             </TabsContent>
             {/* ================================================== */}
+
+            {/* ========== TAB QUẢN LÝ SẢN PHẨM ========== */}
+            <TabsContent value="product-management">
+              <ProductManagementTab />
+            </TabsContent>
+            {/* =========================================== */}
           </Tabs>
         )}
       </div>
