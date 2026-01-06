@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,12 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, Search, Upload, X, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Search, Upload, X, Image as ImageIcon, RefreshCw, FileSpreadsheet } from "lucide-react";
+import * as XLSX from "xlsx";
 
 interface ProductVariant {
   name: string;
   price: number;
   stock?: number;
+  imageIndex?: number;
 }
 
 interface Product {
@@ -89,6 +91,7 @@ const initialFormState = {
   production_time: "",
   variants: [] as ProductVariant[],
   images: [] as string[],
+  variant_image_map: {} as { [key: string]: number },
 };
 
 export default function ProductManagementTab() {
@@ -106,12 +109,38 @@ export default function ProductManagementTab() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Import states
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   // Variant form
   const [newVariantName, setNewVariantName] = useState("");
   const [newVariantPrice, setNewVariantPrice] = useState<number>(0);
   const [newVariantStock, setNewVariantStock] = useState<number | undefined>();
+  const [newVariantImageIndex, setNewVariantImageIndex] = useState<number | undefined>();
   
   const { toast } = useToast();
+
+  // Auto-calculate r_v when te or rate changes
+  useEffect(() => {
+    if (formData.te !== undefined && formData.rate !== undefined) {
+      const calculatedRV = formData.te * formData.rate;
+      setFormData(prev => ({ ...prev, r_v: calculatedRV }));
+    }
+  }, [formData.te, formData.rate]);
+
+  // Auto-calculate total when r_v, can_weight, pack, or cong changes
+  useEffect(() => {
+    const rv = formData.r_v ?? 0;
+    const can = formData.can_weight ?? 0;
+    const pack = formData.pack ?? 0;
+    const cong = formData.cong ?? 0;
+    
+    if (rv > 0 || can > 0 || pack > 0 || cong > 0) {
+      const calculatedTotal = rv + can + pack + cong;
+      setFormData(prev => ({ ...prev, total: calculatedTotal }));
+    }
+  }, [formData.r_v, formData.can_weight, formData.pack, formData.cong]);
 
   // Fetch products
   const fetchProducts = async () => {
@@ -148,6 +177,122 @@ export default function ProductManagementTab() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Import from Excel/Sheet
+  const handleImportSheet = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      console.log("Imported data:", jsonData);
+
+      let importedCount = 0;
+      let updatedCount = 0;
+
+      for (const row of jsonData as any[]) {
+        // Map columns from sheet to database fields
+        const productData = {
+          name: row['name'] || row['Tên'] || '',
+          te: parseFloat(row['tệ'] || row['te']) || null,
+          rate: parseFloat(row['rate'] || row['Rate']) || null,
+          r_v: parseFloat(row['r-v'] || row['r_v'] || row['R-V']) || null,
+          can_weight: parseFloat(row['cân'] || row['can_weight']) || null,
+          pack: parseFloat(row['pack'] || row['Pack']) || null,
+          cong: parseFloat(row['công'] || row['cong']) || null,
+          total: parseFloat(row['tổng'] || row['total']) || null,
+          price: parseInt(row['price'] || row['Price'] || row['Giá']) || 0,
+          fees_included: row['feesIncluded'] === true || row['feesIncluded'] === 'true' || row['feesIncluded'] === 1,
+          category: row['category'] || row['Danh mục'] || null,
+          subcategory: row['subcategory'] || null,
+          artist: row['artist'] || row['Nghệ sĩ'] || null,
+          status: row['status'] || row['Trạng thái'] || 'Sẵn',
+          order_deadline: row['orderDeadline'] ? new Date(row['orderDeadline']).toISOString() : null,
+          images: row['images'] ? (typeof row['images'] === 'string' ? JSON.parse(row['images']) : row['images']) : [],
+          description: row['description'] || row['Mô tả'] || null,
+          production_time: row['productionTime'] || row['production_time'] || null,
+          master: row['master'] || null,
+          variants: row['variants'] ? (typeof row['variants'] === 'string' ? JSON.parse(row['variants']) : row['variants']) : [],
+          option_groups: row['optiongroups'] || row['option_groups'] ? (typeof (row['optiongroups'] || row['option_groups']) === 'string' ? JSON.parse(row['optiongroups'] || row['option_groups']) : (row['optiongroups'] || row['option_groups'])) : [],
+          variant_image_map: row['variantImageMap'] || row['variant_image_map'] ? (typeof (row['variantImageMap'] || row['variant_image_map']) === 'string' ? JSON.parse(row['variantImageMap'] || row['variant_image_map']) : (row['variantImageMap'] || row['variant_image_map'])) : {},
+          stock: parseInt(row['stock']) || null,
+          link_order: row['link order'] || row['link_order'] || null,
+          proof: row['proof'] || null,
+          actual_rate: parseFloat(row['rate thực'] || row['actual_rate']) || null,
+          actual_can: parseFloat(row['cân thực'] || row['actual_can']) || null,
+          actual_pack: parseFloat(row['pack thực'] || row['actual_pack']) || null,
+        };
+
+        // Auto-calculate r_v if te and rate are present
+        if (productData.te && productData.rate && !productData.r_v) {
+          productData.r_v = productData.te * productData.rate;
+        }
+
+        // Auto-calculate total if components are present
+        if (!productData.total) {
+          const rv = productData.r_v || 0;
+          const can = productData.can_weight || 0;
+          const pack = productData.pack || 0;
+          const cong = productData.cong || 0;
+          if (rv > 0 || can > 0 || pack > 0 || cong > 0) {
+            productData.total = rv + can + pack + cong;
+          }
+        }
+
+        if (!productData.name) continue;
+
+        // Check if product exists by name
+        const { data: existingProducts } = await supabase
+          .from('products')
+          .select('id')
+          .eq('name', productData.name)
+          .limit(1);
+
+        if (existingProducts && existingProducts.length > 0) {
+          // Update existing product
+          const { error } = await supabase
+            .from('products')
+            .update(productData as any)
+            .eq('id', existingProducts[0].id);
+
+          if (!error) updatedCount++;
+        } else {
+          // Insert new product
+          const { error } = await supabase
+            .from('products')
+            .insert(productData as any);
+
+          if (!error) importedCount++;
+        }
+      }
+
+      toast({
+        title: "Import thành công",
+        description: `Đã thêm ${importedCount} sản phẩm mới, cập nhật ${updatedCount} sản phẩm`
+      });
+
+      fetchProducts();
+    } catch (error) {
+      console.error("Error importing sheet:", error);
+      toast({
+        title: "Lỗi import",
+        description: "Không thể import file. Kiểm tra định dạng file.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Filter products
   const filteredProducts = products.filter(product => {
@@ -212,36 +357,108 @@ export default function ProductManagementTab() {
 
   // Remove image
   const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
+    setFormData(prev => {
+      // Update variant_image_map when removing an image
+      const newVariantImageMap = { ...prev.variant_image_map };
+      Object.keys(newVariantImageMap).forEach(key => {
+        if (newVariantImageMap[key] === index) {
+          delete newVariantImageMap[key];
+        } else if (newVariantImageMap[key] > index) {
+          newVariantImageMap[key] = newVariantImageMap[key] - 1;
+        }
+      });
+      
+      // Update variants imageIndex
+      const newVariants = prev.variants.map(v => {
+        if (v.imageIndex === index) {
+          return { ...v, imageIndex: undefined };
+        } else if (v.imageIndex !== undefined && v.imageIndex > index) {
+          return { ...v, imageIndex: v.imageIndex - 1 };
+        }
+        return v;
+      });
+
+      return {
+        ...prev,
+        images: prev.images.filter((_, i) => i !== index),
+        variant_image_map: newVariantImageMap,
+        variants: newVariants
+      };
+    });
   };
 
   // Add variant
   const addVariant = () => {
     if (!newVariantName.trim()) return;
     
-    setFormData(prev => ({
-      ...prev,
-      variants: [...prev.variants, {
-        name: newVariantName,
-        price: newVariantPrice,
-        stock: newVariantStock
-      }]
-    }));
+    const newVariant: ProductVariant = {
+      name: newVariantName,
+      price: newVariantPrice,
+      stock: newVariantStock,
+      imageIndex: newVariantImageIndex
+    };
+    
+    setFormData(prev => {
+      const newVariants = [...prev.variants, newVariant];
+      const newVariantImageMap = { ...prev.variant_image_map };
+      
+      if (newVariantImageIndex !== undefined) {
+        newVariantImageMap[newVariantName] = newVariantImageIndex;
+      }
+      
+      return {
+        ...prev,
+        variants: newVariants,
+        variant_image_map: newVariantImageMap
+      };
+    });
     
     setNewVariantName("");
     setNewVariantPrice(0);
     setNewVariantStock(undefined);
+    setNewVariantImageIndex(undefined);
   };
 
   // Remove variant
   const removeVariant = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      variants: prev.variants.filter((_, i) => i !== index)
-    }));
+    setFormData(prev => {
+      const variantToRemove = prev.variants[index];
+      const newVariantImageMap = { ...prev.variant_image_map };
+      
+      if (variantToRemove && newVariantImageMap[variantToRemove.name] !== undefined) {
+        delete newVariantImageMap[variantToRemove.name];
+      }
+      
+      return {
+        ...prev,
+        variants: prev.variants.filter((_, i) => i !== index),
+        variant_image_map: newVariantImageMap
+      };
+    });
+  };
+
+  // Update variant image
+  const updateVariantImage = (variantIndex: number, imageIndex: number | undefined) => {
+    setFormData(prev => {
+      const variant = prev.variants[variantIndex];
+      if (!variant) return prev;
+      
+      const newVariants = [...prev.variants];
+      newVariants[variantIndex] = { ...variant, imageIndex };
+      
+      const newVariantImageMap = { ...prev.variant_image_map };
+      if (imageIndex !== undefined) {
+        newVariantImageMap[variant.name] = imageIndex;
+      } else {
+        delete newVariantImageMap[variant.name];
+      }
+      
+      return {
+        ...prev,
+        variants: newVariants,
+        variant_image_map: newVariantImageMap
+      };
+    });
   };
 
   // Reset form
@@ -252,6 +469,7 @@ export default function ProductManagementTab() {
     setNewVariantName("");
     setNewVariantPrice(0);
     setNewVariantStock(undefined);
+    setNewVariantImageIndex(undefined);
   };
 
   // Open edit dialog
@@ -284,6 +502,7 @@ export default function ProductManagementTab() {
       production_time: product.production_time || "",
       variants: product.variants || [],
       images: product.images || [],
+      variant_image_map: product.variant_image_map || {},
     });
     setIsEditing(true);
     setEditingId(product.id);
@@ -332,6 +551,7 @@ export default function ProductManagementTab() {
         production_time: formData.production_time || null,
         variants: formData.variants as unknown as any,
         images: formData.images as unknown as any,
+        variant_image_map: formData.variant_image_map as unknown as any,
       };
 
       if (isEditing && editingId) {
@@ -416,7 +636,28 @@ export default function ProductManagementTab() {
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle>Quản lý sản phẩm</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {/* Import from Sheet */}
+            <Label htmlFor="sheet-import" className="cursor-pointer">
+              <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
+                {isImporting ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4 mr-1" />
+                )}
+                Import Sheet
+              </div>
+              <Input
+                id="sheet-import"
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={handleImportSheet}
+                disabled={isImporting}
+              />
+            </Label>
+            
             <Button variant="outline" size="sm" onClick={fetchProducts} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
               Làm mới
@@ -609,12 +850,12 @@ export default function ProductManagementTab() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">R-V</Label>
+                        <Label className="text-xs">R-V (tự động)</Label>
                         <Input
                           type="number"
                           value={formData.r_v ?? ""}
-                          onChange={(e) => setFormData({ ...formData, r_v: e.target.value ? Number(e.target.value) : undefined })}
-                          className="h-8"
+                          readOnly
+                          className="h-8 bg-muted"
                         />
                       </div>
                       <div className="space-y-1">
@@ -645,12 +886,12 @@ export default function ProductManagementTab() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Tổng</Label>
+                        <Label className="text-xs">Tổng (tự động)</Label>
                         <Input
                           type="number"
                           value={formData.total ?? ""}
-                          onChange={(e) => setFormData({ ...formData, total: e.target.value ? Number(e.target.value) : undefined })}
-                          className="h-8"
+                          readOnly
+                          className="h-8 bg-muted"
                         />
                       </div>
                     </div>
@@ -744,6 +985,9 @@ export default function ProductManagementTab() {
                             alt={`Product ${index + 1}`}
                             className="h-20 w-20 object-cover rounded border"
                           />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs text-center py-0.5 rounded-b">
+                            #{index}
+                          </div>
                           <button
                             type="button"
                             onClick={() => removeImage(index)}
@@ -761,7 +1005,7 @@ export default function ProductManagementTab() {
                     </div>
                   </div>
 
-                  {/* Variants */}
+                  {/* Variants with Image Assignment */}
                   <div className="border-t pt-4">
                     <h4 className="font-medium mb-3">Phân loại</h4>
                     <div className="space-y-3">
@@ -774,6 +1018,23 @@ export default function ProductManagementTab() {
                           {variant.stock !== undefined && (
                             <Badge variant="outline">SL: {variant.stock}</Badge>
                           )}
+                          {/* Image selector for variant */}
+                          <Select
+                            value={variant.imageIndex?.toString() ?? "none"}
+                            onValueChange={(v) => updateVariantImage(index, v === "none" ? undefined : parseInt(v))}
+                          >
+                            <SelectTrigger className="w-24 h-7 text-xs">
+                              <SelectValue placeholder="Ảnh" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Không</SelectItem>
+                              {formData.images.map((_, imgIndex) => (
+                                <SelectItem key={imgIndex} value={imgIndex.toString()}>
+                                  Ảnh #{imgIndex}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Button
                             type="button"
                             variant="ghost"
@@ -785,27 +1046,43 @@ export default function ProductManagementTab() {
                           </Button>
                         </div>
                       ))}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Input
                           placeholder="Tên phân loại"
                           value={newVariantName}
                           onChange={(e) => setNewVariantName(e.target.value)}
-                          className="flex-1"
+                          className="flex-1 min-w-[120px]"
                         />
                         <Input
                           type="number"
                           placeholder="Giá"
                           value={newVariantPrice || ""}
                           onChange={(e) => setNewVariantPrice(Number(e.target.value))}
-                          className="w-28"
+                          className="w-24"
                         />
                         <Input
                           type="number"
                           placeholder="SL"
                           value={newVariantStock ?? ""}
                           onChange={(e) => setNewVariantStock(e.target.value ? Number(e.target.value) : undefined)}
-                          className="w-20"
+                          className="w-16"
                         />
+                        <Select
+                          value={newVariantImageIndex?.toString() ?? "none"}
+                          onValueChange={(v) => setNewVariantImageIndex(v === "none" ? undefined : parseInt(v))}
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue placeholder="Ảnh" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Không</SelectItem>
+                            {formData.images.map((_, imgIndex) => (
+                              <SelectItem key={imgIndex} value={imgIndex.toString()}>
+                                Ảnh #{imgIndex}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Button type="button" variant="outline" onClick={addVariant}>
                           <Plus className="h-4 w-4" />
                         </Button>
