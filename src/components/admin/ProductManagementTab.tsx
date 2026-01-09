@@ -509,6 +509,24 @@ export default function ProductManagementTab() {
     setIsDialogOpen(true);
   };
 
+  // Sync product to Google Sheets
+  const syncProductToSheets = async (product: any, action: 'create' | 'update' | 'delete') => {
+    try {
+      const { error } = await supabase.functions.invoke('sync-product-to-sheets', {
+        body: { product, action }
+      });
+      
+      if (error) {
+        console.error('Error syncing to sheets:', error);
+        // Don't throw - just log, we don't want to block the main operation
+      } else {
+        console.log(`Product ${action}d and synced to sheets`);
+      }
+    } catch (err) {
+      console.error('Failed to sync product to sheets:', err);
+    }
+  };
+
   // Save product
   const saveProduct = async () => {
     if (!formData.name.trim()) {
@@ -555,27 +573,37 @@ export default function ProductManagementTab() {
       };
 
       if (isEditing && editingId) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
           .update(productData)
-          .eq('id', editingId);
+          .eq('id', editingId)
+          .select()
+          .single();
 
         if (error) throw error;
 
+        // Sync to Google Sheets
+        syncProductToSheets({ ...data, id: editingId }, 'update');
+
         toast({
           title: "Thành công",
-          description: "Đã cập nhật sản phẩm"
+          description: "Đã cập nhật sản phẩm và đồng bộ về Sheet"
         });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
-          .insert(productData);
+          .insert(productData)
+          .select()
+          .single();
 
         if (error) throw error;
 
+        // Sync to Google Sheets
+        syncProductToSheets(data, 'create');
+
         toast({
           title: "Thành công",
-          description: "Đã thêm sản phẩm mới"
+          description: "Đã thêm sản phẩm mới và đồng bộ về Sheet"
         });
       }
 
@@ -599,6 +627,9 @@ export default function ProductManagementTab() {
     if (!confirm("Bạn có chắc muốn xóa sản phẩm này?")) return;
 
     try {
+      // Find product to get its data for sync
+      const productToDelete = products.find(p => p.id === productId);
+      
       const { error } = await supabase
         .from('products')
         .delete()
@@ -606,10 +637,15 @@ export default function ProductManagementTab() {
 
       if (error) throw error;
 
+      // Sync deletion to Google Sheets
+      if (productToDelete) {
+        syncProductToSheets(productToDelete, 'delete');
+      }
+
       setProducts(prev => prev.filter(p => p.id !== productId));
       toast({
         title: "Đã xóa",
-        description: "Sản phẩm đã được xóa"
+        description: "Sản phẩm đã được xóa và đồng bộ về Sheet"
       });
     } catch (error) {
       console.error("Error deleting product:", error);
