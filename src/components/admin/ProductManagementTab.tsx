@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, Search, Upload, X, Image as ImageIcon, RefreshCw, FileSpreadsheet } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Search, Upload, X, Image as ImageIcon, RefreshCw, FileSpreadsheet, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 
 interface ProductVariant {
@@ -111,6 +111,9 @@ export default function ProductManagementTab() {
   
   // Import states
   const [isImporting, setIsImporting] = useState(false);
+  const [isSyncingFromSheet, setIsSyncingFromSheet] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [showSyncDialog, setShowSyncDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Variant form
@@ -667,6 +670,47 @@ export default function ProductManagementTab() {
     }
   };
 
+  // Pull products from Google Sheet
+  const pullFromSheet = async () => {
+    if (!sheetUrl.trim()) {
+      toast({
+        title: "Thiếu URL",
+        description: "Vui lòng nhập URL của Google Sheet (đã publish to web)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSyncingFromSheet(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('pull-products-from-sheet', {
+        body: { sheetUrl: sheetUrl.trim() }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Đồng bộ thành công",
+          description: `Đã thêm ${data.created} sản phẩm, cập nhật ${data.updated} sản phẩm${data.failed > 0 ? `, lỗi ${data.failed}` : ''}`
+        });
+        setShowSyncDialog(false);
+        fetchProducts();
+      } else {
+        throw new Error(data.error || 'Unknown error');
+      }
+    } catch (error: any) {
+      console.error('Error pulling from sheet:', error);
+      toast({
+        title: "Lỗi đồng bộ",
+        description: error.message || "Không thể đồng bộ từ Sheet. Kiểm tra URL và định dạng.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncingFromSheet(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -693,6 +737,53 @@ export default function ProductManagementTab() {
                 disabled={isImporting}
               />
             </Label>
+            
+            {/* Sync from Sheet */}
+            <Dialog open={showSyncDialog} onOpenChange={setShowSyncDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-1" />
+                  Sync từ Sheet
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Đồng bộ sản phẩm từ Google Sheet</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sheet-url">URL Google Sheet (đã publish to web)</Label>
+                    <Input
+                      id="sheet-url"
+                      placeholder="https://script.google.com/macros/s/..."
+                      value={sheetUrl}
+                      onChange={(e) => setSheetUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Sử dụng URL từ doGet của Google Apps Script đã deploy.
+                      Sheet cần có các cột: name, price, category, status, variants, images...
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={pullFromSheet} 
+                    disabled={isSyncingFromSheet}
+                    className="w-full"
+                  >
+                    {isSyncingFromSheet ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Đang đồng bộ...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Bắt đầu đồng bộ
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
             
             <Button variant="outline" size="sm" onClick={fetchProducts} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
