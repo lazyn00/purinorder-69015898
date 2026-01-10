@@ -13,23 +13,24 @@ serve(async (req) => {
   }
 
   try {
-    const { sheetUrl } = await req.json();
+    // Get the products URL from environment variable
+    const sheetUrl = Deno.env.get('GOOGLE_SHEETS_PRODUCTS_URL');
     
     if (!sheetUrl) {
-      throw new Error('Sheet URL is required');
+      throw new Error('GOOGLE_SHEETS_PRODUCTS_URL secret is not configured');
     }
 
-    console.log('Fetching products from Google Sheet:', sheetUrl);
+    console.log('Fetching products from Google Sheet Apps Script');
 
-    // Fetch data from Google Sheet (must be published to web as JSON)
+    // Fetch data from Google Apps Script doGet endpoint
     const response = await fetch(sheetUrl);
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch sheet: ${response.statusText}`);
+      throw new Error(`Failed to fetch from Apps Script: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('Received data from sheet:', JSON.stringify(data).slice(0, 500));
+    console.log('Received data from Apps Script:', JSON.stringify(data).slice(0, 500));
 
     // Parse products from sheet data
     const products = data.products || data;
