@@ -591,20 +591,15 @@ export default function ProductManagementTab() {
       };
 
       if (isEditing && editingId) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('products')
           .update(productData)
-          .eq('id', editingId)
-          .select();
+          .eq('id', editingId);
 
         if (error) throw error;
-        
-        if (!data || data.length === 0) {
-          throw new Error("Không tìm thấy sản phẩm để cập nhật");
-        }
 
         // Sync to Google Sheets
-        syncProductToSheets({ ...data[0], id: editingId }, 'update');
+        syncProductToSheets({ ...productData, id: editingId }, 'update');
 
         toast({
           title: "Thành công",
@@ -617,13 +612,10 @@ export default function ProductManagementTab() {
           .select();
 
         if (error) throw error;
-        
-        if (!data || data.length === 0) {
-          throw new Error("Không thể tạo sản phẩm mới");
-        }
 
         // Sync to Google Sheets
-        syncProductToSheets(data[0], 'create');
+        const newProduct = data && data.length > 0 ? data[0] : productData;
+        syncProductToSheets(newProduct, 'create');
 
         toast({
           title: "Thành công",
