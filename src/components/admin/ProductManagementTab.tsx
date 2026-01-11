@@ -54,14 +54,20 @@ interface Product {
   production_time?: string;
 }
 
-const PRODUCT_STATUSES = ["Sẵn", "Đặt hàng", "Hết hàng", "Ngừng bán"];
+const PRODUCT_STATUSES = ["Pre-order", "Order", "Sẵn", "Deal"];
 const CATEGORIES = [
-  "Đôn",
-  "Mô hình",
-  "Phụ kiện",
-  "Búp bê",
-  "Khác"
+  "Outfit & Doll",
+  "Merch",
+  "Khác",
+  "Thời trang"
 ];
+
+const SUBCATEGORIES: Record<string, string[]> = {
+  "Outfit & Doll": ["20cm", "15cm", "10cm", "Outfit 20cm", "Outfit 15cm", "Outfit 10cm", "Phụ kiện"],
+  "Merch": ["Photocard", "Album", "Lightstick", "Poster", "Keyring", "Badge", "Sticker", "Postcard", "Standee"],
+  "Khác": ["Văn phòng phẩm", "Túi xách", "Phụ kiện điện thoại", "Đồ gia dụng"],
+  "Thời trang": ["Áo", "Quần", "Váy", "Giày dép", "Túi xách", "Phụ kiện"]
+};
 
 const initialFormState = {
   name: "",
@@ -69,6 +75,7 @@ const initialFormState = {
   description: "",
   category: "",
   subcategory: "",
+  customSubcategory: "",
   artist: "",
   status: "Sẵn",
   order_deadline: "",
@@ -475,12 +482,17 @@ export default function ProductManagementTab() {
 
   // Open edit dialog
   const openEditDialog = (product: Product) => {
+    // Check if subcategory is in the predefined list
+    const availableSubs = product.category ? (SUBCATEGORIES[product.category] || []) : [];
+    const subcategoryInList = availableSubs.includes(product.subcategory || "");
+    
     setFormData({
       name: product.name || "",
       price: product.price || 0,
       description: product.description || "",
       category: product.category || "",
-      subcategory: product.subcategory || "",
+      subcategory: subcategoryInList ? (product.subcategory || "") : "custom",
+      customSubcategory: subcategoryInList ? "" : (product.subcategory || ""),
       artist: product.artist || "",
       status: product.status || "Sẵn",
       order_deadline: product.order_deadline ? product.order_deadline.split('T')[0] : "",
@@ -542,12 +554,17 @@ export default function ProductManagementTab() {
     setIsSaving(true);
 
     try {
+      // Determine final subcategory value
+      const finalSubcategory = formData.subcategory === "custom" 
+        ? formData.customSubcategory 
+        : formData.subcategory;
+      
       const productData = {
         name: formData.name,
         price: formData.price,
         description: formData.description || null,
         category: formData.category || null,
-        subcategory: formData.subcategory || null,
+        subcategory: finalSubcategory || null,
         artist: formData.artist || null,
         status: formData.status,
         order_deadline: formData.order_deadline ? new Date(formData.order_deadline).toISOString() : null,
@@ -578,13 +595,16 @@ export default function ProductManagementTab() {
           .from('products')
           .update(productData)
           .eq('id', editingId)
-          .select()
-          .single();
+          .select();
 
         if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          throw new Error("Không tìm thấy sản phẩm để cập nhật");
+        }
 
         // Sync to Google Sheets
-        syncProductToSheets({ ...data, id: editingId }, 'update');
+        syncProductToSheets({ ...data[0], id: editingId }, 'update');
 
         toast({
           title: "Thành công",
@@ -594,13 +614,16 @@ export default function ProductManagementTab() {
         const { data, error } = await supabase
           .from('products')
           .insert(productData)
-          .select()
-          .single();
+          .select();
 
         if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          throw new Error("Không thể tạo sản phẩm mới");
+        }
 
         // Sync to Google Sheets
-        syncProductToSheets(data, 'create');
+        syncProductToSheets(data[0], 'create');
 
         toast({
           title: "Thành công",
@@ -788,7 +811,7 @@ export default function ProductManagementTab() {
                       <Label>Danh mục</Label>
                       <Select 
                         value={formData.category} 
-                        onValueChange={(v) => setFormData({ ...formData, category: v })}
+                        onValueChange={(v) => setFormData({ ...formData, category: v, subcategory: "", customSubcategory: "" })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Chọn danh mục" />
@@ -801,13 +824,30 @@ export default function ProductManagementTab() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="subcategory">Danh mục phụ</Label>
-                      <Input
-                        id="subcategory"
-                        value={formData.subcategory}
-                        onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                        placeholder="VD: Nhân vật, Anime..."
-                      />
+                      <Label>Danh mục phụ</Label>
+                      <Select 
+                        value={formData.subcategory} 
+                        onValueChange={(v) => setFormData({ ...formData, subcategory: v, customSubcategory: v === "custom" ? formData.customSubcategory : "" })}
+                        disabled={!formData.category}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn danh mục phụ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(formData.category ? (SUBCATEGORIES[formData.category] || []) : []).map(sub => (
+                            <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                          ))}
+                          <SelectItem value="custom">Khác (tùy chỉnh)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {formData.subcategory === "custom" && (
+                        <Input
+                          className="mt-2"
+                          placeholder="Nhập danh mục phụ tùy chỉnh"
+                          value={formData.customSubcategory}
+                          onChange={(e) => setFormData({ ...formData, customSubcategory: e.target.value })}
+                        />
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Trạng thái</Label>
