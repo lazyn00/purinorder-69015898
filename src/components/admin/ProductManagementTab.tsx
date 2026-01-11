@@ -63,9 +63,9 @@ const CATEGORIES = [
 ];
 
 const SUBCATEGORIES: Record<string, string[]> = {
-  "Outfit & Doll": ["20cm", "15cm", "10cm", "Outfit 20cm", "Outfit 15cm", "Outfit 10cm", "Phụ kiện"],
-  "Merch": ["Photocard", "Album", "Lightstick", "Poster", "Keyring", "Badge", "Sticker", "Postcard", "Standee"],
-  "Khác": ["Văn phòng phẩm", "Túi xách", "Phụ kiện điện thoại", "Đồ gia dụng"],
+  "Outfit & Doll": ["Doll", "Outfit"],
+  "Merch": ["Album", "Badge", "Binder", "Blind box", "Bookmark", "Card", "Card Holder", "Chăn", "Griptok", "Hộp", "ID photo", "Kẹp", "Keychain", "Khăn choàng", "Lịch", "Lót chuột/ bàn", "Luggage tag", "Polaroid", "Postcard", "Quạt", "Set", "Slogan", "Standee", "Sticker", "Túi", "Túi giấy"],
+  "Khác": ["Bảng nỉ", "Văn phòng phẩm", "Phụ kiện điện thoại", "Đồ gia dụng"],
   "Thời trang": ["Áo", "Quần", "Váy", "Giày dép", "Túi xách", "Phụ kiện"]
 };
 
