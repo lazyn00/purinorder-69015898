@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
+
+const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
 
 export interface Product {
   id: number;
@@ -22,7 +23,7 @@ export interface Product {
   productionTime?: string;
   size?: string;
   includes?: string;
-  deposit_allowed?: boolean;
+  deposit_allowed?: boolean; // Cho phép đặt cọc hay không
 }
 
 export interface CartItem extends Product {
@@ -45,20 +46,6 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Helper function to format price display
-const formatPriceDisplay = (price: number, variants: { name: string; price: number }[]): string => {
-  if (variants && variants.length > 0) {
-    const prices = variants.map(v => v.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    if (minPrice !== maxPrice) {
-      return `${minPrice.toLocaleString('vi-VN')}đ - ${maxPrice.toLocaleString('vi-VN')}đ`;
-    }
-    return `${minPrice.toLocaleString('vi-VN')}đ`;
-  }
-  return `${price.toLocaleString('vi-VN')}đ`;
-};
-
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -67,74 +54,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (error) {
-        console.error("Lỗi tải products từ Supabase:", error);
-        return;
-      }
-
-      if (data) {
-        const formattedProducts: Product[] = data.map((p: any) => {
-          // Parse variants
-          const variants = Array.isArray(p.variants) ? p.variants : [];
-          
-          // Parse option_groups
-          const optionGroups = Array.isArray(p.option_groups) ? p.option_groups : [];
-          
-          // Parse variant_image_map
-          let variantImageMap = {};
-          if (p.variant_image_map) {
-            if (typeof p.variant_image_map === 'string') {
-              try {
-                variantImageMap = JSON.parse(p.variant_image_map);
-              } catch (e) {
-                console.error(`Lỗi parse variantImageMap cho sản phẩm ${p.id}:`, e);
-              }
-            } else if (typeof p.variant_image_map === 'object') {
-              variantImageMap = p.variant_image_map;
+      const response = await fetch(GAS_PRODUCTS_URL);
+      const data = await response.json();
+      
+      if (data.products) {
+        const formattedProducts = data.products.map((product: any) => {
+          if (product.variantImageMap && typeof product.variantImageMap === 'string') {
+            try {
+              product.variantImageMap = JSON.parse(product.variantImageMap);
+            } catch (e) {
+              console.error(`Lỗi parse variantImageMap cho sản phẩm ${product.id}:`, e);
+              product.variantImageMap = {};
             }
           }
-          
-          // Parse images
-          const images = Array.isArray(p.images) ? p.images : [];
-          
-          // Parse description - có thể là string hoặc array
-          let description: string | string[] = p.description || '';
-          if (typeof p.description === 'string' && p.description.includes('|')) {
-            description = p.description.split('|');
-          }
-
-          return {
-            id: p.id,
-            name: p.name || '',
-            price: p.price || 0,
-            description: description,
-            images: images,
-            category: p.category || '',
-            subcategory: p.subcategory || '',
-            artist: p.artist || '',
-            variants: variants,
-            optionGroups: optionGroups,
-            variantImageMap: variantImageMap,
-            feesIncluded: p.fees_included ?? true,
-            master: p.master || '',
-            status: p.status || 'Sẵn',
-            orderDeadline: p.order_deadline || null,
-            stock: p.stock,
-            priceDisplay: formatPriceDisplay(p.price || 0, variants),
-            productionTime: p.production_time || '',
-            deposit_allowed: p.deposit_allowed ?? true,
-          };
+          return product;
         });
-        
         setProducts(formattedProducts);
+      } else {
+        console.error("Lỗi tải products:", data.error);
       }
     } catch (error) {
-      console.error("Không thể tải sản phẩm từ Supabase:", error);
+      console.error("Không thể tải sản phẩm từ Google Sheet:", error);
     } finally {
       setIsLoading(false);
     }

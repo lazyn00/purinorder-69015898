@@ -591,15 +591,10 @@ export default function ProductManagementTab() {
       };
 
       if (isEditing && editingId) {
-        console.log('Updating product:', editingId, 'with data:', productData);
-        
-        const { data: updateData, error, count } = await supabase
+        const { error } = await supabase
           .from('products')
           .update(productData)
-          .eq('id', editingId)
-          .select();
-
-        console.log('Update result:', { data: updateData, error, count });
+          .eq('id', editingId);
 
         if (error) throw error;
 
