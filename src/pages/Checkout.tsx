@@ -8,11 +8,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload, Facebook } from "lucide-react";
-// Đã xóa import Checkbox
+import { Loader2, ArrowLeft, Upload, Facebook, Tag, Check, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
-import { CartItem } from "@/contexts/CartContext"; // Import CartItem
+import { CartItem } from "@/contexts/CartContext";
+
+interface DiscountCode {
+  id: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  max_uses: number | null;
+  used_count: number;
+  min_order_value: number | null;
+  max_discount: number | null;
+  applicable_product_ids: number[] | null;
+  applicable_categories: string[] | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_active: boolean;
+}
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
@@ -57,6 +72,13 @@ export default function Checkout() {
   const [selectedMethod, setSelectedMethod] = useState("VPBank");
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  
+  // Discount code states
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+  const [discountError, setDiscountError] = useState("");
+  const [isValidatingDiscount, setIsValidatingDiscount] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   // Auto-fill delivery info from database when contact phone changes
   useEffect(() => {
@@ -92,6 +114,145 @@ export default function Checkout() {
 
     fetchDeliveryInfo();
   }, [contactInfo.phone]);
+
+  // Calculate discount when applied or cart changes
+  useEffect(() => {
+    if (appliedDiscount) {
+      const discount = calculateDiscount(appliedDiscount, cartItems, totalPrice);
+      setDiscountAmount(discount);
+    } else {
+      setDiscountAmount(0);
+    }
+  }, [appliedDiscount, cartItems, totalPrice]);
+
+  const calculateDiscount = (discount: DiscountCode, items: CartItem[], subtotal: number): number => {
+    // Check applicable products/categories
+    let applicableTotal = subtotal;
+    
+    if (discount.applicable_product_ids && discount.applicable_product_ids.length > 0) {
+      applicableTotal = items
+        .filter(item => discount.applicable_product_ids!.includes(item.id))
+        .reduce((sum, item) => sum + item.price * item.quantity, 0);
+    } else if (discount.applicable_categories && discount.applicable_categories.length > 0) {
+      applicableTotal = items
+        .filter(item => discount.applicable_categories!.includes(item.category))
+        .reduce((sum, item) => sum + item.price * item.quantity, 0);
+    }
+
+    if (applicableTotal === 0) return 0;
+
+    let discountValue = 0;
+    if (discount.discount_type === 'percentage') {
+      discountValue = (applicableTotal * discount.discount_value) / 100;
+      if (discount.max_discount && discountValue > discount.max_discount) {
+        discountValue = discount.max_discount;
+      }
+    } else {
+      discountValue = discount.discount_value;
+    }
+
+    // Don't exceed the applicable total
+    return Math.min(discountValue, applicableTotal);
+  };
+
+  const validateDiscountCode = async () => {
+    if (!discountCode.trim()) {
+      setDiscountError("Vui lòng nhập mã giảm giá");
+      return;
+    }
+
+    setIsValidatingDiscount(true);
+    setDiscountError("");
+
+    try {
+      const { data, error } = await supabase
+        .from('discount_codes')
+        .select('*')
+        .eq('code', discountCode.trim().toUpperCase())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        setDiscountError("Mã giảm giá không tồn tại hoặc đã hết hạn");
+        setAppliedDiscount(null);
+        return;
+      }
+
+      const discount = data as unknown as DiscountCode;
+
+      // Check max uses
+      if (discount.max_uses && discount.used_count >= discount.max_uses) {
+        setDiscountError("Mã giảm giá đã hết lượt sử dụng");
+        setAppliedDiscount(null);
+        return;
+      }
+
+      // Check date range
+      const now = new Date();
+      if (discount.start_date && new Date(discount.start_date) > now) {
+        setDiscountError("Mã giảm giá chưa có hiệu lực");
+        setAppliedDiscount(null);
+        return;
+      }
+      if (discount.end_date && new Date(discount.end_date) < now) {
+        setDiscountError("Mã giảm giá đã hết hạn");
+        setAppliedDiscount(null);
+        return;
+      }
+
+      // Check min order value
+      if (discount.min_order_value && totalPrice < discount.min_order_value) {
+        setDiscountError(`Đơn hàng tối thiểu ${discount.min_order_value.toLocaleString('vi-VN')}đ`);
+        setAppliedDiscount(null);
+        return;
+      }
+
+      // Check applicable products/categories
+      if (discount.applicable_product_ids && discount.applicable_product_ids.length > 0) {
+        const hasApplicableProduct = cartItems.some(item => 
+          discount.applicable_product_ids!.includes(item.id)
+        );
+        if (!hasApplicableProduct) {
+          setDiscountError("Mã giảm giá không áp dụng cho sản phẩm trong giỏ hàng");
+          setAppliedDiscount(null);
+          return;
+        }
+      }
+
+      if (discount.applicable_categories && discount.applicable_categories.length > 0) {
+        const hasApplicableCategory = cartItems.some(item => 
+          discount.applicable_categories!.includes(item.category)
+        );
+        if (!hasApplicableCategory) {
+          setDiscountError("Mã giảm giá không áp dụng cho danh mục trong giỏ hàng");
+          setAppliedDiscount(null);
+          return;
+        }
+      }
+
+      // All checks passed
+      setAppliedDiscount(discount);
+      setDiscountError("");
+      toast({
+        title: "Áp dụng thành công!",
+        description: `Mã ${discount.code} đã được áp dụng`
+      });
+    } catch (error) {
+      console.error("Error validating discount:", error);
+      setDiscountError("Không thể kiểm tra mã giảm giá");
+    } finally {
+      setIsValidatingDiscount(false);
+    }
+  };
+
+  const removeDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode("");
+    setDiscountError("");
+    setDiscountAmount(0);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -195,7 +356,7 @@ export default function Checkout() {
       // TẠO TỪNG ĐƠN HÀNG CHO MỖI MASTER
       for (const master of masterKeys) {
         const groupItems = masterGroups[master];
-        const groupTotal = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const groupTotal = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) - (masterKeys.length === 1 ? discountAmount : 0);
         
         // Generate order number cho đơn này
         const today = new Date();
@@ -323,6 +484,14 @@ export default function Checkout() {
         } catch (emailError) {
           console.warn('Failed to send confirmation email:', emailError);
         }
+      }
+
+      // Update discount code used_count
+      if (appliedDiscount) {
+        await supabase
+          .from('discount_codes')
+          .update({ used_count: appliedDiscount.used_count + 1 } as any)
+          .eq('id', appliedDiscount.id);
       }
 
       setIsSubmitting(false);
@@ -573,13 +742,64 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Phần Checkbox và Separator thừa đã được xóa ở đây */}
+          {/* Mã giảm giá */}
+          <div className="rounded-lg border p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Mã giảm giá
+            </h2>
+            {appliedDiscount ? (
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2">
+                  <Check className="h-5 w-5 text-green-600" />
+                  <span className="font-medium text-green-700 dark:text-green-400">{appliedDiscount.code}</span>
+                  <span className="text-sm text-green-600">
+                    (-{discountAmount.toLocaleString('vi-VN')}đ)
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={removeDiscount}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nhập mã giảm giá"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  className="uppercase"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={validateDiscountCode}
+                  disabled={isValidatingDiscount}
+                >
+                  {isValidatingDiscount ? <Loader2 className="h-4 w-4 animate-spin" /> : "Áp dụng"}
+                </Button>
+              </div>
+            )}
+            {discountError && (
+              <p className="text-sm text-destructive mt-2">{discountError}</p>
+            )}
+          </div>
 
           <div className="rounded-lg border p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <span>Tạm tính:</span>
+              <span>{totalPrice.toLocaleString('vi-VN')}đ</span>
+            </div>
+            {discountAmount > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span>Giảm giá:</span>
+                <span>-{discountAmount.toLocaleString('vi-VN')}đ</span>
+              </div>
+            )}
+            <Separator />
             <div className="flex justify-between items-center text-lg font-medium">
               <span>Tổng cộng:</span>
               <span className="text-2xl font-bold text-primary">
-                {totalPrice.toLocaleString('vi-VN')}đ
+                {(totalPrice - discountAmount).toLocaleString('vi-VN')}đ
               </span>
             </div>
             <Separator />

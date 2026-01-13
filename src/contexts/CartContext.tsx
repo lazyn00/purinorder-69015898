@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-
-const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Product {
   id: number;
@@ -23,7 +22,7 @@ export interface Product {
   productionTime?: string;
   size?: string;
   includes?: string;
-  deposit_allowed?: boolean; // Cho phép đặt cọc hay không
+  deposit_allowed?: boolean;
 }
 
 export interface CartItem extends Product {
@@ -54,27 +53,96 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(GAS_PRODUCTS_URL);
-      const data = await response.json();
-      
-      if (data.products) {
-        const formattedProducts = data.products.map((product: any) => {
-          if (product.variantImageMap && typeof product.variantImageMap === 'string') {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) {
+        console.error("Lỗi tải products từ Supabase:", error);
+        return;
+      }
+
+      if (data) {
+        const formattedProducts: Product[] = data.map((product: any) => {
+          // Parse variantImageMap nếu là string
+          let variantImageMap = product.variant_image_map || {};
+          if (typeof variantImageMap === 'string') {
             try {
-              product.variantImageMap = JSON.parse(product.variantImageMap);
+              variantImageMap = JSON.parse(variantImageMap);
             } catch (e) {
               console.error(`Lỗi parse variantImageMap cho sản phẩm ${product.id}:`, e);
-              product.variantImageMap = {};
+              variantImageMap = {};
             }
           }
-          return product;
+
+          // Parse images
+          let images = product.images || [];
+          if (typeof images === 'string') {
+            try {
+              images = JSON.parse(images);
+            } catch (e) {
+              images = [];
+            }
+          }
+
+          // Parse variants
+          let variants = product.variants || [];
+          if (typeof variants === 'string') {
+            try {
+              variants = JSON.parse(variants);
+            } catch (e) {
+              variants = [];
+            }
+          }
+
+          // Parse optionGroups
+          let optionGroups = product.option_groups || [];
+          if (typeof optionGroups === 'string') {
+            try {
+              optionGroups = JSON.parse(optionGroups);
+            } catch (e) {
+              optionGroups = [];
+            }
+          }
+
+          // Parse description
+          let description = product.description || '';
+          if (typeof description === 'string' && description.startsWith('[')) {
+            try {
+              description = JSON.parse(description);
+            } catch (e) {
+              // Keep as string
+            }
+          }
+
+          return {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            description,
+            images,
+            category: product.category || '',
+            subcategory: product.subcategory || '',
+            artist: product.artist || '',
+            variants,
+            optionGroups,
+            variantImageMap,
+            feesIncluded: product.fees_included ?? true,
+            master: product.master || '',
+            status: product.status || 'Sẵn',
+            orderDeadline: product.order_deadline,
+            stock: product.stock,
+            priceDisplay: `${product.price.toLocaleString('vi-VN')}đ`,
+            productionTime: product.production_time || '',
+            deposit_allowed: product.deposit_allowed ?? true,
+          };
         });
+        
         setProducts(formattedProducts);
-      } else {
-        console.error("Lỗi tải products:", data.error);
       }
     } catch (error) {
-      console.error("Không thể tải sản phẩm từ Google Sheet:", error);
+      console.error("Không thể tải sản phẩm từ Supabase:", error);
     } finally {
       setIsLoading(false);
     }
