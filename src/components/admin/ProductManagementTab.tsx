@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, Search, Upload, X, Image as ImageIcon, RefreshCw, FileSpreadsheet, Download } from "lucide-react";
-import * as XLSX from "xlsx";
+import { Plus, Pencil, Trash2, Loader2, Search, Upload, X, Image as ImageIcon, RefreshCw } from "lucide-react";
 
 interface ProductVariant {
   name: string;
@@ -116,10 +115,6 @@ export default function ProductManagementTab() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Import states
-  const [isImporting, setIsImporting] = useState(false);
-  const [isSyncingFromSheet, setIsSyncingFromSheet] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Variant form
   const [newVariantName, setNewVariantName] = useState("");
@@ -186,121 +181,6 @@ export default function ProductManagementTab() {
     fetchProducts();
   }, []);
 
-  // Import from Excel/Sheet
-  const handleImportSheet = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      console.log("Imported data:", jsonData);
-
-      let importedCount = 0;
-      let updatedCount = 0;
-
-      for (const row of jsonData as any[]) {
-        // Map columns from sheet to database fields
-        const productData = {
-          name: row['name'] || row['Tên'] || '',
-          te: parseFloat(row['tệ'] || row['te']) || null,
-          rate: parseFloat(row['rate'] || row['Rate']) || null,
-          r_v: parseFloat(row['r-v'] || row['r_v'] || row['R-V']) || null,
-          can_weight: parseFloat(row['cân'] || row['can_weight']) || null,
-          pack: parseFloat(row['pack'] || row['Pack']) || null,
-          cong: parseFloat(row['công'] || row['cong']) || null,
-          total: parseFloat(row['tổng'] || row['total']) || null,
-          price: parseInt(row['price'] || row['Price'] || row['Giá']) || 0,
-          fees_included: row['feesIncluded'] === true || row['feesIncluded'] === 'true' || row['feesIncluded'] === 1,
-          category: row['category'] || row['Danh mục'] || null,
-          subcategory: row['subcategory'] || null,
-          artist: row['artist'] || row['Nghệ sĩ'] || null,
-          status: row['status'] || row['Trạng thái'] || 'Sẵn',
-          order_deadline: row['orderDeadline'] ? new Date(row['orderDeadline']).toISOString() : null,
-          images: row['images'] ? (typeof row['images'] === 'string' ? JSON.parse(row['images']) : row['images']) : [],
-          description: row['description'] || row['Mô tả'] || null,
-          production_time: row['productionTime'] || row['production_time'] || null,
-          master: row['master'] || null,
-          variants: row['variants'] ? (typeof row['variants'] === 'string' ? JSON.parse(row['variants']) : row['variants']) : [],
-          option_groups: row['optiongroups'] || row['option_groups'] ? (typeof (row['optiongroups'] || row['option_groups']) === 'string' ? JSON.parse(row['optiongroups'] || row['option_groups']) : (row['optiongroups'] || row['option_groups'])) : [],
-          variant_image_map: row['variantImageMap'] || row['variant_image_map'] ? (typeof (row['variantImageMap'] || row['variant_image_map']) === 'string' ? JSON.parse(row['variantImageMap'] || row['variant_image_map']) : (row['variantImageMap'] || row['variant_image_map'])) : {},
-          stock: parseInt(row['stock']) || null,
-          link_order: row['link order'] || row['link_order'] || null,
-          proof: row['proof'] || null,
-          actual_rate: parseFloat(row['rate thực'] || row['actual_rate']) || null,
-          actual_can: parseFloat(row['cân thực'] || row['actual_can']) || null,
-          actual_pack: parseFloat(row['pack thực'] || row['actual_pack']) || null,
-        };
-
-        // Auto-calculate r_v if te and rate are present
-        if (productData.te && productData.rate && !productData.r_v) {
-          productData.r_v = productData.te * productData.rate;
-        }
-
-        // Auto-calculate total if components are present
-        if (!productData.total) {
-          const rv = productData.r_v || 0;
-          const can = productData.can_weight || 0;
-          const pack = productData.pack || 0;
-          const cong = productData.cong || 0;
-          if (rv > 0 || can > 0 || pack > 0 || cong > 0) {
-            productData.total = rv + can + pack + cong;
-          }
-        }
-
-        if (!productData.name) continue;
-
-        // Check if product exists by name
-        const { data: existingProducts } = await supabase
-          .from('products')
-          .select('id')
-          .eq('name', productData.name)
-          .limit(1);
-
-        if (existingProducts && existingProducts.length > 0) {
-          // Update existing product
-          const { error } = await supabase
-            .from('products')
-            .update(productData as any)
-            .eq('id', existingProducts[0].id);
-
-          if (!error) updatedCount++;
-        } else {
-          // Insert new product
-          const { error } = await supabase
-            .from('products')
-            .insert(productData as any);
-
-          if (!error) importedCount++;
-        }
-      }
-
-      toast({
-        title: "Import thành công",
-        description: `Đã thêm ${importedCount} sản phẩm mới, cập nhật ${updatedCount} sản phẩm`
-      });
-
-      fetchProducts();
-    } catch (error) {
-      console.error("Error importing sheet:", error);
-      toast({
-        title: "Lỗi import",
-        description: "Không thể import file. Kiểm tra định dạng file.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsImporting(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
 
   // Filter products
   const filteredProducts = products.filter(product => {
@@ -522,23 +402,6 @@ export default function ProductManagementTab() {
     setIsDialogOpen(true);
   };
 
-  // Sync product to Google Sheets
-  const syncProductToSheets = async (product: any, action: 'create' | 'update' | 'delete') => {
-    try {
-      const { error } = await supabase.functions.invoke('sync-product-to-sheets', {
-        body: { product, action }
-      });
-      
-      if (error) {
-        console.error('Error syncing to sheets:', error);
-        // Don't throw - just log, we don't want to block the main operation
-      } else {
-        console.log(`Product ${action}d and synced to sheets`);
-      }
-    } catch (err) {
-      console.error('Failed to sync product to sheets:', err);
-    }
-  };
 
   // Save product
   const saveProduct = async () => {
@@ -598,28 +461,20 @@ export default function ProductManagementTab() {
 
         if (error) throw error;
 
-        // Sync to Google Sheets
-        syncProductToSheets({ ...productData, id: editingId }, 'update');
-
         toast({
           title: "Thành công",
-          description: "Đã cập nhật sản phẩm và đồng bộ về Sheet"
+          description: "Đã cập nhật sản phẩm"
         });
       } else {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('products')
-          .insert(productData)
-          .select();
+          .insert(productData);
 
         if (error) throw error;
 
-        // Sync to Google Sheets
-        const newProduct = data && data.length > 0 ? data[0] : productData;
-        syncProductToSheets(newProduct, 'create');
-
         toast({
           title: "Thành công",
-          description: "Đã thêm sản phẩm mới và đồng bộ về Sheet"
+          description: "Đã thêm sản phẩm mới"
         });
       }
 
@@ -643,9 +498,6 @@ export default function ProductManagementTab() {
     if (!confirm("Bạn có chắc muốn xóa sản phẩm này?")) return;
 
     try {
-      // Find product to get its data for sync
-      const productToDelete = products.find(p => p.id === productId);
-      
       const { error } = await supabase
         .from('products')
         .delete()
@@ -653,15 +505,10 @@ export default function ProductManagementTab() {
 
       if (error) throw error;
 
-      // Sync deletion to Google Sheets
-      if (productToDelete) {
-        syncProductToSheets(productToDelete, 'delete');
-      }
-
       setProducts(prev => prev.filter(p => p.id !== productId));
       toast({
         title: "Đã xóa",
-        description: "Sản phẩm đã được xóa và đồng bộ về Sheet"
+        description: "Sản phẩm đã được xóa"
       });
     } catch (error) {
       console.error("Error deleting product:", error);
@@ -683,79 +530,12 @@ export default function ProductManagementTab() {
     }
   };
 
-  // Pull products from Google Sheet (using configured secret)
-  const pullFromSheet = async () => {
-    setIsSyncingFromSheet(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('pull-products-from-sheet', {
-        body: {}
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast({
-          title: "Đồng bộ thành công",
-          description: `Đã thêm ${data.created} sản phẩm, cập nhật ${data.updated} sản phẩm${data.failed > 0 ? `, lỗi ${data.failed}` : ''}`
-        });
-        fetchProducts();
-      } else {
-        throw new Error(data.error || 'Unknown error');
-      }
-    } catch (error: any) {
-      console.error('Error pulling from sheet:', error);
-      toast({
-        title: "Lỗi đồng bộ",
-        description: error.message || "Không thể đồng bộ từ Sheet",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSyncingFromSheet(false);
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle>Quản lý sản phẩm</CardTitle>
           <div className="flex flex-wrap gap-2">
-            {/* Import from Sheet */}
-            <Label htmlFor="sheet-import" className="cursor-pointer">
-              <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                {isImporting ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="h-4 w-4 mr-1" />
-                )}
-                Import Sheet
-              </div>
-              <Input
-                id="sheet-import"
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={handleImportSheet}
-                disabled={isImporting}
-              />
-            </Label>
-            
-            {/* Sync from Sheet - one click */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={pullFromSheet}
-              disabled={isSyncingFromSheet}
-            >
-              {isSyncingFromSheet ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-1" />
-              )}
-              Sync từ Sheet
-            </Button>
-            
             <Button variant="outline" size="sm" onClick={fetchProducts} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
               Làm mới
