@@ -192,7 +192,6 @@ export type Database = {
           category: string | null
           cong: number | null
           created_at: string | null
-          deposit_allowed: boolean | null
           description: string | null
           fees_included: boolean | null
           id: number
@@ -226,7 +225,6 @@ export type Database = {
           category?: string | null
           cong?: number | null
           created_at?: string | null
-          deposit_allowed?: boolean | null
           description?: string | null
           fees_included?: boolean | null
           id?: number
@@ -260,7 +258,6 @@ export type Database = {
           category?: string | null
           cong?: number | null
           created_at?: string | null
-          deposit_allowed?: boolean | null
           description?: string | null
           fees_included?: boolean | null
           id?: number

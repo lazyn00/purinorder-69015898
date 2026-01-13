@@ -8,8 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Settings, Pencil } from "lucide-react";
-import ProductManagementTab from "@/components/admin/ProductManagementTab";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -183,7 +182,6 @@ export default function Admin() {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [shippingInfo, setShippingInfo] = useState<{[key: string]: {provider: string, code: string}}>({});
-  const [editingTrackingOrderId, setEditingTrackingOrderId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [orderProgressFilter, setOrderProgressFilter] = useState<string>("all");
@@ -785,44 +783,6 @@ export default function Admin() {
       toast({
         title: "Lỗi",
         description: "Không thể cập nhật tiến độ",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Update tracking code for an order
-  const updateTrackingCode = async (orderId: string, provider: string, code: string) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          shipping_provider: provider,
-          tracking_code: code 
-        })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, shipping_provider: provider, tracking_code: code } : order
-      ));
-
-      setEditingTrackingOrderId(null);
-      
-      // Clear shipping info for this order
-      const newShippingInfo = { ...shippingInfo };
-      delete newShippingInfo[orderId];
-      setShippingInfo(newShippingInfo);
-
-      toast({
-        title: "Cập nhật thành công",
-        description: `Mã vận đơn: ${code}`,
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể cập nhật mã vận đơn",
         variant: "destructive"
       });
     }
@@ -1441,9 +1401,6 @@ ${generateEmailContent(order)}
               <TabsTrigger value="notifications" onClick={fetchNotifications} className="h-10 w-10 p-0" title="Thông báo sản phẩm">
                 <Mail className="h-5 w-5" />
               </TabsTrigger>
-              <TabsTrigger value="product-management" className="h-10 w-10 p-0" title="Quản lý sản phẩm">
-                <Settings className="h-5 w-5" />
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
@@ -2038,7 +1995,7 @@ ${generateEmailContent(order)}
                         </TableCell>
 
                         <TableCell>
-                          {order.shipping_provider && order.tracking_code && editingTrackingOrderId !== order.id ? (
+                          {order.shipping_provider && order.tracking_code ? (
                             <div className="text-xs space-y-1">
                               <div className="flex items-center gap-2">
                                 {(() => {
@@ -2065,30 +2022,11 @@ ${generateEmailContent(order)}
                                   ) : null;
                                 })()}
                               </div>
-                              {/* Nút chỉnh sửa mã vận đơn */}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 text-xs px-2"
-                                onClick={() => {
-                                  setEditingTrackingOrderId(order.id);
-                                  setShippingInfo({
-                                    ...shippingInfo,
-                                    [order.id]: {
-                                      provider: order.shipping_provider,
-                                      code: order.tracking_code
-                                    }
-                                  });
-                                }}
-                              >
-                                <Pencil className="h-3 w-3 mr-1" />
-                                Sửa
-                              </Button>
                             </div>
                           ) : (
                             <div className="space-y-2">
                               <Select
-                                value={shippingInfo[order.id]?.provider || order.shipping_provider || ""}
+                                value={shippingInfo[order.id]?.provider || ""}
                                 onValueChange={(value) => setShippingInfo({
                                   ...shippingInfo,
                                   [order.id]: {
@@ -2119,7 +2057,7 @@ ${generateEmailContent(order)}
                               <Input
                                 placeholder="Mã vận đơn"
                                 className="h-7 text-xs"
-                                value={shippingInfo[order.id]?.code || order.tracking_code || ""}
+                                value={shippingInfo[order.id]?.code || ""}
                                 onChange={(e) => setShippingInfo({
                                   ...shippingInfo,
                                   [order.id]: {
@@ -2128,37 +2066,6 @@ ${generateEmailContent(order)}
                                   }
                                 })}
                               />
-                              {editingTrackingOrderId === order.id && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    className="h-6 text-xs flex-1"
-                                    onClick={() => {
-                                      const info = shippingInfo[order.id];
-                                      if (info?.provider && info?.code) {
-                                        updateTrackingCode(order.id, info.provider, info.code);
-                                      }
-                                    }}
-                                  >
-                                    <Save className="h-3 w-3 mr-1" />
-                                    Lưu
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 text-xs"
-                                    onClick={() => {
-                                      setEditingTrackingOrderId(null);
-                                      const newInfo = { ...shippingInfo };
-                                      delete newInfo[order.id];
-                                      setShippingInfo(newInfo);
-                                    }}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              )}
                             </div>
                           )}
                         </TableCell>
@@ -2565,12 +2472,6 @@ ${generateEmailContent(order)}
               </Card>
             </TabsContent>
             {/* ================================================== */}
-
-            {/* ========== TAB QUẢN LÝ SẢN PHẨM ========== */}
-            <TabsContent value="product-management">
-              <ProductManagementTab />
-            </TabsContent>
-            {/* =========================================== */}
           </Tabs>
         )}
       </div>

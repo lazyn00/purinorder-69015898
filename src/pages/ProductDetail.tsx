@@ -246,28 +246,16 @@ export default function ProductDetail() {
     const statusPrefix = product.status ? `[${product.status.toLowerCase()}] ` : "";
     const title = product.name;
 
-    // Xử lý Thuộc tính: Lấy nội dung trong [] đầu tên + Artist
-    const bracketMatch = product.name.match(/^\[(.*?)\]/); 
-    const nameAttribute = bracketMatch ? bracketMatch[1] : "";
-    
-    let finalArtist = product.artist || "";
-    if (nameAttribute) {
-        finalArtist = finalArtist ? `${nameAttribute} - ${finalArtist}` : nameAttribute;
-    }
-
-    // Xử lý Giá: Chia 1000
-    const priceK = (currentPrice / 1000).toLocaleString('vi-VN');
-
-    // Cụm 1: Thông tin chi tiết
+    // Cụm 1: Thông tin chi tiết (Master, Artist, Size)
     const details = [
       product.master ? `Master: ${product.master}` : null,
-      finalArtist ? `Thuộc tính: ${finalArtist}` : null,
+      product.artist ? `Thuộc tính: ${product.artist}` : null,
       product.size ? `Kích thước: ${product.size}` : null
     ].filter(Boolean).join('\n');
 
     // Cụm 2: Giá và Bao gồm
     const priceInfo = [
-      `Giá: ${priceK}k ${product.feesIncluded ? 'ff' : 'chưa ff'}`, 
+      `Giá: ${currentPrice.toLocaleString('vi-VN')}k ${product.feesIncluded ? 'ff' : 'chưa ff'}`,
       product.includes ? `Bao gồm: ${product.includes}` : null
     ].filter(Boolean).join('\n');
 
@@ -284,6 +272,7 @@ export default function ProductDetail() {
 
     const cta = customCta || "Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖";
     
+    // Ghép tất cả các cụm lại, cách nhau 2 dòng (\n\n) để tạo khoảng trống
     return [
       `${statusPrefix}${title} ${emoji}`,
       `🍮 Link order: ${productUrl}`,

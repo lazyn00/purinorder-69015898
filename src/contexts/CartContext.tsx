@@ -23,7 +23,6 @@ export interface Product {
   productionTime?: string;
   size?: string;
   includes?: string;
-  deposit_allowed?: boolean; // Cho phép đặt cọc hay không
 }
 
 export interface CartItem extends Product {

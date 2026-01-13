@@ -14,9 +14,3 @@ verify_jwt = false
 
 [functions.auto-complete-orders]
 verify_jwt = false
-
-[functions.sync-product-to-sheets]
-verify_jwt = false
-
-[functions.pull-products-from-sheet]
-verify_jwt = false
