@@ -44,6 +44,60 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_codes: {
+        Row: {
+          applicable_categories: string[] | null
+          applicable_product_ids: number[] | null
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          end_date: string | null
+          id: string
+          is_active: boolean
+          max_discount: number | null
+          max_uses: number | null
+          min_order_value: number | null
+          start_date: string | null
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          applicable_categories?: string[] | null
+          applicable_product_ids?: number[] | null
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount?: number | null
+          max_uses?: number | null
+          min_order_value?: number | null
+          start_date?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          applicable_categories?: string[] | null
+          applicable_product_ids?: number[] | null
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount?: number | null
+          max_uses?: number | null
+          min_order_value?: number | null
+          start_date?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           additional_bills: Json | null

@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Settings, Pencil } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Settings, Pencil, Tag } from "lucide-react";
 import ProductManagementTab from "@/components/admin/ProductManagementTab";
+import DiscountCodeManagementTab from "@/components/admin/DiscountCodeManagementTab";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -1444,6 +1445,9 @@ ${generateEmailContent(order)}
               <TabsTrigger value="product-management" className="h-10 w-10 p-0" title="Quản lý sản phẩm">
                 <Settings className="h-5 w-5" />
               </TabsTrigger>
+              <TabsTrigger value="discount-codes" className="h-10 w-10 p-0" title="Mã giảm giá">
+                <Tag className="h-5 w-5" />
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="stats" className="space-y-6">
@@ -2571,6 +2575,12 @@ ${generateEmailContent(order)}
               <ProductManagementTab />
             </TabsContent>
             {/* =========================================== */}
+
+            {/* ========== TAB MÃ GIẢM GIÁ ========== */}
+            <TabsContent value="discount-codes">
+              <DiscountCodeManagementTab />
+            </TabsContent>
+            {/* ====================================== */}
           </Tabs>
         )}
       </div>
