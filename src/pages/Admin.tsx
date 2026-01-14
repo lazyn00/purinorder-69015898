@@ -181,7 +181,7 @@ export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [shippingInfo, setShippingInfo] = useState<{[key: string]: {provider: string, code: string}}>({});
+  const [shippingInfo, setShippingInfo] = useState<{[key: string]: {provider: string, code: string, editing?: boolean}}>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [orderProgressFilter, setOrderProgressFilter] = useState<string>("all");
@@ -713,17 +713,7 @@ export default function Admin() {
   };
 
   const updateOrderProgress = async (orderId: string, newProgress: string) => {
-    if (newProgress === "Đang giao") {
-      const shipping = shippingInfo[orderId];
-      if (!shipping || !shipping.provider || !shipping.code) {
-        toast({
-          title: "Thiếu thông tin",
-          description: "Vui lòng nhập nhà vận chuyển và mã vận đơn",
-          variant: "destructive"
-        });
-        return;
-      }
-    }
+    // Không yêu cầu mã vận đơn khi chuyển sang "Đang giao" nữa
 
     try {
       const updateData: any = { order_progress: newProgress };
@@ -1995,7 +1985,7 @@ ${generateEmailContent(order)}
                         </TableCell>
 
                         <TableCell>
-                          {order.shipping_provider && order.tracking_code ? (
+                          {order.shipping_provider && order.tracking_code && !shippingInfo[order.id]?.editing ? (
                             <div className="text-xs space-y-1">
                               <div className="flex items-center gap-2">
                                 {(() => {
@@ -2022,11 +2012,26 @@ ${generateEmailContent(order)}
                                   ) : null;
                                 })()}
                               </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-xs"
+                                onClick={() => setShippingInfo({
+                                  ...shippingInfo,
+                                  [order.id]: {
+                                    provider: order.shipping_provider || "",
+                                    code: order.tracking_code || "",
+                                    editing: true
+                                  }
+                                })}
+                              >
+                                Sửa
+                              </Button>
                             </div>
                           ) : (
                             <div className="space-y-2">
                               <Select
-                                value={shippingInfo[order.id]?.provider || ""}
+                                value={shippingInfo[order.id]?.provider || order.shipping_provider || ""}
                                 onValueChange={(value) => setShippingInfo({
                                   ...shippingInfo,
                                   [order.id]: {
@@ -2057,7 +2062,7 @@ ${generateEmailContent(order)}
                               <Input
                                 placeholder="Mã vận đơn"
                                 className="h-7 text-xs"
-                                value={shippingInfo[order.id]?.code || ""}
+                                value={shippingInfo[order.id]?.code || order.tracking_code || ""}
                                 onChange={(e) => setShippingInfo({
                                   ...shippingInfo,
                                   [order.id]: {
@@ -2066,6 +2071,36 @@ ${generateEmailContent(order)}
                                   }
                                 })}
                               />
+                              {shippingInfo[order.id]?.editing && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 text-xs w-full"
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from('orders')
+                                      .update({
+                                        shipping_provider: shippingInfo[order.id]?.provider,
+                                        tracking_code: shippingInfo[order.id]?.code
+                                      })
+                                      .eq('id', order.id);
+                                    if (!error) {
+                                      setOrders(orders.map(o => o.id === order.id ? {
+                                        ...o,
+                                        shipping_provider: shippingInfo[order.id]?.provider || "",
+                                        tracking_code: shippingInfo[order.id]?.code || ""
+                                      } : o));
+                                      setShippingInfo({
+                                        ...shippingInfo,
+                                        [order.id]: { ...shippingInfo[order.id], editing: false }
+                                      });
+                                      toast({ title: "Đã cập nhật mã vận đơn" });
+                                    }
+                                  }}
+                                >
+                                  Lưu
+                                </Button>
+                              )}
                             </div>
                           )}
                         </TableCell>
