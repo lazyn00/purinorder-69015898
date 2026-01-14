@@ -8,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload, Facebook } from "lucide-react";
-// Đã xóa import Checkbox
+import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
-import { CartItem } from "@/contexts/CartContext"; // Import CartItem
+import { CartItem } from "@/contexts/CartContext";
+import { Badge } from "@/components/ui/badge";
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
@@ -29,9 +29,20 @@ const getVariantImage = (item: CartItem) => {
       return item.images[imageIndex];
     }
   }
-  return item.images[0]; // Trả về ảnh đầu tiên nếu không tìm thấy
+  return item.images[0];
 };
 // === KẾT THÚC HÀM HELPER ===
+
+interface DiscountCode {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  min_order_value: number | null;
+  max_discount: number | null;
+  applicable_categories: string[] | null;
+  applicable_product_ids: number[] | null;
+}
 
 export default function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
@@ -45,8 +56,6 @@ export default function Checkout() {
     phone: ""
   });
   
-  // Đã xóa state agreeCancelLowQuantity
-  
   const [deliveryInfo, setDeliveryInfo] = useState({
     name: "",
     phone: "",
@@ -57,6 +66,12 @@ export default function Checkout() {
   const [selectedMethod, setSelectedMethod] = useState("VPBank");
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  
+  // === DISCOUNT CODE STATE ===
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+  const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   // Auto-fill delivery info from database when contact phone changes
   useEffect(() => {
@@ -92,6 +107,126 @@ export default function Checkout() {
 
     fetchDeliveryInfo();
   }, [contactInfo.phone]);
+
+  // === VALIDATE DISCOUNT CODE ===
+  const validateDiscountCode = async () => {
+    if (!discountCode.trim()) return;
+    
+    setIsValidatingCode(true);
+    try {
+      const { data, error } = await supabase
+        .from('discount_codes')
+        .select('*')
+        .eq('code', discountCode.trim().toUpperCase())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        toast({
+          title: "Mã giảm giá không hợp lệ",
+          description: "Mã này không tồn tại hoặc đã hết hạn",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check date validity
+      const now = new Date();
+      if (data.start_date && new Date(data.start_date) > now) {
+        toast({
+          title: "Mã chưa có hiệu lực",
+          description: "Mã giảm giá này chưa bắt đầu",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (data.end_date && new Date(data.end_date) < now) {
+        toast({
+          title: "Mã đã hết hạn",
+          description: "Mã giảm giá này đã hết hạn sử dụng",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check max uses
+      if (data.max_uses && data.used_count >= data.max_uses) {
+        toast({
+          title: "Mã đã hết lượt sử dụng",
+          description: "Mã giảm giá này đã được sử dụng hết",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check min order value
+      if (data.min_order_value && totalPrice < data.min_order_value) {
+        toast({
+          title: "Không đủ điều kiện",
+          description: `Đơn hàng tối thiểu ${data.min_order_value.toLocaleString('vi-VN')}đ để áp dụng mã này`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check applicable products/categories
+      const cartProductIds = cartItems.map(item => item.id);
+      const cartCategories = cartItems.map(item => item.category).filter(Boolean);
+      
+      let isApplicable = true;
+      if (data.applicable_product_ids && data.applicable_product_ids.length > 0) {
+        isApplicable = cartProductIds.some((id: number) => data.applicable_product_ids?.includes(id));
+      } else if (data.applicable_categories && data.applicable_categories.length > 0) {
+        isApplicable = cartCategories.some((cat: string) => data.applicable_categories?.includes(cat));
+      }
+
+      if (!isApplicable) {
+        toast({
+          title: "Mã không áp dụng",
+          description: "Mã giảm giá này không áp dụng cho các sản phẩm trong giỏ hàng",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Calculate discount amount
+      let discount = 0;
+      if (data.discount_type === 'percentage') {
+        discount = totalPrice * (data.discount_value / 100);
+        if (data.max_discount && discount > data.max_discount) {
+          discount = data.max_discount;
+        }
+      } else {
+        discount = data.discount_value;
+      }
+
+      setAppliedDiscount(data as DiscountCode);
+      setDiscountAmount(discount);
+      toast({
+        title: "Áp dụng thành công!",
+        description: `Giảm ${discount.toLocaleString('vi-VN')}đ`,
+      });
+    } catch (error) {
+      console.error("Error validating discount code:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể kiểm tra mã giảm giá",
+        variant: "destructive"
+      });
+    } finally {
+      setIsValidatingCode(false);
+    }
+  };
+
+  const removeDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountAmount(0);
+    setDiscountCode("");
+  };
+
+  const finalPrice = totalPrice - discountAmount;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -559,16 +694,61 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Phần Checkbox và Separator thừa đã được xóa ở đây */}
+          {/* MÃ GIẢM GIÁ */}
+          <div className="rounded-lg border p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Mã giảm giá
+            </h2>
+            {appliedDiscount ? (
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-600" />
+                  <span className="font-medium">{appliedDiscount.code}</span>
+                  <Badge variant="secondary">-{discountAmount.toLocaleString('vi-VN')}đ</Badge>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={removeDiscount}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nhập mã giảm giá"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  className="flex-1"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={validateDiscountCode}
+                  disabled={isValidatingCode || !discountCode.trim()}
+                >
+                  {isValidatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : "Áp dụng"}
+                </Button>
+              </div>
+            )}
+          </div>
 
           <div className="rounded-lg border p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <span>Tạm tính:</span>
+              <span>{totalPrice.toLocaleString('vi-VN')}đ</span>
+            </div>
+            {discountAmount > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span>Giảm giá:</span>
+                <span>-{discountAmount.toLocaleString('vi-VN')}đ</span>
+              </div>
+            )}
+            <Separator />
             <div className="flex justify-between items-center text-lg font-medium">
               <span>Tổng cộng:</span>
               <span className="text-2xl font-bold text-primary">
-                {totalPrice.toLocaleString('vi-VN')}đ
+                {finalPrice.toLocaleString('vi-VN')}đ
               </span>
             </div>
-            <Separator />
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Đặt hàng ngay"}
             </Button>
