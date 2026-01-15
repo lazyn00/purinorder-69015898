@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Tag, Merge } from "lucide-react";
+import { DiscountCodeManagement } from "@/components/DiscountCodeManagement";
+import { OrderMerging } from "@/components/OrderMerging";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -1380,6 +1382,12 @@ ${generateEmailContent(order)}
               <TabsTrigger value="orders" className="h-10 w-10 p-0" title="Đơn hàng">
                 <ShoppingCart className="h-5 w-5" />
               </TabsTrigger>
+              <TabsTrigger value="merge" className="h-10 w-10 p-0" title="Gộp đơn">
+                <Merge className="h-5 w-5" />
+              </TabsTrigger>
+              <TabsTrigger value="discounts" className="h-10 w-10 p-0" title="Mã giảm giá">
+                <Tag className="h-5 w-5" />
+              </TabsTrigger>
               <TabsTrigger value="listings" onClick={fetchUserListings} className="h-10 w-10 p-0 relative" title="Duyệt sản phẩm đăng bán">
                 <ClipboardList className="h-5 w-5" />
                 {userListings.filter(l => l.status === 'pending').length > 0 && (
@@ -2161,6 +2169,14 @@ ${generateEmailContent(order)}
                   </PaginationContent>
                 </Pagination>
               )}
+            </TabsContent>
+
+            <TabsContent value="merge" className="space-y-4">
+              <OrderMerging orders={orders} onMergeComplete={fetchOrders} />
+            </TabsContent>
+
+            <TabsContent value="discounts" className="space-y-4">
+              <DiscountCodeManagement />
             </TabsContent>
 
             <TabsContent value="notifications" className="space-y-4">
