@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useMemo } from "react"; // Thêm useMemo
+import { useState, useEffect, useMemo } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,28 +8,27 @@ import { Input } from "@/components/ui/input";
 import { Filter, ArrowUpDown, Search, ArrowLeft } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { useParams, useNavigate } from "react-router-dom";
-// 1. Thêm import supabase
 import { supabase } from "@/integrations/supabase/client";
 
 // Interface Product
 interface Product {
-    id: number;
-    name: string;
-    price: number;
-    images: string[];
-    category: string;
-    subcategory?: string;
-    artist?: string;
-    variants: { name: string; price: number; stock?: number }[];
-    status?: string;
-    orderDeadline?: string | null;
-    stock?: number;
-    isUserListing?: boolean;
-    listingId?: string; // Thêm trường này
-    listingCode?: string; // Thêm trường này
+  id: number;
+  name: string;
+  price: number;
+  images: string[];
+  category: string;
+  subcategory?: string;
+  artist?: string;
+  variants: { name: string; price: number; stock?: number }[];
+  status?: string;
+  orderDeadline?: string | null;
+  stock?: number;
+  isUserListing?: boolean;
+  listingId?: string;
+  listingCode?: string;
 }
 
-// 2. Định nghĩa Interface cho User Listing từ Supabase
+// Interface cho User Listing từ Supabase
 interface UserListing {
   id: string;
   listing_code: string;
@@ -45,11 +44,13 @@ interface UserListing {
   created_at: string;
 }
 
+// --- CẬP NHẬT DANH MỤC TẠI ĐÂY ---
 const CATEGORY_MAP: { [key: string]: string } = {
   "outfit-doll": "Outfit & Doll",
   "merch": "Merch",
   "fashion": "Thời Trang",
   "khac": "Khác",
+  "tiem-in-purin": "Tiệm in Purin", // Đã thêm
 };
 
 const CATEGORY_TITLES: { [key: string]: string } = {
@@ -57,16 +58,18 @@ const CATEGORY_TITLES: { [key: string]: string } = {
   "merch": "Merch",
   "fashion": "Thời Trang",
   "khac": "Khác",
-  "pass-gom": "Mua bán trao đổi"
+  "pass-gom": "Mua bán trao đổi",
+  "tiem-in-purin": "Tiệm in Purin", // Đã thêm
 };
+// ----------------------------------
 
-// 3. Hàm chuyển đổi User Listing thành Product (Copy từ Products.tsx)
+// Hàm chuyển đổi User Listing thành Product
 const convertListingToProduct = (listing: UserListing): Product => {
   const variants = listing.variants || [];
   const minPrice = variants.length > 0 
     ? Math.min(...variants.map(v => v.price))
     : (listing.price || 0);
-  
+   
   return {
     id: -parseInt(listing.id.replace(/-/g, '').slice(0, 8), 16),
     name: listing.name,
@@ -101,7 +104,7 @@ const getAvailableStock = (product: Product): number => {
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
-  const { products: contextProducts, isLoading: isContextLoading } = useCart(); // Đổi tên biến để tránh nhầm lẫn
+  const { products: contextProducts, isLoading: isContextLoading } = useCart();
   
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [selectedArtist, setSelectedArtist] = useState<string>("all");
@@ -110,17 +113,16 @@ export default function CategoryPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const productsPerPage = 50;
   
-  // 4. State để lưu user listings fetched từ Supabase
+  // State để lưu user listings fetched từ Supabase
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
 
   const categoryName = category ? CATEGORY_MAP[category] : "";
   
-  // 5. Fetch User Listings từ Supabase
+  // Fetch User Listings từ Supabase
   useEffect(() => {
     const fetchUserListings = async () => {
       try {
-        // Chỉ fetch nếu đang ở trang Pass/Gom hoặc muốn hiển thị chung (tùy logic, ở đây fetch hết cho chắc)
         const { data, error } = await supabase
           .from('user_listings')
           .select('*')
@@ -139,7 +141,7 @@ export default function CategoryPage() {
     fetchUserListings();
   }, []);
 
-  // 6. Gộp Context Products và User Listings
+  // Gộp Context Products và User Listings
   const allProducts = useMemo(() => {
     const convertedListings = userListings.map(convertListingToProduct);
     return [...contextProducts, ...convertedListings];
@@ -150,7 +152,7 @@ export default function CategoryPage() {
     if (category === 'pass-gom') {
         return p.isUserListing === true;
     }
-    // Lọc theo category thường VÀ loại trừ user listing (để tránh trùng lặp nếu logic khác thay đổi)
+    // Lọc theo category thường VÀ loại trừ user listing
     return p.category === categoryName && !p.isUserListing;
   });
 
