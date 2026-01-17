@@ -122,9 +122,13 @@ export default function Products() {
 
   const filteredProducts = searchMatchedProducts.filter(isProductAvailable);
 
+  // --- CÁC NHÓM SẢN PHẨM ---
   const passGom = filteredProducts.filter(p => (p as any).isUserListing);
+  
+  // 1. THÊM LOGIC LỌC TIỆM IN PURIN
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll" && !(p as any).isUserListing);
   const merch = filteredProducts.filter(p => p.category === "Merch" && !(p as any).isUserListing);
+  const tiemInPurin = filteredProducts.filter(p => p.category === "Tiệm in Purin" && !(p as any).isUserListing);
   const fashion = filteredProducts.filter(p => p.category === "Thời trang" && !(p as any).isUserListing);
   const other = filteredProducts.filter(p => p.category === "Khác" && !(p as any).isUserListing);
 
@@ -164,6 +168,16 @@ export default function Products() {
         </div>
 
         <div className="space-y-16">
+          
+          {/* 2. HIỂN THỊ TIỆM IN PURIN (Ưu tiên hiển thị đầu hoặc sau outfit) */}
+          {tiemInPurin.length > 0 && (
+            <CategoryPreview
+              title="Tiệm in Purin"
+              categorySlug="tiem-in-purin"
+              products={tiemInPurin}
+            />
+          )}
+
           {outfitDoll.length > 0 && (
             <CategoryPreview
               title="Outfit & Doll"
@@ -193,7 +207,7 @@ export default function Products() {
             />
           )}
 
-          {/* Đã di chuyển danh mục Pass/Gom xuống cuối cùng */}
+          {/* Pass/Gom thường để cuối */}
           {passGom.length > 0 && (
             <CategoryPreview
               title="Pass / Gom"
