@@ -8,6 +8,7 @@ import { ScrollToTop } from "./ScrollToTop";
 const menuItems = [
   { path: "/products", label: "Sản phẩm" },
   { path: "/sell", label: "Đăng bán" },
+  { path: "/affiliate-register", label: "CTV" },
   { path: "/policy", label: "Chính sách" },
   { path: "/contact", label: "Thông tin" },
   { path: "/track-order", label: "Tra đơn" },
@@ -121,14 +122,6 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <span className="mx-8">📦 Hàng order về từ 5-15 ngày sau khi kho Trung nhận được hàng 📦</span>
         </div>
       </div>
-      
-      {/* Affiliate Promotion Banner */}
-      <Link 
-        to="/affiliate-register" 
-        className="block bg-gradient-to-r from-amber-500 to-orange-500 text-white text-center py-2 px-4 text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
-      >
-        💰 Share link cũng kiếm được tiền! Đăng ký làm CTV ngay →
-      </Link>
       </div>
 
       <main className="flex-1">{children}</main>

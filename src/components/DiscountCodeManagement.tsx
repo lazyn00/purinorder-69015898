@@ -63,7 +63,6 @@ export function DiscountCodeManagement() {
   
   // Product search state
   const [productSearchQuery, setProductSearchQuery] = useState("");
-  const [productCategoryFilter, setProductCategoryFilter] = useState<string>("all");
 
   // Fetch discount codes
   const fetchDiscountCodes = async () => {
@@ -141,7 +140,6 @@ export function DiscountCodeManagement() {
     });
     setEditingCode(null);
     setProductSearchQuery("");
-    setProductCategoryFilter("all");
   };
 
   const handleOpenDialog = (code?: DiscountCode) => {
@@ -439,34 +437,19 @@ export function DiscountCodeManagement() {
                 {/* Product selection */}
                 <div className="space-y-2">
                   <Label>Áp dụng cho sản phẩm (để trống = tất cả)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Tìm sản phẩm..."
-                      value={productSearchQuery}
-                      onChange={(e) => setProductSearchQuery(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Select value={productCategoryFilter} onValueChange={setProductCategoryFilter}>
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue placeholder="Danh mục" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tất cả</SelectItem>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Input
+                    placeholder="Tìm sản phẩm..."
+                    value={productSearchQuery}
+                    onChange={(e) => setProductSearchQuery(e.target.value)}
+                    className="mb-2"
+                  />
                   <ScrollArea className="h-40 border rounded-md p-2">
                     <div className="space-y-2">
                       {products
-                        .filter(product => {
-                          const matchesSearch = product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
-                            product.category?.toLowerCase().includes(productSearchQuery.toLowerCase());
-                          const matchesCategory = productCategoryFilter === "all" || product.category === productCategoryFilter;
-                          return matchesSearch && matchesCategory;
-                        })
+                        .filter(product => 
+                          product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+                          product.category?.toLowerCase().includes(productSearchQuery.toLowerCase())
+                        )
                         .map((product) => (
                         <div key={product.id} className="flex items-center space-x-2">
                           <Checkbox
@@ -485,12 +468,10 @@ export function DiscountCodeManagement() {
                           </label>
                         </div>
                       ))}
-                      {products.filter(product => {
-                        const matchesSearch = product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
-                          product.category?.toLowerCase().includes(productSearchQuery.toLowerCase());
-                        const matchesCategory = productCategoryFilter === "all" || product.category === productCategoryFilter;
-                        return matchesSearch && matchesCategory;
-                      }).length === 0 && (
+                      {products.filter(product => 
+                        product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+                        product.category?.toLowerCase().includes(productSearchQuery.toLowerCase())
+                      ).length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-2">
                           Không tìm thấy sản phẩm
                         </p>
