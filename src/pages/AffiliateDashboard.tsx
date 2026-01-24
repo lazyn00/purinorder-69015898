@@ -10,8 +10,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Users, Gift, TrendingUp, Copy, Search, 
-  DollarSign, Package, Clock, CheckCircle, XCircle 
+  DollarSign, Package, Clock, CheckCircle, XCircle,
+  ExternalLink, Share2
 } from "lucide-react";
+import { ProductCard } from "@/components/ProductCard";
+import { useCart } from "@/contexts/CartContext";
 
 interface Affiliate {
   id: string;
@@ -42,6 +45,8 @@ export default function AffiliateDashboard() {
   const [orders, setOrders] = useState<AffiliateOrder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearched, setIsSearched] = useState(false);
+  const [showProducts, setShowProducts] = useState(false);
+  const { products } = useCart();
 
   const searchAffiliate = async () => {
     if (!phone.trim()) {
@@ -90,6 +95,23 @@ export default function AffiliateDashboard() {
     navigator.clipboard.writeText(link);
     toast.success("Đã copy link giới thiệu!");
   };
+
+  const copyProductLink = (productId: number) => {
+    if (!affiliate) return;
+    const link = `${window.location.origin}/product/${productId}?ref=${affiliate.referral_code}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Đã copy link sản phẩm có mã CTV!");
+  };
+
+  // Filter available products (not expired, in stock)
+  const availableProducts = products.filter(p => {
+    if (p.status === "Hết hàng") return false;
+    if (p.orderDeadline) {
+      const deadline = new Date(p.orderDeadline);
+      if (deadline < new Date()) return false;
+    }
+    return true;
+  });
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
@@ -253,10 +275,76 @@ export default function AffiliateDashboard() {
                           <span className="font-semibold">Tỷ lệ hoa hồng hiện tại:</span>
                         </div>
                         <span className="text-2xl font-bold text-primary">
-                          {affiliate.commission_rate}%
+                          {affiliate.commission_rate}% tiền công
                         </span>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        * Hoa hồng được tính trên tiền công của sản phẩm (cột "cong" trong sheet)
+                      </p>
                     </CardContent>
+                  </Card>
+
+                  {/* Share Products Section */}
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Share2 className="h-5 w-5" />
+                            Chia sẻ sản phẩm
+                          </CardTitle>
+                          <CardDescription>
+                            Copy link sản phẩm đã bao gồm mã CTV của bạn
+                          </CardDescription>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowProducts(!showProducts)}
+                        >
+                          {showProducts ? "Ẩn" : "Xem sản phẩm"}
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    {showProducts && (
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
+                          {availableProducts.slice(0, 12).map((product) => (
+                            <div key={product.id} className="relative group">
+                              <div className="border rounded-lg p-2 bg-card hover:shadow-md transition-shadow">
+                                <img 
+                                  src={product.images[0] || "/placeholder.svg"} 
+                                  alt={product.name}
+                                  className="w-full h-24 object-cover rounded mb-2"
+                                />
+                                <p className="text-xs font-medium truncate">{product.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {product.price.toLocaleString('vi-VN')}đ
+                                  {product.cong ? ` (công: ${product.cong.toLocaleString('vi-VN')}đ)` : ''}
+                                </p>
+                                <Button 
+                                  size="sm" 
+                                  variant="secondary" 
+                                  className="w-full mt-2 h-7 text-xs"
+                                  onClick={() => copyProductLink(product.id)}
+                                >
+                                  <Copy className="h-3 w-3 mr-1" />
+                                  Copy link
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {availableProducts.length > 12 && (
+                          <p className="text-center text-sm text-muted-foreground mt-4">
+                            Và {availableProducts.length - 12} sản phẩm khác...{" "}
+                            <a href="/products" target="_blank" className="text-primary hover:underline">
+                              Xem tất cả
+                            </a>
+                          </p>
+                        )}
+                      </CardContent>
+                    )}
                   </Card>
 
                   {/* Orders */}

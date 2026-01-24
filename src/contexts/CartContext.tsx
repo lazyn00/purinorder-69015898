@@ -23,6 +23,7 @@ export interface Product {
   productionTime?: string;
   size?: string;
   includes?: string;
+  cong?: number; // Tiền công của sản phẩm (dùng để tính hoa hồng CTV)
 }
 
 export interface CartItem extends Product {

@@ -399,6 +399,7 @@ export default function Checkout() {
         }
 
         // === TẠO AFFILIATE ORDER NẾU CÓ REFERRAL CODE ===
+        // Hoa hồng được tính dựa trên cột "cong" (tiền công) của sản phẩm, không phải giá bán
         try {
           const referralCode = localStorage.getItem('purin_referral_code');
           const referralTimestamp = localStorage.getItem('purin_referral_timestamp');
@@ -418,8 +419,23 @@ export default function Checkout() {
                 .single();
               
               if (affiliate) {
-                // Tính hoa hồng
-                const commissionAmount = Math.floor(groupTotal * (affiliate.commission_rate / 100));
+                // Tính tổng tiền công (cong) của các sản phẩm trong đơn
+                let totalCong = 0;
+                for (const item of groupItems) {
+                  // Lấy thông tin cong từ database để đảm bảo chính xác
+                  const { data: productData } = await supabase
+                    .from('products')
+                    .select('cong')
+                    .eq('id', item.id)
+                    .single();
+                  
+                  if (productData?.cong) {
+                    totalCong += (productData.cong * item.quantity);
+                  }
+                }
+                
+                // Tính hoa hồng dựa trên tiền công, không phải giá bán
+                const commissionAmount = Math.floor(totalCong * (affiliate.commission_rate / 100));
                 
                 // Lấy order id vừa tạo
                 const { data: orderData } = await supabase
@@ -428,7 +444,7 @@ export default function Checkout() {
                   .eq('order_number', orderNumber)
                   .single();
                 
-                if (orderData) {
+                if (orderData && commissionAmount > 0) {
                   // Tạo affiliate_order
                   await (supabase as any)
                     .from('affiliate_orders')
