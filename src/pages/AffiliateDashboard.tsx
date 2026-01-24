@@ -39,6 +39,7 @@ export default function AffiliateDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearched, setIsSearched] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
   const {
     products
   } = useCart();
@@ -97,6 +98,13 @@ export default function AffiliateDashboard() {
     }
     return true;
   });
+
+  // Filter by search query
+  const filteredProducts = availableProducts.filter(p => 
+    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    p.category?.toLowerCase().includes(productSearch.toLowerCase()) ||
+    p.artist?.toLowerCase().includes(productSearch.toLowerCase())
+  );
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
   };
@@ -267,8 +275,19 @@ export default function AffiliateDashboard() {
                       </div>
                     </CardHeader>
                     {showProducts && <CardContent>
+                        <div className="mb-4">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Tìm sản phẩm..."
+                              value={productSearch}
+                              onChange={(e) => setProductSearch(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                        </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
-                          {availableProducts.slice(0, 12).map(product => <div key={product.id} className="relative group">
+                          {filteredProducts.slice(0, 12).map(product => <div key={product.id} className="relative group">
                               <div className="border rounded-lg p-2 bg-card hover:shadow-md transition-shadow">
                                 <img src={product.images[0] || "/placeholder.svg"} alt={product.name} className="w-full h-24 object-cover rounded mb-2" />
                                 <p className="text-xs font-medium truncate">{product.name}</p>
@@ -283,12 +302,13 @@ export default function AffiliateDashboard() {
                               </div>
                             </div>)}
                         </div>
-                        {availableProducts.length > 12 && <p className="text-center text-sm text-muted-foreground mt-4">
-                            Và {availableProducts.length - 12} sản phẩm khác...{" "}
+                        {filteredProducts.length > 12 && <p className="text-center text-sm text-muted-foreground mt-4">
+                            Và {filteredProducts.length - 12} sản phẩm khác...{" "}
                             <a href="/products" target="_blank" className="text-primary hover:underline">
                               Xem tất cả
                             </a>
                           </p>}
+                        {filteredProducts.length === 0 && <p className="text-center text-muted-foreground py-4">Không tìm thấy sản phẩm</p>}
                       </CardContent>}
                   </Card>
 

@@ -60,6 +60,9 @@ export function DiscountCodeManagement() {
     applicable_product_ids: [] as number[],
     applicable_categories: [] as string[],
   });
+  
+  // Product search state
+  const [productSearchQuery, setProductSearchQuery] = useState("");
 
   // Fetch discount codes
   const fetchDiscountCodes = async () => {
@@ -136,6 +139,7 @@ export function DiscountCodeManagement() {
       applicable_categories: [],
     });
     setEditingCode(null);
+    setProductSearchQuery("");
   };
 
   const handleOpenDialog = (code?: DiscountCode) => {
@@ -433,9 +437,20 @@ export function DiscountCodeManagement() {
                 {/* Product selection */}
                 <div className="space-y-2">
                   <Label>Áp dụng cho sản phẩm (để trống = tất cả)</Label>
+                  <Input
+                    placeholder="Tìm sản phẩm..."
+                    value={productSearchQuery}
+                    onChange={(e) => setProductSearchQuery(e.target.value)}
+                    className="mb-2"
+                  />
                   <ScrollArea className="h-40 border rounded-md p-2">
                     <div className="space-y-2">
-                      {products.map((product) => (
+                      {products
+                        .filter(product => 
+                          product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+                          product.category?.toLowerCase().includes(productSearchQuery.toLowerCase())
+                        )
+                        .map((product) => (
                         <div key={product.id} className="flex items-center space-x-2">
                           <Checkbox
                             id={`product-${product.id}`}
@@ -453,6 +468,14 @@ export function DiscountCodeManagement() {
                           </label>
                         </div>
                       ))}
+                      {products.filter(product => 
+                        product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+                        product.category?.toLowerCase().includes(productSearchQuery.toLowerCase())
+                      ).length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          Không tìm thấy sản phẩm
+                        </p>
+                      )}
                     </div>
                   </ScrollArea>
                   {formData.applicable_product_ids.length > 0 && (
