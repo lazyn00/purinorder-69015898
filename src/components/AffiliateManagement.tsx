@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Users, Check, X, Edit, Eye, DollarSign, 
-  RefreshCw, ExternalLink, Search 
+  RefreshCw, ExternalLink, Search, Calculator 
 } from "lucide-react";
 
 interface Affiliate {
@@ -61,6 +61,7 @@ export default function AffiliateManagement() {
     status: "pending",
     admin_note: "",
   });
+  const [isUpdatingCommissions, setIsUpdatingCommissions] = useState(false);
 
   const fetchAffiliates = async () => {
     setIsLoading(true);
@@ -206,6 +207,44 @@ export default function AffiliateManagement() {
     }
   };
 
+  const handleUpdateAllCommissions = async () => {
+    setIsUpdatingCommissions(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-affiliate-commission`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        if (result.updates && result.updates.length > 0) {
+          toast.success(`Đã cập nhật ${result.updates.length} CTV`, {
+            description: result.updates.map((u: { name: string; oldRate: number; newRate: number; orderCount: number }) => 
+              `${u.name}: ${u.oldRate}% → ${u.newRate}% (${u.orderCount} đơn)`
+            ).join(', ')
+          });
+        } else {
+          toast.info("Không có CTV nào cần cập nhật tỷ lệ hoa hồng");
+        }
+        fetchAffiliates();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error updating commissions:', error);
+      toast.error("Lỗi cập nhật tỷ lệ hoa hồng");
+    } finally {
+      setIsUpdatingCommissions(false);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
   };
@@ -255,10 +294,16 @@ export default function AffiliateManagement() {
                 Duyệt đơn đăng ký và quản lý hoa hồng cộng tác viên
               </CardDescription>
             </div>
-            <Button variant="outline" onClick={fetchAffiliates} disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Làm mới
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleUpdateAllCommissions} disabled={isUpdatingCommissions}>
+                <Calculator className={`h-4 w-4 mr-2 ${isUpdatingCommissions ? 'animate-spin' : ''}`} />
+                Cập nhật % hoa hồng
+              </Button>
+              <Button variant="outline" onClick={fetchAffiliates} disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Làm mới
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
