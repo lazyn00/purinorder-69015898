@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ export default function AffiliateDashboard() {
   const [isSearched, setIsSearched] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
   const [productSearch, setProductSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState<string>("all");
   const {
     products
   } = useCart();
@@ -99,12 +101,17 @@ export default function AffiliateDashboard() {
     return true;
   });
 
-  // Filter by search query
-  const filteredProducts = availableProducts.filter(p => 
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-    p.category?.toLowerCase().includes(productSearch.toLowerCase()) ||
-    p.artist?.toLowerCase().includes(productSearch.toLowerCase())
-  );
+  // Get unique categories
+  const categories = [...new Set(availableProducts.map(p => p.category).filter(Boolean))] as string[];
+
+  // Filter by search query and category
+  const filteredProducts = availableProducts.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.category?.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.artist?.toLowerCase().includes(productSearch.toLowerCase());
+    const matchesCategory = productCategoryFilter === "all" || p.category === productCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
   };
@@ -275,8 +282,8 @@ export default function AffiliateDashboard() {
                       </div>
                     </CardHeader>
                     {showProducts && <CardContent>
-                        <div className="mb-4">
-                          <div className="relative">
+                        <div className="mb-4 flex gap-2">
+                          <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                               placeholder="Tìm sản phẩm..."
@@ -285,6 +292,17 @@ export default function AffiliateDashboard() {
                               className="pl-10"
                             />
                           </div>
+                          <Select value={productCategoryFilter} onValueChange={setProductCategoryFilter}>
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue placeholder="Danh mục" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Tất cả</SelectItem>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
                           {filteredProducts.slice(0, 12).map(product => <div key={product.id} className="relative group">
