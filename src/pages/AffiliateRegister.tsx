@@ -163,10 +163,11 @@ export default function AffiliateRegister() {
                 Chính sách hoa hồng
               </h3>
               <div className="space-y-2 text-sm">
-                <p>• <strong>CTV mới:</strong> 5% trên tổng giá trị đơn hàng</p>
-                <p>• <strong>CTV đạt 20 đơn/tháng:</strong> Nâng lên 7%</p>
-                <p>• <strong>CTV đạt 50 đơn/tháng:</strong> Nâng lên 10%</p>
-                <p>• <strong>Ví dụ:</strong> Đơn hàng 100.000đ → Hoa hồng 5.000đ - 10.000đ</p>
+                <p>• <strong>Cách tính:</strong> Hoa hồng được tính trên tiền công của sản phẩm (không phải giá bán)</p>
+                <p>• <strong>CTV mới:</strong> 10% tiền công Purin</p>
+                <p>• <strong>CTV đạt 20 đơn/tháng:</strong> Nâng lên 20%</p>
+                <p>• <strong>CTV đạt 50 đơn/tháng:</strong> Nâng lên 30%</p>
+                <p>• <strong>Ví dụ:</strong> Sản phẩm có tiền công 5.000đ → Hoa hồng 500đ - 1.500đ</p>
                 <p className="text-muted-foreground mt-4">
                   * Hoa hồng được tính sau khi đơn hàng hoàn thành và khách nhận hàng thành công.
                 </p>
