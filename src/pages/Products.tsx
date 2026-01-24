@@ -5,6 +5,7 @@ import { LoadingPudding } from "@/components/LoadingPudding";
 import { useCart, Product } from "@/contexts/CartContext";
 import { CategoryPreview } from "@/components/CategoryPreview";
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UserListing {
@@ -55,6 +56,17 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
+  const [searchParams] = useSearchParams();
+
+  // Capture referral code from URL and store in localStorage
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      localStorage.setItem('purin_referral_code', refCode);
+      localStorage.setItem('purin_referral_timestamp', Date.now().toString());
+      console.log('Referral code captured:', refCode);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchUserListings = async () => {

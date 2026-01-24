@@ -398,6 +398,73 @@ export default function Checkout() {
           console.warn('Không thể cập nhật tồn kho:', stockError);
         }
 
+        // === TẠO AFFILIATE ORDER NẾU CÓ REFERRAL CODE ===
+        try {
+          const referralCode = localStorage.getItem('purin_referral_code');
+          const referralTimestamp = localStorage.getItem('purin_referral_timestamp');
+          
+          // Check referral code còn hiệu lực (7 ngày)
+          if (referralCode && referralTimestamp) {
+            const timestamp = parseInt(referralTimestamp);
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            
+            if (timestamp > sevenDaysAgo) {
+              // Tìm affiliate theo referral code
+              const { data: affiliate } = await supabase
+                .from('affiliates')
+                .select('id, commission_rate, status')
+                .eq('referral_code', referralCode)
+                .eq('status', 'approved')
+                .single();
+              
+              if (affiliate) {
+                // Tính hoa hồng
+                const commissionAmount = Math.floor(groupTotal * (affiliate.commission_rate / 100));
+                
+                // Lấy order id vừa tạo
+                const { data: orderData } = await supabase
+                  .from('orders')
+                  .select('id')
+                  .eq('order_number', orderNumber)
+                  .single();
+                
+                if (orderData) {
+                  // Tạo affiliate_order
+                  await (supabase as any)
+                    .from('affiliate_orders')
+                    .insert({
+                      affiliate_id: affiliate.id,
+                      order_id: orderData.id,
+                      order_number: orderNumber,
+                      order_total: groupTotal,
+                      commission_amount: commissionAmount,
+                      status: 'pending'
+                    });
+                  
+                  // Cập nhật pending_earnings và total_orders của affiliate
+                  const { data: currentAffiliate } = await (supabase as any)
+                    .from('affiliates')
+                    .select('pending_earnings, total_orders')
+                    .eq('id', affiliate.id)
+                    .single();
+                  
+                  if (currentAffiliate) {
+                    await (supabase as any)
+                      .from('affiliates')
+                      .update({
+                        pending_earnings: (currentAffiliate.pending_earnings || 0) + commissionAmount,
+                        total_orders: (currentAffiliate.total_orders || 0) + 1
+                      })
+                      .eq('id', affiliate.id);
+                  }
+                }
+              }
+            }
+          }
+        } catch (affiliateError) {
+          console.warn('Không thể tạo affiliate order:', affiliateError);
+        }
+
         // Sync đơn này to Google Sheets
         try {
           await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-order-to-sheets`, {

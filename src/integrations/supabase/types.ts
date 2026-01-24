@@ -44,6 +44,120 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_orders: {
+        Row: {
+          affiliate_id: string
+          commission_amount: number
+          created_at: string
+          id: string
+          order_id: string
+          order_number: string | null
+          order_total: number
+          paid_at: string | null
+          status: string
+        }
+        Insert: {
+          affiliate_id: string
+          commission_amount: number
+          created_at?: string
+          id?: string
+          order_id: string
+          order_number?: string | null
+          order_total: number
+          paid_at?: string | null
+          status?: string
+        }
+        Update: {
+          affiliate_id?: string
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          order_id?: string
+          order_number?: string | null
+          order_total?: number
+          paid_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_orders_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_orders_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          account_name: string | null
+          admin_note: string | null
+          bank_account: string | null
+          bank_name: string | null
+          commission_rate: number
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          paid_earnings: number
+          pending_earnings: number
+          phone: string
+          referral_code: string
+          social_link: string
+          status: string
+          total_earnings: number
+          total_orders: number
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string | null
+          admin_note?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          commission_rate?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          paid_earnings?: number
+          pending_earnings?: number
+          phone: string
+          referral_code: string
+          social_link: string
+          status?: string
+          total_earnings?: number
+          total_orders?: number
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string | null
+          admin_note?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          commission_rate?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          paid_earnings?: number
+          pending_earnings?: number
+          phone?: string
+          referral_code?: string
+          social_link?: string
+          status?: string
+          total_earnings?: number
+          total_orders?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       discount_codes: {
         Row: {
           applicable_categories: string[] | null
