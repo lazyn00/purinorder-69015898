@@ -18,6 +18,8 @@ import OrderSuccess from "./pages/OrderSuccess";
 import TrackOrder from "./pages/TrackOrder";
 import Admin from "./pages/Admin";
 import SellProduct from "./pages/SellProduct";
+import AffiliateRegister from "./pages/AffiliateRegister";
+import AffiliateDashboard from "./pages/AffiliateDashboard";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +43,8 @@ const App = () => (
             <Route path="/track-order" element={<TrackOrder />} />
             <Route path="/sell" element={<SellProduct />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/affiliate-register" element={<AffiliateRegister />} />
+            <Route path="/affiliate-dashboard" element={<AffiliateDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
