@@ -8,14 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Users, Gift, TrendingUp, Copy, Search, 
-  DollarSign, Package, Clock, CheckCircle, XCircle,
-  ExternalLink, Share2
-} from "lucide-react";
+import { Users, Gift, TrendingUp, Copy, Search, DollarSign, Package, Clock, CheckCircle, XCircle, ExternalLink, Share2 } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/contexts/CartContext";
-
 interface Affiliate {
   id: string;
   name: string;
@@ -29,7 +24,6 @@ interface Affiliate {
   status: string;
   created_at: string;
 }
-
 interface AffiliateOrder {
   id: string;
   order_number: string;
@@ -38,7 +32,6 @@ interface AffiliateOrder {
   status: string;
   created_at: string;
 }
-
 export default function AffiliateDashboard() {
   const [phone, setPhone] = useState("");
   const [affiliate, setAffiliate] = useState<Affiliate | null>(null);
@@ -46,41 +39,35 @@ export default function AffiliateDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearched, setIsSearched] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
-  const { products } = useCart();
-
+  const {
+    products
+  } = useCart();
   const searchAffiliate = async () => {
     if (!phone.trim()) {
       toast.error("Vui lòng nhập số điện thoại");
       return;
     }
-
     setIsLoading(true);
     setIsSearched(true);
-
     try {
-      const { data: affiliateData, error: affiliateError } = await supabase
-        .from('affiliates')
-        .select('*')
-        .eq('phone', phone.trim())
-        .single();
-
+      const {
+        data: affiliateData,
+        error: affiliateError
+      } = await supabase.from('affiliates').select('*').eq('phone', phone.trim()).single();
       if (affiliateError || !affiliateData) {
         setAffiliate(null);
         toast.error("Không tìm thấy CTV với số điện thoại này");
         return;
       }
-
       setAffiliate(affiliateData);
 
       // Fetch affiliate orders
-      const { data: ordersData } = await supabase
-        .from('affiliate_orders')
-        .select('*')
-        .eq('affiliate_id', affiliateData.id)
-        .order('created_at', { ascending: false });
-
+      const {
+        data: ordersData
+      } = await supabase.from('affiliate_orders').select('*').eq('affiliate_id', affiliateData.id).order('created_at', {
+        ascending: false
+      });
       setOrders(ordersData || []);
-
     } catch (error) {
       console.error('Error searching affiliate:', error);
       toast.error("Có lỗi xảy ra");
@@ -88,14 +75,12 @@ export default function AffiliateDashboard() {
       setIsLoading(false);
     }
   };
-
   const copyReferralLink = () => {
     if (!affiliate) return;
     const link = `${window.location.origin}?ref=${affiliate.referral_code}`;
     navigator.clipboard.writeText(link);
     toast.success("Đã copy link giới thiệu!");
   };
-
   const copyProductLink = (productId: number) => {
     if (!affiliate) return;
     const link = `${window.location.origin}/product/${productId}?ref=${affiliate.referral_code}`;
@@ -112,11 +97,9 @@ export default function AffiliateDashboard() {
     }
     return true;
   });
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
   };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -131,7 +114,6 @@ export default function AffiliateDashboard() {
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
-
   const getOrderStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -146,9 +128,7 @@ export default function AffiliateDashboard() {
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
@@ -164,13 +144,7 @@ export default function AffiliateDashboard() {
               <div className="flex gap-4">
                 <div className="flex-1">
                   <Label htmlFor="phone" className="sr-only">Số điện thoại</Label>
-                  <Input
-                    id="phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Nhập số điện thoại đã đăng ký"
-                    onKeyDown={(e) => e.key === 'Enter' && searchAffiliate()}
-                  />
+                  <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Nhập số điện thoại đã đăng ký" onKeyDown={e => e.key === 'Enter' && searchAffiliate()} />
                 </div>
                 <Button onClick={searchAffiliate} disabled={isLoading}>
                   <Search className="h-4 w-4 mr-2" />
@@ -180,8 +154,7 @@ export default function AffiliateDashboard() {
             </CardContent>
           </Card>
 
-          {isSearched && !affiliate && !isLoading && (
-            <Card className="border-red-200 bg-red-50">
+          {isSearched && !affiliate && !isLoading && <Card className="border-red-200 bg-red-50">
               <CardContent className="pt-6 text-center">
                 <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                 <h3 className="font-semibold text-red-700">Không tìm thấy</h3>
@@ -192,11 +165,9 @@ export default function AffiliateDashboard() {
                   </a>
                 </p>
               </CardContent>
-            </Card>
-          )}
+            </Card>}
 
-          {affiliate && (
-            <>
+          {affiliate && <>
               {/* Status card */}
               <Card className="mb-6">
                 <CardContent className="pt-6">
@@ -208,17 +179,14 @@ export default function AffiliateDashboard() {
                     {getStatusBadge(affiliate.status)}
                   </div>
 
-                  {affiliate.status === 'pending' && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  {affiliate.status === 'pending' && <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                       <p className="text-yellow-700 text-sm">
                         <Clock className="h-4 w-4 inline mr-2" />
                         Đơn đăng ký đang chờ admin duyệt. Bạn sẽ nhận thông báo khi được duyệt.
                       </p>
-                    </div>
-                  )}
+                    </div>}
 
-                  {affiliate.status === 'approved' && (
-                    <div className="bg-white p-4 rounded-lg border flex items-center justify-between">
+                  {affiliate.status === 'approved' && <div className="bg-white p-4 rounded-lg border flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Mã giới thiệu của bạn:</p>
                         <span className="text-2xl font-bold text-primary">{affiliate.referral_code}</span>
@@ -227,14 +195,12 @@ export default function AffiliateDashboard() {
                         <Copy className="h-4 w-4 mr-2" />
                         Copy link
                       </Button>
-                    </div>
-                  )}
+                    </div>}
                 </CardContent>
               </Card>
 
               {/* Stats */}
-              {affiliate.status === 'approved' && (
-                <>
+              {affiliate.status === 'approved' && <>
                   <div className="grid md:grid-cols-4 gap-4 mb-8">
                     <Card>
                       <CardContent className="pt-6 text-center">
@@ -278,9 +244,7 @@ export default function AffiliateDashboard() {
                           {affiliate.commission_rate}% tiền công
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        * Hoa hồng được tính trên tiền công của sản phẩm (cột "cong" trong sheet)
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">* Hoa hồng được tính trên tiền công của sản phẩm</p>
                     </CardContent>
                   </Card>
 
@@ -297,54 +261,35 @@ export default function AffiliateDashboard() {
                             Copy link sản phẩm đã bao gồm mã CTV của bạn
                           </CardDescription>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setShowProducts(!showProducts)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => setShowProducts(!showProducts)}>
                           {showProducts ? "Ẩn" : "Xem sản phẩm"}
                         </Button>
                       </div>
                     </CardHeader>
-                    {showProducts && (
-                      <CardContent>
+                    {showProducts && <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
-                          {availableProducts.slice(0, 12).map((product) => (
-                            <div key={product.id} className="relative group">
+                          {availableProducts.slice(0, 12).map(product => <div key={product.id} className="relative group">
                               <div className="border rounded-lg p-2 bg-card hover:shadow-md transition-shadow">
-                                <img 
-                                  src={product.images[0] || "/placeholder.svg"} 
-                                  alt={product.name}
-                                  className="w-full h-24 object-cover rounded mb-2"
-                                />
+                                <img src={product.images[0] || "/placeholder.svg"} alt={product.name} className="w-full h-24 object-cover rounded mb-2" />
                                 <p className="text-xs font-medium truncate">{product.name}</p>
                                 <p className="text-xs text-muted-foreground">
                                   {product.price.toLocaleString('vi-VN')}đ
                                   {product.cong ? ` (công: ${product.cong.toLocaleString('vi-VN')}đ)` : ''}
                                 </p>
-                                <Button 
-                                  size="sm" 
-                                  variant="secondary" 
-                                  className="w-full mt-2 h-7 text-xs"
-                                  onClick={() => copyProductLink(product.id)}
-                                >
+                                <Button size="sm" variant="secondary" className="w-full mt-2 h-7 text-xs" onClick={() => copyProductLink(product.id)}>
                                   <Copy className="h-3 w-3 mr-1" />
                                   Copy link
                                 </Button>
                               </div>
-                            </div>
-                          ))}
+                            </div>)}
                         </div>
-                        {availableProducts.length > 12 && (
-                          <p className="text-center text-sm text-muted-foreground mt-4">
+                        {availableProducts.length > 12 && <p className="text-center text-sm text-muted-foreground mt-4">
                             Và {availableProducts.length - 12} sản phẩm khác...{" "}
                             <a href="/products" target="_blank" className="text-primary hover:underline">
                               Xem tất cả
                             </a>
-                          </p>
-                        )}
-                      </CardContent>
-                    )}
+                          </p>}
+                      </CardContent>}
                   </Card>
 
                   {/* Orders */}
@@ -356,12 +301,9 @@ export default function AffiliateDashboard() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {orders.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">
+                      {orders.length === 0 ? <p className="text-center text-muted-foreground py-8">
                           Chưa có đơn hàng nào. Hãy chia sẻ link giới thiệu để bắt đầu nhận hoa hồng!
-                        </p>
-                      ) : (
-                        <Table>
+                        </p> : <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Mã đơn</TableHead>
@@ -372,8 +314,7 @@ export default function AffiliateDashboard() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {orders.map((order) => (
-                              <TableRow key={order.id}>
+                            {orders.map(order => <TableRow key={order.id}>
                                 <TableCell className="font-medium">{order.order_number}</TableCell>
                                 <TableCell>{formatPrice(order.order_total)}</TableCell>
                                 <TableCell className="text-green-600 font-medium">
@@ -383,29 +324,22 @@ export default function AffiliateDashboard() {
                                 <TableCell>
                                   {new Date(order.created_at).toLocaleDateString('vi-VN')}
                                 </TableCell>
-                              </TableRow>
-                            ))}
+                              </TableRow>)}
                           </TableBody>
-                        </Table>
-                      )}
+                        </Table>}
                     </CardContent>
                   </Card>
-                </>
-              )}
-            </>
-          )}
+                </>}
+            </>}
 
           {/* Register CTA */}
-          {!affiliate && isSearched && (
-            <div className="mt-8 text-center">
+          {!affiliate && isSearched && <div className="mt-8 text-center">
               <Button onClick={() => window.location.href = '/affiliate-register'}>
                 <Users className="h-4 w-4 mr-2" />
                 Đăng ký làm CTV
               </Button>
-            </div>
-          )}
+            </div>}
         </div>
       </div>
-    </Layout>
-  );
+    </Layout>;
 }
