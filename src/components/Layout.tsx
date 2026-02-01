@@ -5,26 +5,72 @@ import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
 
-const menuItems = [
-  { path: "/products", label: "Sản phẩm" },
-  { path: "/sell", label: "Đăng bán" },
-  { path: "/affiliate-register", label: "CTV" },
-  { path: "/policy", label: "Chính sách" },
-  { path: "/contact", label: "Thông tin" },
-  { path: "/track-order", label: "Tra đơn" },
-];
+interface PageVisibilitySettings {
+  showSellPage: boolean;
+  showAffiliatePage: boolean;
+}
+
+const SETTINGS_KEY = 'purin_admin_page_settings';
+
+const getMenuItems = (settings: PageVisibilitySettings) => {
+  const items = [
+    { path: "/products", label: "Sản phẩm", alwaysShow: true },
+  ];
+  
+  if (settings.showSellPage) {
+    items.push({ path: "/sell", label: "Đăng bán", alwaysShow: false });
+  }
+  
+  if (settings.showAffiliatePage) {
+    items.push({ path: "/affiliate-register", label: "CTV", alwaysShow: false });
+  }
+  
+  items.push(
+    { path: "/policy", label: "Chính sách", alwaysShow: true },
+    { path: "/contact", label: "Thông tin", alwaysShow: true },
+    { path: "/track-order", label: "Tra đơn", alwaysShow: true }
+  );
+  
+  return items;
+};
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [pageSettings, setPageSettings] = useState<PageVisibilitySettings>({
+    showSellPage: true,
+    showAffiliatePage: true
+  });
 
   useEffect(() => {
+    // Load theme
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     }
+    
+    // Load page visibility settings
+    const savedSettings = localStorage.getItem(SETTINGS_KEY);
+    if (savedSettings) {
+      try {
+        setPageSettings(JSON.parse(savedSettings));
+      } catch (e) {
+        console.error("Error parsing page settings:", e);
+      }
+    }
+
+    // Listen for settings changes from admin panel
+    const handleSettingsChange = (event: CustomEvent<PageVisibilitySettings>) => {
+      setPageSettings(event.detail);
+    };
+    
+    window.addEventListener('pageSettingsChanged', handleSettingsChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('pageSettingsChanged', handleSettingsChange as EventListener);
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -33,6 +79,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
+
+  const menuItems = getMenuItems(pageSettings);
 
   return (
     <div className="min-h-screen flex flex-col">

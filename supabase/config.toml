@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.sync-images-to-storage]
 verify_jwt = false
+
+[functions.update-affiliate-commission]
+verify_jwt = false
+
+[functions.check-expiring-products]
+verify_jwt = false
