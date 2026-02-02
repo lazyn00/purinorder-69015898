@@ -36,8 +36,8 @@ export default function AdminSettings() {
   const [expiringProducts, setExpiringProducts] = useState<ExpiringProduct[]>([]);
   const [expiredProducts, setExpiredProducts] = useState<ExpiringProduct[]>([]);
   const [loading, setLoading] = useState(false);
-  const [daysThreshold, setDaysThreshold] = useState(3);
-  const [adminEmail, setAdminEmail] = useState("");
+  const [daysThreshold, setDaysThreshold] = useState(7);
+  const [adminEmail, setAdminEmail] = useState("ppurin.order@gmail.com");
   const [sendingEmail, setSendingEmail] = useState(false);
 
   // Load settings from localStorage on mount

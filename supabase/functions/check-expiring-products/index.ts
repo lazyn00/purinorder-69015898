@@ -15,6 +15,11 @@ interface Product {
   status: string;
 }
 
+// Email mặc định của admin
+const DEFAULT_ADMIN_EMAIL = "ppurin.order@gmail.com";
+// Số ngày mặc định để cảnh báo
+const DEFAULT_DAYS_BEFORE_EXPIRY = 7;
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -29,15 +34,17 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get request body for optional parameters
-    let daysBeforeExpiry = 3; // Default 3 days
-    let adminEmail = "";
-    let sendEmail = false;
+    let daysBeforeExpiry = DEFAULT_DAYS_BEFORE_EXPIRY;
+    let adminEmail = DEFAULT_ADMIN_EMAIL;
+    let sendEmail = true; // Mặc định gửi email
+    let createNotifications = true; // Mặc định tạo thông báo trong admin
 
     try {
       const body = await req.json();
-      if (body.daysBeforeExpiry) daysBeforeExpiry = body.daysBeforeExpiry;
+      if (body.daysBeforeExpiry !== undefined) daysBeforeExpiry = body.daysBeforeExpiry;
       if (body.adminEmail) adminEmail = body.adminEmail;
-      if (body.sendEmail) sendEmail = body.sendEmail;
+      if (body.sendEmail !== undefined) sendEmail = body.sendEmail;
+      if (body.createNotifications !== undefined) createNotifications = body.createNotifications;
     } catch {
       // No body provided, use defaults
     }
@@ -47,8 +54,9 @@ const handler = async (req: Request): Promise<Response> => {
     const thresholdDate = new Date(now.getTime() + daysBeforeExpiry * 24 * 60 * 60 * 1000);
 
     console.log(`Checking for products expiring before: ${thresholdDate.toISOString()}`);
+    console.log(`Days before expiry: ${daysBeforeExpiry}, Admin email: ${adminEmail}`);
 
-    // Fetch products with order_deadline within the threshold
+    // Fetch products with order_deadline within the threshold (expiring soon)
     const { data: expiringProducts, error: fetchError } = await supabase
       .from("products")
       .select("id, name, order_deadline, status")
@@ -83,41 +91,114 @@ const handler = async (req: Request): Promise<Response> => {
       expiredProducts: expiredProducts || [],
       checkedAt: now.toISOString(),
       thresholdDate: thresholdDate.toISOString(),
-      emailSent: false
+      emailSent: false,
+      notificationsCreated: 0
     };
+
+    const formatDate = (dateStr: string) => {
+      return new Date(dateStr).toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    const getDaysUntilExpiry = (deadline: string) => {
+      const deadlineDate = new Date(deadline);
+      const diffTime = deadlineDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    };
+
+    // Create admin notifications for expiring products
+    if (createNotifications && (result.expiringProducts.length > 0 || result.expiredProducts.length > 0)) {
+      const notifications = [];
+      
+      // Generate proper UUID for product notifications
+      const generateProductNotificationId = (productId: number, type: string) => {
+        // Use crypto.randomUUID() for unique IDs
+        return crypto.randomUUID();
+      };
+
+      // Notifications for expired products
+      for (const product of result.expiredProducts) {
+        notifications.push({
+          type: 'product_expired',
+          order_id: generateProductNotificationId(product.id, 'expired'),
+          order_number: `SP-${product.id}`,
+          message: `⚠️ Sản phẩm "${product.name}" đã hết hạn order từ ${formatDate(product.order_deadline)}`,
+          is_read: false
+        });
+      }
+
+      // Notifications for expiring soon products
+      for (const product of result.expiringProducts) {
+        const daysLeft = getDaysUntilExpiry(product.order_deadline);
+        notifications.push({
+          type: 'product_expiring',
+          order_id: generateProductNotificationId(product.id, 'expiring'),
+          order_number: `SP-${product.id}`,
+          message: `⏰ Sản phẩm "${product.name}" sắp hết hạn order (còn ${daysLeft} ngày - ${formatDate(product.order_deadline)})`,
+          is_read: false
+        });
+      }
+
+      if (notifications.length > 0) {
+        // Check existing notifications to avoid duplicates (within last 24 hours)
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        
+        const { data: existingNotifs } = await supabase
+          .from('admin_notifications')
+          .select('order_number, type')
+          .in('order_number', notifications.map(n => n.order_number))
+          .in('type', ['product_expired', 'product_expiring'])
+          .gte('created_at', oneDayAgo);
+
+        const existingKeys = new Set(existingNotifs?.map(n => `${n.order_number}_${n.type}`) || []);
+        const newNotifications = notifications.filter(n => !existingKeys.has(`${n.order_number}_${n.type}`));
+
+        if (newNotifications.length > 0) {
+          const { error: insertError } = await supabase
+            .from('admin_notifications')
+            .insert(newNotifications);
+
+          if (insertError) {
+            console.error("Error creating notifications:", insertError);
+          } else {
+            result.notificationsCreated = newNotifications.length;
+            console.log(`Created ${newNotifications.length} admin notifications`);
+          }
+        } else {
+          console.log("No new notifications to create (duplicates found within 24h)");
+        }
+      }
+    }
 
     // Send email notification if requested and there are products to notify about
     if (sendEmail && adminEmail && resendApiKey && (result.expiringProducts.length > 0 || result.expiredProducts.length > 0)) {
       try {
         const resend = new Resend(resendApiKey);
 
-        const formatDate = (dateStr: string) => {
-          return new Date(dateStr).toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-        };
-
         let emailContent = `
-          <h2>🍮 Purin Order - Thông báo sản phẩm sắp hết hạn</h2>
-          <p>Thời gian kiểm tra: ${formatDate(now.toISOString())}</p>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #f472b6;">🍮 Purin Order - Thông báo sản phẩm</h2>
+            <p style="color: #666;">Thời gian kiểm tra: ${formatDate(now.toISOString())}</p>
         `;
 
         if (result.expiredProducts.length > 0) {
           emailContent += `
-            <h3 style="color: #dc2626;">⚠️ Sản phẩm đã hết hạn (${result.expiredProducts.length})</h3>
-            <table style="border-collapse: collapse; width: 100%;">
+            <h3 style="color: #dc2626; margin-top: 24px;">⚠️ Sản phẩm đã hết hạn (${result.expiredProducts.length})</h3>
+            <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
               <tr style="background-color: #fee2e2;">
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Sản phẩm</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Hạn order</th>
+                <th style="border: 1px solid #fecaca; padding: 12px; text-align: left;">Sản phẩm</th>
+                <th style="border: 1px solid #fecaca; padding: 12px; text-align: left;">Hạn order</th>
               </tr>
               ${result.expiredProducts.map(p => `
                 <tr>
-                  <td style="border: 1px solid #ddd; padding: 8px;">${p.name}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; color: #dc2626;">${formatDate(p.order_deadline)}</td>
+                  <td style="border: 1px solid #fecaca; padding: 12px;">${p.name}</td>
+                  <td style="border: 1px solid #fecaca; padding: 12px; color: #dc2626; font-weight: bold;">${formatDate(p.order_deadline)}</td>
                 </tr>
               `).join('')}
             </table>
@@ -126,32 +207,39 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (result.expiringProducts.length > 0) {
           emailContent += `
-            <h3 style="color: #f59e0b;">⏰ Sản phẩm sắp hết hạn trong ${daysBeforeExpiry} ngày (${result.expiringProducts.length})</h3>
-            <table style="border-collapse: collapse; width: 100%;">
+            <h3 style="color: #f59e0b; margin-top: 24px;">⏰ Sản phẩm sắp hết hạn trong ${daysBeforeExpiry} ngày (${result.expiringProducts.length})</h3>
+            <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
               <tr style="background-color: #fef3c7;">
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Sản phẩm</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Hạn order</th>
+                <th style="border: 1px solid #fde68a; padding: 12px; text-align: left;">Sản phẩm</th>
+                <th style="border: 1px solid #fde68a; padding: 12px; text-align: left;">Hạn order</th>
+                <th style="border: 1px solid #fde68a; padding: 12px; text-align: left;">Còn lại</th>
               </tr>
-              ${result.expiringProducts.map(p => `
-                <tr>
-                  <td style="border: 1px solid #ddd; padding: 8px;">${p.name}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; color: #f59e0b;">${formatDate(p.order_deadline)}</td>
-                </tr>
-              `).join('')}
+              ${result.expiringProducts.map(p => {
+                const daysLeft = getDaysUntilExpiry(p.order_deadline);
+                return `
+                  <tr>
+                    <td style="border: 1px solid #fde68a; padding: 12px;">${p.name}</td>
+                    <td style="border: 1px solid #fde68a; padding: 12px; color: #f59e0b;">${formatDate(p.order_deadline)}</td>
+                    <td style="border: 1px solid #fde68a; padding: 12px; color: #f59e0b; font-weight: bold;">${daysLeft} ngày</td>
+                  </tr>
+                `;
+              }).join('')}
             </table>
           `;
         }
 
         emailContent += `
-          <p style="margin-top: 20px; color: #666;">
-            Email này được gửi tự động từ hệ thống Purin Order.
-          </p>
+            <p style="margin-top: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px; color: #666; font-size: 14px;">
+              📌 Vui lòng kiểm tra và cập nhật trạng thái sản phẩm trong trang quản trị.<br>
+              Email này được gửi tự động từ hệ thống Purin Order.
+            </p>
+          </div>
         `;
 
         await resend.emails.send({
           from: "Purin Order <noreply@lovable.app>",
           to: [adminEmail],
-          subject: `[Purin Order] ${result.expiredProducts.length > 0 ? '⚠️ Có sản phẩm đã hết hạn' : '⏰ Sản phẩm sắp hết hạn'}`,
+          subject: `[Purin Order] ${result.expiredProducts.length > 0 ? '⚠️ Có sản phẩm đã hết hạn' : '⏰ Sản phẩm sắp hết hạn'} - ${result.expiredProducts.length + result.expiringProducts.length} sản phẩm`,
           html: emailContent,
         });
 

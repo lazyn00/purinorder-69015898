@@ -121,9 +121,9 @@ interface Order {
 // ========== THÊM INTERFACE CHO THÔNG BÁO ADMIN ==========
 interface AdminNotification {
   id: string;
-  type: 'new_order' | 'delivery_update' | 'payment_proof';
+  type: 'new_order' | 'delivery_update' | 'payment_proof' | 'product_expired' | 'product_expiring';
   order_id: string;
-  order_number: string;
+  order_number: string | null;
   message: string;
   is_read: boolean;
   created_at: string;
