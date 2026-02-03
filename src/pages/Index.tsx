@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Star, Package, Shield, Headphones } from "lucide-react";
+import { useReferralCapture } from "@/hooks/useReferralCapture";
 
 const Index = () => {
+  // Capture referral code từ URL nếu có
+  useReferralCapture();
   const features = [
     {
       icon: <Star className="w-8 h-8" />,

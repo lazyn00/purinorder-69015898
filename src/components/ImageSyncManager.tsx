@@ -13,6 +13,7 @@ interface SyncResult {
   productName: string;
   originalCount: number;
   syncedCount: number;
+  newlySynced: number;
   status: 'success' | 'partial' | 'failed';
 }
 
@@ -52,6 +53,7 @@ export default function ImageSyncManager() {
           productName: product.name,
           originalCount: product.images?.length || 0,
           syncedCount: product.images?.length || 0,
+          newlySynced: 0,
           status: 'success'
         };
       }
@@ -71,6 +73,7 @@ export default function ImageSyncManager() {
         productName: product.name,
         originalCount: data.originalCount,
         syncedCount: data.syncedCount,
+        newlySynced: data.newlySynced || 0,
         status: data.syncedCount === data.originalCount ? 'success' : 'partial'
       };
 
@@ -81,6 +84,7 @@ export default function ImageSyncManager() {
         productName: product.name,
         originalCount: product.images?.length || 0,
         syncedCount: 0,
+        newlySynced: 0,
         status: 'failed'
       };
     }
