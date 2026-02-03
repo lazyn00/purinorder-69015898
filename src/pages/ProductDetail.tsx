@@ -3,7 +3,8 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import type { CarouselApi } from "@/components/ui/carousel";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useReferralCapture } from "@/hooks/useReferralCapture";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,6 +67,9 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { addToCart, products, isLoading } = useCart();
   const { toast } = useToast();
+  
+  // Capture referral code từ URL nếu có
+  useReferralCapture();
   
   const [quantity, setQuantity] = useState(1);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();

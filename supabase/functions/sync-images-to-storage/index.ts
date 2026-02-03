@@ -28,6 +28,7 @@ serve(async (req) => {
     console.log(`Syncing ${imageUrls.length} images for product ${productId}: ${productName}`)
 
     const uploadedUrls: string[] = []
+    let newlySynced = 0
 
     for (let i = 0; i < imageUrls.length; i++) {
       const imageUrl = imageUrls[i]
@@ -88,6 +89,7 @@ serve(async (req) => {
 
         console.log(`Uploaded image ${i + 1}: ${urlData.publicUrl}`)
         uploadedUrls.push(urlData.publicUrl)
+        newlySynced++
 
       } catch (imageError) {
         console.error(`Error processing image ${i + 1}:`, imageError)
@@ -95,14 +97,31 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Sync complete. ${uploadedUrls.length} images processed`)
+    // === CẬP NHẬT URLs VÀO DATABASE NẾU CÓ ẢNH MỚI ĐƯỢC SYNC ===
+    if (newlySynced > 0 && productId) {
+      console.log(`Updating product ${productId} with ${newlySynced} newly synced images`)
+      
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ images: uploadedUrls })
+        .eq('id', productId)
+      
+      if (updateError) {
+        console.error('Error updating product images in database:', updateError)
+      } else {
+        console.log(`Successfully updated product ${productId} images in database`)
+      }
+    }
+
+    console.log(`Sync complete. ${uploadedUrls.length} images processed, ${newlySynced} newly synced`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         uploadedUrls,
         originalCount: imageUrls.length,
-        syncedCount: uploadedUrls.filter(url => url.includes('supabase.co/storage')).length
+        syncedCount: uploadedUrls.filter(url => url.includes('supabase.co/storage')).length,
+        newlySynced
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
