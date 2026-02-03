@@ -420,22 +420,28 @@ export default function Checkout() {
               
               if (affiliate) {
                 // Tính tổng tiền công (cong) của các sản phẩm trong đơn
+                // Lấy trực tiếp từ item trong giỏ hàng vì dữ liệu từ Google Sheet
                 let totalCong = 0;
                 for (const item of groupItems) {
-                  // Lấy thông tin cong từ database để đảm bảo chính xác
-                  const { data: productData } = await supabase
-                    .from('products')
-                    .select('cong')
-                    .eq('id', item.id)
-                    .single();
-                  
-                  if (productData?.cong) {
-                    totalCong += (productData.cong * item.quantity);
+                  // Lấy cong từ item (được load từ Google Sheet qua CartContext)
+                  const itemCong = (item as any).cong || (item as any)['công'] || 0;
+                  if (itemCong > 0) {
+                    totalCong += (itemCong * item.quantity);
                   }
                 }
                 
+                console.log('Affiliate order debug:', {
+                  referralCode,
+                  affiliateId: affiliate.id,
+                  totalCong,
+                  commissionRate: affiliate.commission_rate
+                });
+                
                 // Tính hoa hồng dựa trên tiền công, không phải giá bán
-                const commissionAmount = Math.floor(totalCong * (affiliate.commission_rate / 100));
+                // Nếu không có tiền công thì không tính hoa hồng (commission = 0)
+                const commissionAmount = totalCong > 0 
+                  ? Math.floor(totalCong * (affiliate.commission_rate / 100))
+                  : 0;
                 
                 // Lấy order id vừa tạo
                 const { data: orderData } = await supabase
@@ -444,9 +450,18 @@ export default function Checkout() {
                   .eq('order_number', orderNumber)
                   .single();
                 
-                if (orderData && commissionAmount > 0) {
+                // Luôn tạo affiliate_order để theo dõi, kể cả khi commission = 0
+                if (orderData) {
+                  console.log('Creating affiliate order:', {
+                    affiliateId: affiliate.id,
+                    orderId: orderData.id,
+                    orderNumber,
+                    orderTotal: groupTotal,
+                    commissionAmount
+                  });
+                  
                   // Tạo affiliate_order
-                  await (supabase as any)
+                  const { error: affiliateOrderError } = await (supabase as any)
                     .from('affiliate_orders')
                     .insert({
                       affiliate_id: affiliate.id,
@@ -457,21 +472,25 @@ export default function Checkout() {
                       status: 'pending'
                     });
                   
-                  // Cập nhật pending_earnings và total_orders của affiliate
-                  const { data: currentAffiliate } = await (supabase as any)
-                    .from('affiliates')
-                    .select('pending_earnings, total_orders')
-                    .eq('id', affiliate.id)
-                    .single();
-                  
-                  if (currentAffiliate) {
-                    await (supabase as any)
+                  if (affiliateOrderError) {
+                    console.error('Error creating affiliate order:', affiliateOrderError);
+                  } else {
+                    // Cập nhật pending_earnings và total_orders của affiliate
+                    const { data: currentAffiliate } = await (supabase as any)
                       .from('affiliates')
-                      .update({
-                        pending_earnings: (currentAffiliate.pending_earnings || 0) + commissionAmount,
-                        total_orders: (currentAffiliate.total_orders || 0) + 1
-                      })
-                      .eq('id', affiliate.id);
+                      .select('pending_earnings, total_orders')
+                      .eq('id', affiliate.id)
+                      .single();
+                    
+                    if (currentAffiliate) {
+                      await (supabase as any)
+                        .from('affiliates')
+                        .update({
+                          pending_earnings: (currentAffiliate.pending_earnings || 0) + commissionAmount,
+                          total_orders: (currentAffiliate.total_orders || 0) + 1
+                        })
+                        .eq('id', affiliate.id);
+                    }
                   }
                 }
               }
