@@ -667,7 +667,7 @@ export default function Checkout() {
               </div>
               <div>
                 <Label htmlFor="delivery-address">Địa chỉ nhận hàng *</Label>
-                <Input id="delivery-address" value={deliveryInfo.address} onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})} placeholder="Số nhà, đường, phường, quận, thành phố" required />
+                <Input id="delivery-address" value={deliveryInfo.address} onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})} placeholder="Số nhà, đường, phường, quận, thành phố (đơn vị hành chính cũ)" required />
               </div>
               <div>
                 <Label htmlFor="delivery-note">Ghi chú (Tùy chọn)</Label>
