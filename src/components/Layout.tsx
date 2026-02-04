@@ -39,8 +39,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [pageSettings, setPageSettings] = useState<PageVisibilitySettings>({
-    showSellPage: true,
-    showAffiliatePage: true
+    showSellPage: false,
+    showAffiliatePage: false
   });
 
   useEffect(() => {
