@@ -212,6 +212,36 @@ export type Database = {
         }
         Relationships: []
       }
+      order_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          field_changed: string
+          id: string
+          new_value: string
+          old_value: string | null
+          order_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          field_changed: string
+          id?: string
+          new_value: string
+          old_value?: string | null
+          order_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          field_changed?: string
+          id?: string
+          new_value?: string
+          old_value?: string | null
+          order_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           additional_bills: Json | null

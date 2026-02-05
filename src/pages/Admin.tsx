@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { productsData } from "@/data/products";
 import { SHIPPING_PROVIDERS, findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
+import { useNavigate as useNav } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -266,8 +267,20 @@ export default function Admin() {
   // Pagination
   const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
   const paginatedOrders = useMemo(() => {
+    // Sort: push completed and cancelled orders to bottom
+    const sortedOrders = [...filteredOrders].sort((a, b) => {
+      const aCompleted = a.order_progress === 'Đã hoàn thành' || a.order_progress === 'Đã huỷ';
+      const bCompleted = b.order_progress === 'Đã hoàn thành' || b.order_progress === 'Đã huỷ';
+      
+      if (aCompleted && !bCompleted) return 1;
+      if (!aCompleted && bCompleted) return -1;
+      
+      // Within same category, sort by created_at desc
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    
     const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
-    return filteredOrders.slice(startIndex, startIndex + ORDERS_PER_PAGE);
+    return sortedOrders.slice(startIndex, startIndex + ORDERS_PER_PAGE);
   }, [filteredOrders, currentPage]);
 
   // Reset to page 1 when filters change
@@ -665,6 +678,9 @@ export default function Admin() {
 
   const updatePaymentStatus = async (orderId: string, newStatus: string) => {
     try {
+      const order = orders.find(o => o.id === orderId);
+      const oldStatus = order?.payment_status;
+
       const { error } = await supabase
         .from('orders')
         .update({ payment_status: newStatus })
@@ -672,7 +688,16 @@ export default function Admin() {
 
       if (error) throw error;
 
-      const order = orders.find(o => o.id === orderId);
+      // Record status history
+      if (oldStatus !== newStatus) {
+        await supabase.from('order_status_history').insert({
+          order_id: orderId,
+          field_changed: 'payment_status',
+          old_value: oldStatus,
+          new_value: newStatus,
+          changed_by: 'admin'
+        });
+      }
       
       if (order && order.customer_email) {
         try {
@@ -721,6 +746,9 @@ export default function Admin() {
     // Không yêu cầu mã vận đơn khi chuyển sang "Đang giao" nữa
 
     try {
+      const order = orders.find(o => o.id === orderId);
+      const oldProgress = order?.order_progress;
+
       const updateData: any = { order_progress: newProgress };
       
       if (newProgress === "Đang giao" && shippingInfo[orderId]) {
@@ -735,7 +763,16 @@ export default function Admin() {
 
       if (error) throw error;
 
-      const order = orders.find(o => o.id === orderId);
+      // Record status history
+      if (oldProgress !== newProgress) {
+        await supabase.from('order_status_history').insert({
+          order_id: orderId,
+          field_changed: 'order_progress',
+          old_value: oldProgress,
+          new_value: newProgress,
+          changed_by: 'admin'
+        });
+      }
       
       if (order && order.customer_email) {
         try {
@@ -1745,7 +1782,13 @@ ${generateEmailContent(order)}
                         
                         <TableCell className="font-medium sticky left-[50px] bg-background">
                           <div className="space-y-1">
-                            <div className="text-sm">#{order.order_number || order.id.slice(0, 8)}</div>
+                            <a 
+                              href={`/admin/order/${order.id}`}
+                              className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                            >
+                              #{order.order_number || order.id.slice(0, 8)}
+                              <Eye className="h-3 w-3" />
+                            </a>
                             <div className="text-xs text-muted-foreground">
                               {new Date(order.created_at).toLocaleDateString('vi-VN')}
                             </div>

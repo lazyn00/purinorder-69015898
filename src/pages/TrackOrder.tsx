@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown, Copy, Filter, CheckCircle } from "lucide-react";
+import { Loader2, Package, Upload, Truck, Save, Edit2, ExternalLink, Search, ArrowUpDown, Copy, Filter, CheckCircle, History, ChevronDown, ChevronUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
+interface StatusHistory {
+  id: string;
+  order_id: string;
+  field_changed: string;
+  old_value: string | null;
+  new_value: string;
+  changed_at: string;
+  changed_by: string;
+}
+
 const ORDER_PROGRESS_OPTIONS = [
   "Đang xử lý",
   "Đã đặt hàng",
@@ -99,7 +109,9 @@ export default function TrackOrder() {
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [progressFilter, setProgressFilter] = useState<string>("all");
   const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
-  
+  const [statusHistoryMap, setStatusHistoryMap] = useState<Record<string, StatusHistory[]>>({});
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Set<string>>(new Set());
+
   const { toast } = useToast();
 
   const copyToClipboard = (text: string) => {
@@ -138,6 +150,60 @@ export default function TrackOrder() {
     
     return result;
   }, [orders, productSearch, sortOrder, progressFilter]);
+
+  // Fetch status history for all orders when orders are loaded
+  useEffect(() => {
+    const fetchStatusHistory = async () => {
+      if (orders.length === 0) return;
+      
+      const orderIds = orders.map(o => o.id);
+      const { data, error } = await supabase
+        .from('order_status_history')
+        .select('*')
+        .in('order_id', orderIds)
+        .order('changed_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching status history:', error);
+        return;
+      }
+      
+      // Group by order_id
+      const historyMap: Record<string, StatusHistory[]> = {};
+      (data as StatusHistory[]).forEach(item => {
+        if (!historyMap[item.order_id]) {
+          historyMap[item.order_id] = [];
+        }
+        historyMap[item.order_id].push(item);
+      });
+      
+      setStatusHistoryMap(historyMap);
+    };
+    
+    fetchStatusHistory();
+  }, [orders]);
+
+  const toggleHistoryExpand = (orderId: string) => {
+    setExpandedHistoryIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const formatHistoryDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -494,6 +560,48 @@ export default function TrackOrder() {
                       </div>
                     )}
                     
+                    {/* Status History */}
+                    {statusHistoryMap[order.id] && statusHistoryMap[order.id].length > 0 && (
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <button
+                          onClick={() => toggleHistoryExpand(order.id)}
+                          className="flex items-center justify-between w-full text-sm font-medium"
+                        >
+                          <span className="flex items-center gap-2">
+                            <History className="h-4 w-4" />
+                            Lịch sử trạng thái ({statusHistoryMap[order.id].length})
+                          </span>
+                          {expandedHistoryIds.has(order.id) ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
+                        
+                        {expandedHistoryIds.has(order.id) && (
+                          <div className="mt-3 space-y-2 border-l-2 border-primary/30 pl-3">
+                            {statusHistoryMap[order.id].map((history) => (
+                              <div key={history.id} className="text-xs">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium">
+                                    {history.field_changed === 'payment_status' ? 'Thanh toán' : 'Tiến độ'}:
+                                  </span>
+                                  <span className="text-muted-foreground">{history.old_value || 'N/A'}</span>
+                                  <span>→</span>
+                                  <Badge variant="outline" className={`${getStatusColor(history.new_value)} text-[10px] px-1 py-0`}>
+                                    {history.new_value}
+                                  </Badge>
+                                </div>
+                                <p className="text-muted-foreground mt-0.5">
+                                  {formatHistoryDate(history.changed_at)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <Separator />
                     
                     <div>

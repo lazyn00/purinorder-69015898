@@ -132,7 +132,10 @@ export default function Products() {
       )
     : sortedProducts;
 
-  const filteredProducts = searchMatchedProducts.filter(isProductAvailable);
+  // When searching, show all products (including unavailable). When not searching, hide unavailable
+  const filteredProducts = searchQuery 
+    ? searchMatchedProducts 
+    : searchMatchedProducts.filter(isProductAvailable);
 
   // --- CÁC NHÓM SẢN PHẨM ---
   const passGom = filteredProducts.filter(p => (p as any).isUserListing);
