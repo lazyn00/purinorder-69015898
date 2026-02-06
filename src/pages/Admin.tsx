@@ -1364,7 +1364,11 @@ ${generateEmailContent(order)}
                           className={`p-3 border-b hover:bg-muted/50 cursor-pointer transition-colors ${
                             !notif.is_read ? 'bg-blue-50 dark:bg-blue-950/30' : ''
                           }`}
-                          onClick={() => markNotificationAsRead(notif.id)}
+                          onClick={() => {
+                            markNotificationAsRead(notif.id);
+                            setShowNotifications(false);
+                            navigate(`/admin/order/${notif.order_id}`);
+                          }}
                         >
                           <div className="flex items-start gap-3">
                             <span className="text-xl">{getNotificationIcon(notif.type)}</span>
