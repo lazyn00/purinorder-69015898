@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Tag, Merge, Users, Image, Settings } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Tag, Merge, Users, Image, Settings, BoxIcon } from "lucide-react";
+import ProductManagement from "@/components/ProductManagement";
 import { DiscountCodeManagement } from "@/components/DiscountCodeManagement";
 import { OrderMerging } from "@/components/OrderMerging";
 import AffiliateManagement from "@/components/AffiliateManagement";
@@ -1417,6 +1418,9 @@ ${generateEmailContent(order)}
         ) : (
           <Tabs defaultValue="stats" className="space-y-6">
             <TabsList className="inline-flex h-12 items-center justify-start gap-2 bg-muted p-1">
+              <TabsTrigger value="product-mgmt" className="h-10 w-10 p-0" title="Quản lý sản phẩm">
+                <BoxIcon className="h-5 w-5" />
+              </TabsTrigger>
               <TabsTrigger value="stats" className="h-10 w-10 p-0" title="Doanh thu">
                 <BarChart3 className="h-5 w-5" />
               </TabsTrigger>
@@ -1453,6 +1457,10 @@ ${generateEmailContent(order)}
                 <Settings className="h-5 w-5" />
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="product-mgmt">
+              <ProductManagement />
+            </TabsContent>
 
             <TabsContent value="stats" className="space-y-6">
               {/* Tổng quan */}
