@@ -388,6 +388,7 @@ export type Database = {
           artist: string | null
           can_weight: number | null
           category: string | null
+          chenh: number | null
           cong: number | null
           created_at: string | null
           deposit_allowed: boolean | null
@@ -395,6 +396,7 @@ export type Database = {
           fees_included: boolean | null
           id: number
           images: Json | null
+          includes: string | null
           link_order: string | null
           master: string | null
           name: string
@@ -402,10 +404,12 @@ export type Database = {
           order_deadline: string | null
           pack: number | null
           price: number
+          price_display: string | null
           production_time: string | null
           proof: string | null
           r_v: number | null
           rate: number | null
+          size: string | null
           status: string | null
           stock: number | null
           subcategory: string | null
@@ -422,6 +426,7 @@ export type Database = {
           artist?: string | null
           can_weight?: number | null
           category?: string | null
+          chenh?: number | null
           cong?: number | null
           created_at?: string | null
           deposit_allowed?: boolean | null
@@ -429,6 +434,7 @@ export type Database = {
           fees_included?: boolean | null
           id?: number
           images?: Json | null
+          includes?: string | null
           link_order?: string | null
           master?: string | null
           name: string
@@ -436,10 +442,12 @@ export type Database = {
           order_deadline?: string | null
           pack?: number | null
           price: number
+          price_display?: string | null
           production_time?: string | null
           proof?: string | null
           r_v?: number | null
           rate?: number | null
+          size?: string | null
           status?: string | null
           stock?: number | null
           subcategory?: string | null
@@ -456,6 +464,7 @@ export type Database = {
           artist?: string | null
           can_weight?: number | null
           category?: string | null
+          chenh?: number | null
           cong?: number | null
           created_at?: string | null
           deposit_allowed?: boolean | null
@@ -463,6 +472,7 @@ export type Database = {
           fees_included?: boolean | null
           id?: number
           images?: Json | null
+          includes?: string | null
           link_order?: string | null
           master?: string | null
           name?: string
@@ -470,10 +480,12 @@ export type Database = {
           order_deadline?: string | null
           pack?: number | null
           price?: number
+          price_display?: string | null
           production_time?: string | null
           proof?: string | null
           r_v?: number | null
           rate?: number | null
+          size?: string | null
           status?: string | null
           stock?: number | null
           subcategory?: string | null
