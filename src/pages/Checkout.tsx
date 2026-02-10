@@ -536,30 +536,7 @@ export default function Checkout() {
           console.warn('Google Sheets sync error:', syncError);
         }
 
-        // Send email cho đơn này
-        try {
-          await supabase.functions.invoke('send-order-email', {
-            body: {
-              email: contactInfo.email,
-              orderNumber: orderNumber,
-              customerName: deliveryInfo.name,
-              items: groupItems.map(item => ({
-                name: item.name,
-                variant: item.selectedVariant,
-                quantity: item.quantity,
-                price: item.price
-              })),
-              totalPrice: groupTotal,
-              status: paymentType === 'deposit' ? 'Đang xác nhận cọc' : 'Đang xác nhận thanh toán',
-              paymentStatus: paymentType === 'deposit' ? 'Đang xác nhận cọc' : 'Đang xác nhận thanh toán',
-              orderProgress: 'Đang xử lý',
-              type: 'new_order',
-              deliveryAddress: deliveryInfo.address
-            }
-          });
-        } catch (emailError) {
-          console.warn('Failed to send confirmation email:', emailError);
-        }
+        // Email thông báo đơn hàng mới đã được tắt
       }
 
       setIsSubmitting(false);
