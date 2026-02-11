@@ -9,10 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
-import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy } from "lucide-react";
+import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download } from "lucide-react";
 
 interface SupabaseProduct {
   id: number;
@@ -135,6 +136,12 @@ export default function ProductManagement() {
   const [optionGroupInputs, setOptionGroupInputs] = useState<{ name: string; options: string }[]>([]);
   // Images editing
   const [imageInputs, setImageInputs] = useState<string[]>([]);
+  
+  // Sync from sheet
+  const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
+
+  const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
 
   const fetchDbProducts = async () => {
     setLoading(true);
@@ -150,6 +157,89 @@ export default function ProductManagement() {
       toast({ title: "Lỗi", description: "Không thể tải sản phẩm", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncFromSheet = async () => {
+    setSyncing(true);
+    setSyncProgress(0);
+    try {
+      toast({ title: "Đang tải từ Sheet...", description: "Vui lòng chờ" });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      const response = await fetch(GAS_PRODUCTS_URL, { signal: controller.signal });
+      clearTimeout(timeout);
+      const data = await response.json();
+      
+      if (!data.products || !Array.isArray(data.products)) {
+        throw new Error("Không có dữ liệu sản phẩm từ Sheet");
+      }
+
+      const sheetProducts = data.products;
+      let synced = 0;
+      
+      for (let i = 0; i < sheetProducts.length; i++) {
+        const p = sheetProducts[i];
+        setSyncProgress(Math.round(((i + 1) / sheetProducts.length) * 100));
+        
+        // Parse fields
+        let variants = p.variants || [];
+        if (typeof variants === 'string') try { variants = JSON.parse(variants); } catch { variants = []; }
+        let images = p.images || [];
+        if (typeof images === 'string') try { images = JSON.parse(images); } catch { images = []; }
+        let optionGroups = p.optionGroups || p.option_groups || [];
+        if (typeof optionGroups === 'string') try { optionGroups = JSON.parse(optionGroups); } catch { optionGroups = []; }
+        let variantImageMap = p.variantImageMap || p.variant_image_map || {};
+        if (typeof variantImageMap === 'string') try { variantImageMap = JSON.parse(variantImageMap); } catch { variantImageMap = {}; }
+
+        const upsertData: any = {
+          id: p.id,
+          name: p.name || '',
+          price: p.price || 0,
+          price_display: p.priceDisplay || p.price_display || `${(p.price || 0).toLocaleString('vi-VN')}đ`,
+          description: Array.isArray(p.description) ? p.description.join('\n') : (p.description || null),
+          images: images,
+          category: p.category || null,
+          subcategory: p.subcategory || null,
+          artist: p.artist || null,
+          variants: variants,
+          option_groups: optionGroups,
+          variant_image_map: variantImageMap,
+          fees_included: p.feesIncluded ?? true,
+          master: p.master || null,
+          status: p.status || 'Sẵn',
+          order_deadline: p.orderDeadline || null,
+          stock: p.stock ?? null,
+          production_time: p.productionTime || p.production_time || null,
+          size: p.size || null,
+          includes: p.includes || null,
+          cong: p.cong ?? null,
+        };
+
+        const { error } = await supabase
+          .from('products')
+          .upsert(upsertData, { onConflict: 'id' });
+        
+        if (error) {
+          console.error(`Error upserting product ${p.id}:`, error);
+        } else {
+          synced++;
+        }
+      }
+
+      toast({ 
+        title: "Đồng bộ hoàn tất!", 
+        description: `${synced}/${sheetProducts.length} sản phẩm đã được đồng bộ vào database` 
+      });
+      
+      fetchDbProducts();
+      refetchProducts();
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast({ title: "Lỗi đồng bộ", description: error.message || "Không thể kết nối Google Sheets", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+      setSyncProgress(0);
     }
   };
 
@@ -407,7 +497,11 @@ export default function ProductManagement() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={syncFromSheet} disabled={syncing} className="gap-1">
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {syncing ? "Đang đồng bộ..." : "Sync từ Sheet"}
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchDbProducts} className="gap-1">
             <RefreshCw className="h-4 w-4" /> Tải lại
           </Button>
@@ -416,6 +510,13 @@ export default function ProductManagement() {
           </Button>
         </div>
       </div>
+
+      {syncing && (
+        <div className="space-y-1">
+          <Progress value={syncProgress} />
+          <p className="text-xs text-muted-foreground text-center">{syncProgress}%</p>
+        </div>
+      )}
 
       <p className="text-sm text-muted-foreground">
         Hiển thị {sortedProducts.length} / {dbProducts.length} sản phẩm
