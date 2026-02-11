@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
 
@@ -24,7 +23,7 @@ export interface Product {
   productionTime?: string;
   size?: string;
   includes?: string;
-  cong?: number;
+  cong?: number; // Tiền công của sản phẩm (dùng để tính hoa hồng CTV)
 }
 
 export interface CartItem extends Product {
@@ -47,50 +46,6 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Map Supabase product to frontend Product interface
-const mapSupabaseProduct = (p: any): Product => {
-  let variantImageMap = p.variant_image_map || {};
-  if (typeof variantImageMap === 'string') {
-    try { variantImageMap = JSON.parse(variantImageMap); } catch { variantImageMap = {}; }
-  }
-  let optionGroups = p.option_groups || [];
-  if (typeof optionGroups === 'string') {
-    try { optionGroups = JSON.parse(optionGroups); } catch { optionGroups = []; }
-  }
-  let variants = p.variants || [];
-  if (typeof variants === 'string') {
-    try { variants = JSON.parse(variants); } catch { variants = []; }
-  }
-  let images = p.images || [];
-  if (typeof images === 'string') {
-    try { images = JSON.parse(images); } catch { images = []; }
-  }
-
-  return {
-    id: p.id,
-    name: p.name,
-    price: p.price,
-    description: p.description || '',
-    images: images,
-    category: p.category || '',
-    subcategory: p.subcategory || '',
-    artist: p.artist || '',
-    variants: variants,
-    optionGroups: optionGroups,
-    variantImageMap: variantImageMap,
-    feesIncluded: p.fees_included ?? true,
-    master: p.master || '',
-    status: p.status || '',
-    orderDeadline: p.order_deadline || null,
-    stock: p.stock ?? undefined,
-    priceDisplay: p.price_display || `${(p.price || 0).toLocaleString('vi-VN')}đ`,
-    productionTime: p.production_time || '',
-    size: p.size || '',
-    includes: p.includes || '',
-    cong: p.cong ?? undefined,
-  };
-};
-
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -98,54 +53,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const fetchProducts = async () => {
     setIsLoading(true);
-    let gasProducts: Product[] = [];
-    let dbProducts: Product[] = [];
-
-    // 1. Fetch from Google Sheets (with timeout)
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      const response = await fetch(GAS_PRODUCTS_URL, { signal: controller.signal });
-      clearTimeout(timeout);
+      const response = await fetch(GAS_PRODUCTS_URL);
       const data = await response.json();
       
       if (data.products) {
-        gasProducts = data.products.map((product: any) => {
+        const formattedProducts = data.products.map((product: any) => {
           if (product.variantImageMap && typeof product.variantImageMap === 'string') {
-            try { product.variantImageMap = JSON.parse(product.variantImageMap); } catch { product.variantImageMap = {}; }
+            try {
+              product.variantImageMap = JSON.parse(product.variantImageMap);
+            } catch (e) {
+              console.error(`Lỗi parse variantImageMap cho sản phẩm ${product.id}:`, e);
+              product.variantImageMap = {};
+            }
           }
           return product;
         });
+        setProducts(formattedProducts);
+      } else {
+        console.error("Lỗi tải products:", data.error);
       }
     } catch (error) {
-      console.warn("Google Sheets không khả dụng, dùng dữ liệu từ database:", error);
+      console.error("Không thể tải sản phẩm từ Google Sheet:", error);
+    } finally {
+      setIsLoading(false);
     }
-
-    // 2. Fetch from Supabase
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('id', { ascending: false });
-      if (!error && data) {
-        dbProducts = data.map(mapSupabaseProduct);
-      }
-    } catch (error) {
-      console.error("Không thể tải sản phẩm từ database:", error);
-    }
-
-    // 3. Merge: Supabase takes priority for duplicate IDs
-    const mergedMap = new Map<number, Product>();
-    
-    // Add GAS products first
-    gasProducts.forEach(p => mergedMap.set(p.id, p));
-    
-    // Override with Supabase products (priority)
-    dbProducts.forEach(p => mergedMap.set(p.id, p));
-
-    const mergedProducts = Array.from(mergedMap.values());
-    setProducts(mergedProducts);
-    setIsLoading(false);
   };
 
   useEffect(() => {
