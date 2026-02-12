@@ -67,8 +67,6 @@ export function ProductCard({ product }: { product: Product }) {
   const isExpired = !product.isUserListing && product.orderDeadline && new Date(product.orderDeadline) < new Date();
   const isUnavailable = isOutOfStock || isExpired;
   
-  const stockDisplay = availableStock;
-  
   const productLink = product.isUserListing 
     ? `/listing/${product.listingId}`
     : `/product/${product.id}`;
@@ -81,23 +79,16 @@ export function ProductCard({ product }: { product: Product }) {
           <img
             src={thumbnail}
             alt={product.name}
-            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${isUnavailable ? 'opacity-50' : ''}`}
+            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+              isUnavailable ? 'opacity-60 grayscale-[30%]' : ''
+            }`}
           />
           
-          {isUnavailable && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <Badge variant="destructive" className="text-xs">
-                {isOutOfStock ? "Hết hàng" : "Hết hạn"}
-              </Badge>
-            </div>
-          )}
-          
-          <div className="absolute top-1.5 left-1.5 flex items-start space-x-1"> 
-            {/* Tag Status: Đã chỉnh sửa để đồng bộ màu sắc */}
+          {/* Nhãn trạng thái (Góc trên bên trái): Status & Artist */}
+          <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start"> 
             {product.status && !isUnavailable && (
               <Badge 
-                // Sử dụng variant standard hoặc secondary thay vì custom color cứng
-                variant={product.isUserListing ? "secondary" : "secondary"} 
+                variant="secondary" 
                 className="h-5 px-1.5 text-[10px] opacity-90 shadow-sm"
               >
                 {product.status}
@@ -111,21 +102,32 @@ export function ProductCard({ product }: { product: Product }) {
             )}
           </div>
           
-          {!isUnavailable && stockDisplay !== undefined && stockDisplay < 10 && (
-            <div className="absolute bottom-1.5 right-1.5">
-              <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-                Còn {stockDisplay}
+          {/* Nhãn thông tin quan trọng (Góc dưới bên phải): Hết hàng / Hết hạn / Số lượng ít */}
+          <div className="absolute bottom-1.5 right-1.5">
+            {isOutOfStock ? (
+              <Badge variant="destructive" className="h-5 px-1.5 text-[10px] font-bold uppercase tracking-wider">
+                Hết hàng
               </Badge>
-            </div>
-          )}
+            ) : isExpired ? (
+              <Badge variant="destructive" className="h-5 px-1.5 text-[10px] font-bold uppercase tracking-wider">
+                Hết hạn
+              </Badge>
+            ) : (!product.isUserListing && availableStock !== undefined && availableStock < 10) ? (
+              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-background/80 backdrop-blur-sm">
+                Còn {availableStock}
+              </Badge>
+            ) : null}
+          </div>
         </div>
 
         <div className="p-2">
-          <h3 className="h-10 text-sm font-semibold line-clamp-2">
+          <h3 className="h-10 text-sm font-semibold line-clamp-2 transition-colors group-hover:text-primary">
             {product.name}
           </h3>
           
-          <p className={`mt-1 truncate text-sm font-bold md:text-base ${isUnavailable ? 'text-muted-foreground' : 'text-primary'}`}>
+          <p className={`mt-1 truncate text-sm font-bold md:text-base ${
+            isUnavailable ? 'text-muted-foreground' : 'text-primary'
+          }`}>
             {priceDisplay}
           </p>
         </div>
