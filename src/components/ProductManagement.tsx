@@ -911,21 +911,62 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Variant Image Map */}
-            <div>
-              <Label>Variant Image Map (JSON)</Label>
-              <Textarea
-                value={JSON.stringify(form.variant_image_map || {}, null, 2)}
-                onChange={e => {
-                  try {
-                    const parsed = JSON.parse(e.target.value);
-                    setForm(prev => ({ ...prev, variant_image_map: parsed }));
-                  } catch {}
-                }}
-                rows={3}
-                className="font-mono text-xs"
-              />
-            </div>
+            {/* Variant Image Map - Visual Selector */}
+            {variantInputs.length > 0 && imageInputs.filter(u => u.trim()).length > 0 && (
+              <div>
+                <Label>Gán ảnh cho phân loại</Label>
+                <div className="space-y-2 mt-2">
+                  {variantInputs.filter(v => v.name.trim()).map((v, idx) => {
+                    const currentMap = form.variant_image_map || {};
+                    const selectedIdx = currentMap[v.name];
+                    const validImages = imageInputs.map((url, i) => ({ url, i })).filter(x => x.url.trim());
+                    
+                    return (
+                      <div key={idx} className="flex gap-3 items-center">
+                        <span className="text-sm min-w-[120px] truncate">{v.name}</span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {validImages.map(({ url, i }) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                setForm(prev => ({
+                                  ...prev,
+                                  variant_image_map: {
+                                    ...(prev.variant_image_map || {}),
+                                    [v.name]: i,
+                                  }
+                                }));
+                              }}
+                              className={`w-10 h-10 rounded border-2 overflow-hidden transition-all ${
+                                selectedIdx === i 
+                                  ? 'border-primary ring-2 ring-primary/30' 
+                                  : 'border-muted hover:border-foreground/30'
+                              }`}
+                            >
+                              <img src={url} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
+                            </button>
+                          ))}
+                          {selectedIdx !== undefined && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newMap = { ...(form.variant_image_map || {}) };
+                                delete newMap[v.name];
+                                setForm(prev => ({ ...prev, variant_image_map: newMap }));
+                              }}
+                              className="w-10 h-10 rounded border border-dashed border-destructive/50 flex items-center justify-center text-destructive hover:bg-destructive/10"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Save Button */}
             <div className="flex justify-end gap-2 pt-4 border-t">
