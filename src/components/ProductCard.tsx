@@ -47,9 +47,6 @@ export function ProductCard({ product }: { product: Product }) {
   let isOutOfStock: boolean = false;
   
   if (product.isUserListing) {
-    // Với user listing, check status 'sold'
-    // Tuy nhiên product type ở đây status đang là tag (Pass/Gom), ta cần check nếu có trường nào khác không
-    // Tạm thời nếu product hiển thị ra đây thì mặc định là available trừ khi có logic lọc bên ngoài
     availableStock = undefined; 
     isOutOfStock = false;
   } else {
@@ -61,8 +58,9 @@ export function ProductCard({ product }: { product: Product }) {
       availableStock = product.stock;
       isOutOfStock = availableStock <= 0;
     } else {
-      availableStock = undefined;
-      isOutOfStock = false;
+      // Stock trống (null/undefined) và không có variant stock => coi như hết hàng
+      availableStock = 0;
+      isOutOfStock = true;
     }
   }
   
