@@ -97,7 +97,7 @@ const getAvailableStock = (product: Product): number => {
             ?.filter(v => v.stock !== undefined)
             .reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
     } 
-    if (product.stock === undefined || product.stock === null) return 999999;
+    if (product.stock === undefined || product.stock === null) return 0;
     return product.stock;
 }
 

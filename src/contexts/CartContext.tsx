@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
+
 
 export interface Product {
   id: number;
@@ -98,53 +98,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const fetchProducts = async () => {
     setIsLoading(true);
-    let gasProducts: Product[] = [];
-    let dbProducts: Product[] = [];
-
-    // 1. Fetch from Google Sheets (with timeout)
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      const response = await fetch(GAS_PRODUCTS_URL, { signal: controller.signal });
-      clearTimeout(timeout);
-      const data = await response.json();
-      
-      if (data.products) {
-        gasProducts = data.products.map((product: any) => {
-          if (product.variantImageMap && typeof product.variantImageMap === 'string') {
-            try { product.variantImageMap = JSON.parse(product.variantImageMap); } catch { product.variantImageMap = {}; }
-          }
-          return product;
-        });
-      }
-    } catch (error) {
-      console.warn("Google Sheets không khả dụng, dùng dữ liệu từ database:", error);
-    }
-
-    // 2. Fetch from Supabase
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('id', { ascending: false });
       if (!error && data) {
-        dbProducts = data.map(mapSupabaseProduct);
+        setProducts(data.map(mapSupabaseProduct));
       }
     } catch (error) {
       console.error("Không thể tải sản phẩm từ database:", error);
     }
-
-    // 3. Merge: Supabase takes priority for duplicate IDs
-    const mergedMap = new Map<number, Product>();
-    
-    // Add GAS products first
-    gasProducts.forEach(p => mergedMap.set(p.id, p));
-    
-    // Override with Supabase products (priority)
-    dbProducts.forEach(p => mergedMap.set(p.id, p));
-
-    const mergedProducts = Array.from(mergedMap.values());
-    setProducts(mergedProducts);
     setIsLoading(false);
   };
 
