@@ -100,15 +100,17 @@ export default function Products() {
   const isProductAvailable = (product: any) => {
     if (product.isUserListing) return true;
     const notExpired = !product.orderDeadline || new Date(product.orderDeadline) > new Date();
-    let hasStock = true;
-    if (product.stock !== undefined && product.stock !== null) {
-      hasStock = product.stock > 0;
-    } else if (product.variants?.some((v: any) => v.stock !== undefined)) {
+    const hasVariantStock = product.variants?.some((v: any) => v.stock !== undefined);
+    let hasStock = false;
+    if (hasVariantStock) {
       const totalStock = product.variants
         .filter((v: any) => v.stock !== undefined)
         .reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
       hasStock = totalStock > 0;
+    } else if (product.stock !== undefined && product.stock !== null) {
+      hasStock = product.stock > 0;
     }
+    // stock null/undefined and no variant stock => out of stock
     return hasStock && notExpired;
   };
 
