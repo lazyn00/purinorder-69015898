@@ -289,8 +289,11 @@ export default function ProductManagement() {
     });
 
     return filtered.sort((a, b) => {
-      const aPriority = getDeadlineStatus(a).priority;
-      const bPriority = getDeadlineStatus(b).priority;
+      // Out of stock items go to bottom (before expired)
+      const aOutOfStock = (a.stock !== null && a.stock !== undefined && a.stock <= 0);
+      const bOutOfStock = (b.stock !== null && b.stock !== undefined && b.stock <= 0);
+      const aPriority = aOutOfStock ? 3 : getDeadlineStatus(a).priority;
+      const bPriority = bOutOfStock ? 3 : getDeadlineStatus(b).priority;
       if (aPriority !== bPriority) return aPriority - bPriority;
       return b.id - a.id;
     });
