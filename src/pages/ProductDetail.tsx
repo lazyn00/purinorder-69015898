@@ -265,7 +265,7 @@ export default function ProductDetail() {
 
     // Cụm 3: Deadline
     const deadlineText = product.orderDeadline 
-      ? `🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' }).replace(',', '')}`
+      ? `🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' }).replace(',', '')}`
       : null;
 
     // Cụm 4: Lưu ý
@@ -295,7 +295,7 @@ export default function ProductDetail() {
     const title = product.name;
     const priceText = `${currentPrice.toLocaleString('vi-VN')} VND ${product.feesIncluded ? '(ff)' : '+ phí nđ'}`;
     const deadlineInfo = product.orderDeadline 
-      ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' }).replace(',', '')}`
+      ? `\n\n🔚 Deadline: ${new Date(product.orderDeadline).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' }).replace(',', '')}`
       : "";
     const productionInfo = product.productionTime ? `\n\n❗️Sản xuất ${product.productionTime}, only ck, có cọc 50%` : "";
     const cta = customCta || "Xinh đẹp 10 điểm, chấm";

@@ -269,7 +269,7 @@
    };
    
    const formatDate = (dateStr: string) => {
-     return new Date(dateStr).toLocaleString('vi-VN');
+     return new Date(dateStr).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
    };
    
    const getTrackingUrl = (provider: string, code: string) => {
@@ -638,7 +638,7 @@
                                #{related.order_number || related.id.slice(0, 8)}
                              </p>
                              <p className="text-xs text-muted-foreground">
-                               {new Date(related.created_at).toLocaleDateString('vi-VN')}
+                               {new Date(related.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                              </p>
                            </div>
                            <div className="text-right">

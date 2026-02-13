@@ -371,13 +371,13 @@ export default function Admin() {
     const getGroupKey = (dateStr: string) => {
       const date = new Date(dateStr);
       if (daysCount > 90) {
-        return date.toLocaleDateString('vi-VN', { month: '2-digit', year: '2-digit' });
+        return date.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', month: '2-digit', year: '2-digit' });
       } else if (daysCount > 31) {
         // Nhóm theo tuần
         const weekNumber = Math.floor((date.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
         return `Tuần ${weekNumber + 1}`;
       }
-      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      return date.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit' });
     };
 
     const revenueMap = new Map<string, { revenue: number; orders: number }>();
@@ -926,7 +926,7 @@ SĐT: ${order.delivery_phone}
 
     const exportData = selectedOrders.map(order => ({
       'Mã đơn': order.order_number || order.id.slice(0, 8),
-      'Ngày đặt': new Date(order.created_at).toLocaleDateString('vi-VN'),
+      'Ngày đặt': new Date(order.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
       'Tên khách': order.delivery_name,
       'SĐT liên lạc': order.customer_phone,
       'Email': order.customer_email || '',
@@ -951,7 +951,7 @@ SĐT: ${order.delivery_phone}
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Đơn hàng");
     
-    const fileName = `don-hang-${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`;
+    const fileName = `don-hang-${new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }).replace(/\//g, '-')}.xlsx`;
     XLSX.writeFile(wb, fileName);
     
     toast({
