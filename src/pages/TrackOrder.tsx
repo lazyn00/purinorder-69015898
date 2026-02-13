@@ -142,15 +142,21 @@ export default function TrackOrder() {
       result = result.filter(order => order.order_progress === progressFilter);
     }
     
-    // Sort by date
+    // Sort by latest status change time (fall back to created_at)
     result.sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+      const historyA = statusHistoryMap[a.id];
+      const historyB = statusHistoryMap[b.id];
+      const latestA = historyA && historyA.length > 0 
+        ? new Date(historyA[0].changed_at).getTime() 
+        : new Date(a.created_at).getTime();
+      const latestB = historyB && historyB.length > 0 
+        ? new Date(historyB[0].changed_at).getTime() 
+        : new Date(b.created_at).getTime();
+      return sortOrder === "newest" ? latestB - latestA : latestA - latestB;
     });
     
     return result;
-  }, [orders, productSearch, sortOrder, progressFilter]);
+  }, [orders, productSearch, sortOrder, progressFilter, statusHistoryMap]);
 
   // Fetch status history for all orders when orders are loaded
   useEffect(() => {
