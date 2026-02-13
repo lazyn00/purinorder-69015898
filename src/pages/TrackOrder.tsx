@@ -216,6 +216,7 @@ export default function TrackOrder() {
 
   const formatHistoryDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -521,7 +522,7 @@ export default function TrackOrder() {
                         <div className="flex items-center gap-2 min-w-0">
                           <CardTitle className="text-sm font-semibold shrink-0">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
                           <span className="text-xs text-muted-foreground shrink-0">
-                            {new Date(order.created_at).toLocaleDateString('vi-VN')}
+                            {new Date(order.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
@@ -591,8 +592,8 @@ export default function TrackOrder() {
                               const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                               if (daysLeft < 0) return <span className="text-red-500 font-bold">Đã quá hạn!</span>;
                               if (daysLeft === 0) return <span className="text-red-500 font-bold">Hôm nay!</span>;
-                              if (daysLeft <= 3) return <span className="text-orange-500 font-bold">{deadline.toLocaleDateString('vi-VN')} (còn {daysLeft} ngày)</span>;
-                              return <span>{deadline.toLocaleDateString('vi-VN')} (còn {daysLeft} ngày)</span>;
+                              if (daysLeft <= 3) return <span className="text-orange-500 font-bold">{deadline.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} (còn {daysLeft} ngày)</span>;
+                              return <span>{deadline.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} (còn {daysLeft} ngày)</span>;
                             })()}
                           </div>
                           <p className="text-xs text-amber-600 dark:text-amber-400">

@@ -582,7 +582,7 @@ export default function ProductManagement() {
                     </Badge>
                     {product.order_deadline && deadlineStatus.priority < 4 && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {new Date(product.order_deadline).toLocaleDateString('vi-VN')}
+                        {new Date(product.order_deadline).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                       </p>
                     )}
                   </TableCell>
