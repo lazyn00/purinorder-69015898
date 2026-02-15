@@ -99,6 +99,7 @@ export default function Products() {
 
   const isProductAvailable = (product: any) => {
     if (product.isUserListing) return true;
+    if (product.status === "Ẩn") return false;
     const notExpired = !product.orderDeadline || new Date(product.orderDeadline) > new Date();
     const hasVariantStock = product.variants?.some((v: any) => v.stock !== undefined);
     let hasStock = false;

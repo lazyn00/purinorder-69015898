@@ -160,6 +160,7 @@ export default function CategoryPage() {
   const artists = ["all", ...Array.from(new Set(categoryProducts.map((p: any) => p.artist).filter(Boolean)))];
 
   const isProductAvailable = (product: Product) => {
+    if (product.status === "Ẩn") return false;
     const availableStock = getAvailableStock(product);
     const hasStock = availableStock > 0;
     const notExpired = !product.orderDeadline || new Date(product.orderDeadline) > new Date();
