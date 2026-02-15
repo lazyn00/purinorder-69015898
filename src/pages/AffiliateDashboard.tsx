@@ -91,7 +91,7 @@ export default function AffiliateDashboard() {
 
   // Filter available products (not expired, in stock)
   const availableProducts = products.filter(p => {
-    if (p.status === "Hết hàng") return false;
+    if (p.status === "Hết hàng" || p.status === "Ẩn") return false;
     if (p.orderDeadline) {
       const deadline = new Date(p.orderDeadline);
       if (deadline < new Date()) return false;

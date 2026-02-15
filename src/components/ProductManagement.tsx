@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
-import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download } from "lucide-react";
+import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon } from "lucide-react";
 
 interface SupabaseProduct {
   id: number;
@@ -57,7 +57,7 @@ interface SupabaseProduct {
 type ProductFormData = Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at'>;
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Thời trang", "Khác"];
-const STATUSES = ["Sẵn", "Order", "Pre-order"];
+const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn"];
 
 const emptyForm: ProductFormData = {
   name: "",
@@ -140,6 +140,10 @@ export default function ProductManagement() {
   // Sync from sheet
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
+  // Image upload
+  const [uploadingImage, setUploadingImage] = useState(false);
+  // Sync images to storage
+  const [syncingImages, setSyncingImages] = useState(false);
 
   const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
 
@@ -453,6 +457,129 @@ export default function ProductManagement() {
     setVariantInputs(prev => prev.map(v => ({ ...v, price })));
   };
 
+  // Copy / Duplicate product
+  const duplicateProduct = (product: SupabaseProduct) => {
+    setEditingId(null);
+    setForm({
+      name: `${product.name} (Copy)`,
+      te: product.te,
+      rate: product.rate,
+      r_v: product.r_v,
+      can_weight: product.can_weight,
+      pack: product.pack,
+      cong: product.cong,
+      total: product.total,
+      price: product.price,
+      price_display: product.price_display,
+      deposit_allowed: product.deposit_allowed ?? true,
+      fees_included: product.fees_included ?? true,
+      category: product.category || "Merch",
+      subcategory: product.subcategory || "",
+      artist: product.artist || "",
+      status: product.status || "Order",
+      order_deadline: product.order_deadline,
+      images: product.images || [],
+      description: product.description || "",
+      size: product.size,
+      includes: product.includes,
+      production_time: product.production_time,
+      master: product.master,
+      variants: product.variants || [],
+      option_groups: product.option_groups || [],
+      variant_image_map: product.variant_image_map || {},
+      stock: product.stock,
+      link_order: product.link_order,
+      proof: product.proof,
+      actual_rate: product.actual_rate,
+      actual_can: product.actual_can,
+      actual_pack: product.actual_pack,
+      chenh: product.chenh,
+    });
+    const imgs = Array.isArray(product.images) ? product.images as string[] : [];
+    setImageInputs(imgs.length > 0 ? imgs : [""]);
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    setVariantInputs(variants.map((v: any) => ({ name: v.name || "", price: v.price || 0, stock: v.stock })));
+    const optGroups = Array.isArray(product.option_groups) ? product.option_groups : [];
+    setOptionGroupInputs(optGroups.map((g: any) => ({ name: g.name || "", options: (g.options || []).join(", ") })));
+    setShowForm(true);
+    toast({ title: "Đã sao chép", description: `Đang tạo bản sao của "${product.name}"` });
+  };
+
+  // Toggle hide/show product
+  const toggleHideProduct = async (product: SupabaseProduct) => {
+    const newStatus = product.status === "Ẩn" ? "Sẵn" : "Ẩn";
+    try {
+      const { error } = await supabase.from('products').update({ status: newStatus }).eq('id', product.id);
+      if (error) throw error;
+      setDbProducts(prev => prev.map(p => p.id === product.id ? { ...p, status: newStatus } : p));
+      refetchProducts();
+      toast({ title: newStatus === "Ẩn" ? "Đã ẩn" : "Đã hiện", description: `Sản phẩm #${product.id} ${newStatus === "Ẩn" ? "đã bị ẩn" : "đã hiện lại"}` });
+    } catch {
+      toast({ title: "Lỗi", description: "Không thể cập nhật trạng thái", variant: "destructive" });
+    }
+  };
+
+  // Upload image file to storage
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingImage(true);
+    try {
+      const newUrls: string[] = [];
+      for (const file of Array.from(files)) {
+        const timestamp = Date.now();
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `upload-${timestamp}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { data, error } = await supabase.storage
+          .from('product-images')
+          .upload(fileName, file, { contentType: file.type, upsert: true });
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+        newUrls.push(urlData.publicUrl);
+      }
+      setImageInputs(prev => {
+        const cleaned = prev.filter(u => u.trim() !== "");
+        return [...cleaned, ...newUrls, ""];
+      });
+      toast({ title: "Đã tải lên", description: `${newUrls.length} ảnh đã được upload` });
+    } catch (error: any) {
+      toast({ title: "Lỗi upload", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingImage(false);
+      e.target.value = "";
+    }
+  };
+
+  // Sync all external images to storage
+  const syncAllImagesToStorage = async () => {
+    setSyncingImages(true);
+    try {
+      const productsWithExternal = dbProducts.filter(p => {
+        const imgs = Array.isArray(p.images) ? p.images as string[] : [];
+        return imgs.some(url => !url.includes('supabase.co/storage'));
+      });
+      if (productsWithExternal.length === 0) {
+        toast({ title: "Hoàn tất", description: "Tất cả ảnh đã nằm trên storage" });
+        setSyncingImages(false);
+        return;
+      }
+      let synced = 0;
+      for (const product of productsWithExternal) {
+        const { error } = await supabase.functions.invoke('sync-images-to-storage', {
+          body: { imageUrls: product.images, productId: product.id, productName: product.name }
+        });
+        if (!error) synced++;
+      }
+      toast({ title: "Đồng bộ ảnh hoàn tất", description: `${synced}/${productsWithExternal.length} sản phẩm đã được sync` });
+      fetchDbProducts();
+      refetchProducts();
+    } catch (error: any) {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    } finally {
+      setSyncingImages(false);
+    }
+  };
+
   const updateNum = (field: keyof ProductFormData, value: string) => {
     setForm(prev => ({ ...prev, [field]: value === "" ? null : Number(value) }));
   };
@@ -507,6 +634,10 @@ export default function ProductManagement() {
           </Button>
           <Button variant="outline" size="sm" onClick={fetchDbProducts} className="gap-1">
             <RefreshCw className="h-4 w-4" /> Tải lại
+          </Button>
+          <Button variant="outline" size="sm" onClick={syncAllImagesToStorage} disabled={syncingImages} className="gap-1">
+            {syncingImages ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            {syncingImages ? "Đang sync ảnh..." : "Sync ảnh"}
           </Button>
           <Button size="sm" onClick={openAddForm} className="gap-1">
             <Plus className="h-4 w-4" /> Thêm SP
@@ -591,6 +722,12 @@ export default function ProductManagement() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateProduct(product)} title="Sao chép">
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleHideProduct(product)} title={product.status === "Ẩn" ? "Hiện lại" : "Ẩn"}>
+                        {product.status === "Ẩn" ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditForm(product)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -788,10 +925,21 @@ export default function ProductManagement() {
             {/* Images */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Hình ảnh (URL)</Label>
-                <Button variant="outline" size="sm" onClick={() => setImageInputs(prev => [...prev, ""])}>
-                  <Plus className="h-3 w-3 mr-1" /> Thêm ảnh
-                </Button>
+                <Label>Hình ảnh</Label>
+                <div className="flex gap-2">
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                    <Button variant="outline" size="sm" asChild disabled={uploadingImage}>
+                      <span>
+                        {uploadingImage ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                        Tải ảnh lên
+                      </span>
+                    </Button>
+                  </label>
+                  <Button variant="outline" size="sm" onClick={() => setImageInputs(prev => [...prev, ""])}>
+                    <Plus className="h-3 w-3 mr-1" /> Thêm URL
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 {imageInputs.map((url, idx) => (
