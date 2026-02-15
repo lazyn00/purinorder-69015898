@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
-import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon } from "lucide-react";
+import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link } from "lucide-react";
 
 interface SupabaseProduct {
   id: number;
@@ -922,10 +922,10 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Images */}
+            {/* Images - Drag & Drop */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Hình ảnh</Label>
+                <Label>Hình ảnh (kéo thả để sắp xếp)</Label>
                 <div className="flex gap-2">
                   <label className="cursor-pointer">
                     <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
@@ -943,7 +943,42 @@ export default function ProductManagement() {
               </div>
               <div className="space-y-2">
                 {imageInputs.map((url, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
+                  <div
+                    key={idx}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", String(idx));
+                      e.currentTarget.classList.add("opacity-50");
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.classList.remove("opacity-50");
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add("bg-accent/50");
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove("bg-accent/50");
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("bg-accent/50");
+                      const fromIdx = Number(e.dataTransfer.getData("text/plain"));
+                      if (fromIdx === idx) return;
+                      setImageInputs(prev => {
+                        const newArr = [...prev];
+                        const [moved] = newArr.splice(fromIdx, 1);
+                        newArr.splice(idx, 0, moved);
+                        return newArr;
+                      });
+                    }}
+                    className="flex gap-2 items-center rounded-md p-1 transition-colors cursor-grab active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-xs text-muted-foreground w-5 shrink-0">{idx + 1}</span>
+                    {url && (
+                      <img src={url} alt="" className="w-8 h-8 object-cover rounded shrink-0" onError={e => (e.currentTarget.style.display = 'none')} />
+                    )}
                     <Input
                       value={url}
                       onChange={e => {
@@ -954,9 +989,6 @@ export default function ProductManagement() {
                       placeholder="https://..."
                       className="h-8 text-sm"
                     />
-                    {url && (
-                      <img src={url} alt="" className="w-8 h-8 object-cover rounded shrink-0" onError={e => (e.currentTarget.style.display = 'none')} />
-                    )}
                     <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setImageInputs(prev => prev.filter((_, i) => i !== idx))}>
                       <X className="h-3 w-3" />
                     </Button>

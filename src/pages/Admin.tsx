@@ -700,31 +700,6 @@ export default function Admin() {
         });
       }
       
-      if (order && order.customer_email) {
-        try {
-          await supabase.functions.invoke('send-order-email', {
-            body: {
-              email: order.customer_email,
-              orderNumber: order.order_number,
-              customerName: order.delivery_name,
-              items: order.items.map((item: any) => ({
-                name: item.name,
-                variant: item.selectedVariant,
-                quantity: item.quantity,
-                price: item.price
-              })),
-              totalPrice: order.total_price,
-              status: `${newStatus} - ${order.order_progress}`,
-              type: 'status_change'
-            }
-          });
-          
-          console.log('Payment status email notification sent');
-        } catch (emailError) {
-          console.warn('Failed to send payment status email:', emailError);
-        }
-      }
-
       setOrders(orders.map(order => 
         order.id === orderId ? { ...order, payment_status: newStatus } : order
       ));
@@ -775,33 +750,7 @@ export default function Admin() {
         });
       }
       
-      if (order && order.customer_email) {
-        try {
-          const emailType = newProgress === "Đã hoàn cọc" ? 'refund' : 'status_change';
-          
-          await supabase.functions.invoke('send-order-email', {
-            body: {
-              email: order.customer_email,
-              orderNumber: order.order_number,
-              customerName: order.delivery_name,
-              items: order.items.map((item: any) => ({
-                name: item.name,
-                variant: item.selectedVariant,
-                quantity: item.quantity,
-                price: item.price
-              })),
-              totalPrice: order.total_price,
-              status: newProgress,
-              type: emailType,
-              trackingCode: updateData.tracking_code || order.tracking_code
-            }
-          });
-          
-          console.log('Email notification sent');
-        } catch (emailError) {
-          console.warn('Failed to send email:', emailError);
-        }
-      }
+      // Email tự động đã được tắt
 
       setOrders(orders.map(order => 
         order.id === orderId ? { ...order, ...updateData } : order
