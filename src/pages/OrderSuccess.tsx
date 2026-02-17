@@ -56,6 +56,18 @@ export default function OrderSuccess() {
                 Tham gia Group Facebook
               </Button>
             </div>
+            <Button
+  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+  onClick={() =>
+    window.open(
+      `https://www.facebook.com/puorderin`,
+      "_blank"
+    )
+  }
+>
+  <Facebook className="w-4 h-4 mr-2" />
+  Nhắn tin xác nhận đơn hàng {orderNumber ? `#${orderNumber}` : ""}
+</Button>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button 
