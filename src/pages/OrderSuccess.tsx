@@ -31,7 +31,7 @@ export default function OrderSuccess() {
                 Cảm ơn bạn đã tin tưởng và ủng hộ Purin 🍮💖
               </p>
               <p className="text-muted-foreground">
-                Chúng tôi sẽ xử lý đơn hàng và liên hệ với bạn sớm nhất.
+                Vui lòng liên hệ với Purin để xác nhận đơn hàng sớm nhất.
               </p>
             </div>
 
