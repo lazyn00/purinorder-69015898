@@ -57,7 +57,7 @@ export default function OrderSuccess() {
               </Button>
             </div>
             <Button
-  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+  className="w-full bg-[#AFC6F7] hover:bg-[#94B4EE] text-[#2F4C8A]"
   onClick={() =>
     window.open(
       `https://www.facebook.com/puorderin`,
