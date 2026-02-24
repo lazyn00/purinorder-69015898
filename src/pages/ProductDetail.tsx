@@ -569,18 +569,6 @@ ${cta} ${productUrl}`;
             </div>
           </div>
         </div>
-
-        {/* Related Products */}
-        {product.master && products.filter(p => p.master === product.master && p.id !== product.id).length > 0 && (
-          <div className="border-t pt-8 mt-8">
-            <h2 className="text-lg font-bold mb-4 text-foreground">Sản phẩm cùng loại</h2>
-            <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-                {products.filter(p => p.master === product.master && p.id !== product.id).map((related) => (
-                    <div key={related.id} className="flex-shrink-0 w-[160px] snap-start"><ProductCard product={related} /></div>
-                ))}
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   );
