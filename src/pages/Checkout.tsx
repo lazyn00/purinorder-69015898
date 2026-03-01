@@ -364,34 +364,20 @@ export default function Checkout() {
           throw insertError;
         }
 
-        // === TỰ ĐỘNG TRỪ TỒN KHO TRONG DATABASE (CHO NHÓM NÀY) ===
+        // === TỰ ĐỘNG TRỪ TỒN KHO ATOMIC TRONG DATABASE (CHO NHÓM NÀY) ===
         try {
           for (const item of groupItems) {
             if (item.selectedVariant) {
-              const { data: product, error: fetchError } = await supabase
-                .from('products')
-                .select('variants')
-                .eq('id', item.id)
-                .single();
-
-              if (!fetchError && product) {
-                const updatedVariants = (product.variants as any[]).map((v: any) => {
-                  if (v.name === item.selectedVariant && v.stock !== undefined) {
-                    return { ...v, stock: Math.max(0, (v.stock || 0) - item.quantity) };
-                  }
-                  return v;
-                });
-
-                await supabase
-                  .from('products')
-                  .update({ variants: updatedVariants })
-                  .eq('id', item.id);
-              }
+              await supabase.rpc('decrement_variant_stock', {
+                p_product_id: item.id,
+                p_variant_name: item.selectedVariant,
+                p_quantity: item.quantity,
+              });
             } else if (item.stock !== undefined) {
-              await supabase
-                .from('products')
-                .update({ stock: Math.max(0, (item.stock || 0) - item.quantity) })
-                .eq('id', item.id);
+              await supabase.rpc('decrement_product_stock', {
+                p_product_id: item.id,
+                p_quantity: item.quantity,
+              });
             }
           }
         } catch (stockError) {
