@@ -446,17 +446,37 @@ export default function Admin() {
     };
   }, [orders, dateRange]);
 
-  // Tính toán tiền công và tiền chênh theo từng sản phẩm/variant
+  // Tính toán chi phí đầu vào chi tiết theo từng sản phẩm (cho khai thuế)
   const costStatistics = useMemo(() => {
     let totalServiceFee = 0;
     let totalProfit = 0;
+    let totalInputCost = 0;
+    let totalRevenue = 0;
     let productsWithActualCost = 0;
 
     const productMap = new Map<number, ProductData>();
     products.forEach(p => productMap.set(p.id, p));
 
+    // Chi tiết từng sản phẩm
+    const detailMap = new Map<string, {
+      productName: string;
+      variantName: string;
+      quantity: number;
+      revenue: number;
+      inputCost: number;
+      serviceFee: number;
+      profit: number;
+    }>();
+
+    // Lọc theo date range
+    const startDate = dateRange.from;
+    const endDate = new Date(dateRange.to);
+    endDate.setHours(23, 59, 59, 999);
+
     orders.forEach(order => {
       if (order.order_progress === 'Đã huỷ') return;
+      const orderDate = new Date(order.created_at);
+      if (orderDate < startDate || orderDate > endDate) return;
       
       const items = order.items as any[];
       items.forEach(item => {
@@ -464,19 +484,18 @@ export default function Admin() {
         if (!product) return;
 
         const quantity = item.quantity || 1;
+        const itemPrice = item.price || product.price;
         
         let variantActualRate = product.actual_rate;
         let variantActualCan = product.actual_can;
         let variantActualPack = product.actual_pack;
         let variantCong = product.cong;
         let variantTe = product.te;
-        let itemPrice = item.price || product.price;
 
         if (item.selectedVariant && (product as any).variants) {
           const variants = (product as any).variants as any[];
           const matchedVariant = variants.find((v: any) => v.name === item.selectedVariant);
           if (matchedVariant) {
-            itemPrice = matchedVariant.price || itemPrice;
             if (matchedVariant.actual_rate !== undefined) variantActualRate = matchedVariant.actual_rate;
             if (matchedVariant.actual_can !== undefined) variantActualCan = matchedVariant.actual_can;
             if (matchedVariant.actual_pack !== undefined) variantActualPack = matchedVariant.actual_pack;
@@ -484,32 +503,65 @@ export default function Admin() {
             if (matchedVariant.te !== undefined) variantTe = matchedVariant.te;
           }
         }
-        
-        if (variantCong) {
-          totalServiceFee += (variantCong * quantity);
-        }
 
+        const cong = variantCong || 0;
+        if (cong) totalServiceFee += (cong * quantity);
+
+        let unitCost = 0;
         if (variantActualRate || variantActualCan || variantActualPack) {
           const te = variantTe || 0;
           const actualRate = variantActualRate || product.rate || 0;
           const actualCan = variantActualCan || 0;
           const actualPack = variantActualPack || 0;
-          const cong = variantCong || 0;
-          
-          const actualCost = (te * actualRate) + actualCan + actualPack + cong;
-          const profit = itemPrice - actualCost;
-          totalProfit += (profit * quantity);
+          unitCost = (te * actualRate) + actualCan + actualPack + cong;
           productsWithActualCost++;
+        }
+
+        const lineRevenue = itemPrice * quantity;
+        const lineCost = unitCost * quantity;
+        const lineProfit = lineRevenue - lineCost;
+
+        totalInputCost += lineCost;
+        totalRevenue += lineRevenue;
+        totalProfit += lineProfit;
+
+        // Gộp theo product + variant
+        const key = item.selectedVariant 
+          ? `${item.id}__${item.selectedVariant}` 
+          : `${item.id}__`;
+        
+        const existing = detailMap.get(key);
+        if (existing) {
+          existing.quantity += quantity;
+          existing.revenue += lineRevenue;
+          existing.inputCost += lineCost;
+          existing.serviceFee += cong * quantity;
+          existing.profit += lineProfit;
+        } else {
+          detailMap.set(key, {
+            productName: item.name || product.name,
+            variantName: item.selectedVariant || '',
+            quantity,
+            revenue: lineRevenue,
+            inputCost: lineCost,
+            serviceFee: cong * quantity,
+            profit: lineProfit,
+          });
         }
       });
     });
 
+    const details = Array.from(detailMap.values()).sort((a, b) => b.revenue - a.revenue);
+
     return {
       totalServiceFee,
       totalProfit,
-      productsWithActualCost
+      totalInputCost,
+      totalRevenue,
+      productsWithActualCost,
+      details
     };
-  }, [orders, products]);
+  }, [orders, products, dateRange]);
 
   const fetchProducts = async () => {
     try {
@@ -908,6 +960,56 @@ SĐT: ${order.delivery_phone}
       description: `Đã xuất ${selectedOrders.length} đơn hàng`,
     });
   };
+
+  // Xuất báo cáo chi phí đầu vào cho khai thuế
+  const exportCostReport = () => {
+    if (costStatistics.details.length === 0) {
+      toast({
+        title: "Không có dữ liệu",
+        description: "Không có sản phẩm nào trong khoảng thời gian này",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const exportData = costStatistics.details.map(d => ({
+      'Sản phẩm': d.productName,
+      'Phân loại': d.variantName || '—',
+      'Số lượng bán': d.quantity,
+      'Doanh thu (đ)': d.revenue,
+      'Chi phí đầu vào (đ)': d.inputCost,
+      'Tiền công (đ)': d.serviceFee,
+      'Lợi nhuận gộp (đ)': d.profit,
+      'Tỷ suất (%)': d.revenue > 0 ? ((d.profit / d.revenue) * 100).toFixed(1) : '0',
+    }));
+
+    // Thêm dòng tổng
+    exportData.push({
+      'Sản phẩm': 'TỔNG CỘNG',
+      'Phân loại': '',
+      'Số lượng bán': costStatistics.details.reduce((s, d) => s + d.quantity, 0),
+      'Doanh thu (đ)': costStatistics.totalRevenue,
+      'Chi phí đầu vào (đ)': costStatistics.totalInputCost,
+      'Tiền công (đ)': costStatistics.totalServiceFee,
+      'Lợi nhuận gộp (đ)': costStatistics.totalProfit,
+      'Tỷ suất (%)': costStatistics.totalRevenue > 0 
+        ? ((costStatistics.totalProfit / costStatistics.totalRevenue) * 100).toFixed(1) : '0',
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Chi phí đầu vào");
+    
+    const fromStr = format(dateRange.from, "dd-MM-yyyy");
+    const toStr = format(dateRange.to, "dd-MM-yyyy");
+    XLSX.writeFile(wb, `bao-cao-chi-phi-${fromStr}_${toStr}.xlsx`);
+    
+    toast({
+      title: "Xuất báo cáo thành công",
+      description: `Đã xuất ${costStatistics.details.length} sản phẩm`,
+    });
+  };
+
 
   const generateEmailContent = (order: Order) => {
     const itemsList = order.items.map((item: any) => 
@@ -1573,6 +1675,91 @@ ${generateEmailContent(order)}
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Chi phí đầu vào - Báo cáo thuế */}
+              <Card>
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-sm sm:text-base">Chi phí đầu vào & Lợi nhuận</CardTitle>
+                    <CardDescription className="text-xs mt-1">
+                      Theo khoảng thời gian đã chọn ở biểu đồ doanh thu • Dùng để khai thuế
+                    </CardDescription>
+                  </div>
+                  <Button onClick={exportCostReport} variant="outline" size="sm" className="gap-2 shrink-0">
+                    <FileDown className="h-4 w-4" />
+                    Xuất Excel
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {/* Summary cards */}
+                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 mb-4">
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <p className="text-xs text-muted-foreground">Doanh thu</p>
+                      <p className="text-sm font-bold text-primary">{costStatistics.totalRevenue.toLocaleString('vi-VN')}đ</p>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <p className="text-xs text-muted-foreground">Chi phí đầu vào</p>
+                      <p className="text-sm font-bold text-destructive">{costStatistics.totalInputCost.toLocaleString('vi-VN')}đ</p>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <p className="text-xs text-muted-foreground">Tiền công</p>
+                      <p className="text-sm font-bold">{costStatistics.totalServiceFee.toLocaleString('vi-VN')}đ</p>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <p className="text-xs text-muted-foreground">Lợi nhuận gộp</p>
+                      <p className={`text-sm font-bold ${costStatistics.totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                        {costStatistics.totalProfit.toLocaleString('vi-VN')}đ
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Detail table */}
+                  <div className="max-h-[400px] overflow-y-auto border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs sticky top-0 bg-background">Sản phẩm</TableHead>
+                          <TableHead className="text-xs text-right sticky top-0 bg-background">SL</TableHead>
+                          <TableHead className="text-xs text-right sticky top-0 bg-background hidden sm:table-cell">Doanh thu</TableHead>
+                          <TableHead className="text-xs text-right sticky top-0 bg-background">Chi phí</TableHead>
+                          <TableHead className="text-xs text-right sticky top-0 bg-background">Lợi nhuận</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {costStatistics.details.map((d, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-xs py-2">
+                              <div className="font-medium truncate max-w-[200px]">{d.productName}</div>
+                              {d.variantName && <div className="text-muted-foreground text-[10px]">{d.variantName}</div>}
+                            </TableCell>
+                            <TableCell className="text-xs text-right py-2">{d.quantity}</TableCell>
+                            <TableCell className="text-xs text-right py-2 hidden sm:table-cell">{d.revenue.toLocaleString('vi-VN')}đ</TableCell>
+                            <TableCell className="text-xs text-right py-2">
+                              {d.inputCost > 0 ? `${d.inputCost.toLocaleString('vi-VN')}đ` : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className={`text-xs text-right py-2 font-medium ${d.profit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                              {d.inputCost > 0 ? `${d.profit.toLocaleString('vi-VN')}đ` : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {costStatistics.details.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              Không có dữ liệu trong khoảng thời gian này
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {costStatistics.productsWithActualCost === 0 && costStatistics.details.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Chưa có sản phẩm nào có chi phí thực tế. Vui lòng cập nhật rate thực, cân thực, pack thực trong quản lý sản phẩm.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
