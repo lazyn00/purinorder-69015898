@@ -865,28 +865,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Actual costs */}
-            <div>
-              <h3 className="font-medium mb-2">Chi phí thực</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <Label className="text-xs">Rate thực</Label>
-                  <Input type="number" value={form.actual_rate ?? ""} onChange={e => updateNum('actual_rate', e.target.value)} className="h-8 text-sm" />
-                </div>
-                <div>
-                  <Label className="text-xs">Cân thực</Label>
-                  <Input type="number" value={form.actual_can ?? ""} onChange={e => updateNum('actual_can', e.target.value)} className="h-8 text-sm" />
-                </div>
-                <div>
-                  <Label className="text-xs">Pack thực</Label>
-                  <Input type="number" value={form.actual_pack ?? ""} onChange={e => updateNum('actual_pack', e.target.value)} className="h-8 text-sm" />
-                </div>
-                <div>
-                  <Label className="text-xs">Chênh (auto)</Label>
-                  <Input type="number" value={form.chenh ?? ""} readOnly className="h-8 text-sm bg-muted" />
-                </div>
-              </div>
-            </div>
 
             {/* Description & Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
