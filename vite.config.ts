@@ -15,18 +15,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    // Tăng giới hạn cảnh báo lên 2000 KB (2MB)
-    chunkSizeWarningLimit: 2000, 
-    // Tách riêng các thư viện nặng ra một file riêng để tối ưu
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-        },
-      },
-    },
-  },
 }));
