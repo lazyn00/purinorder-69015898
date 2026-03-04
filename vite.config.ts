@@ -15,14 +15,15 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
- build: {
-    chunkSizeWarningLimit: 1000, // Vẫn giữ giới hạn cao để tránh warning nhỏ
+  build: {
+    // Tăng giới hạn cảnh báo lên 2000 KB (2MB)
+    chunkSizeWarningLimit: 2000, 
+    // Tách riêng các thư viện nặng ra một file riêng để tối ưu
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-             // Tách tất cả thư viện trong node_modules ra thành file vendor.js riêng
-             return 'vendor';
+            return 'vendor';
           }
         },
       },
