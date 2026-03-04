@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Eye, EyeOff, Clock, Mail, Loader2, AlertTriangle, Send } from "lucide-react";
+import { Settings, Eye, EyeOff, Clock, Mail, Loader2, AlertTriangle, Send, Download, Database } from "lucide-react";
 
 interface ExpiringProduct {
   id: number;
@@ -39,6 +39,7 @@ export default function AdminSettings() {
   const [daysThreshold, setDaysThreshold] = useState(7);
   const [adminEmail, setAdminEmail] = useState("ppurin.order@gmail.com");
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -350,6 +351,97 @@ export default function AdminSettings() {
               <p>Không có sản phẩm nào sắp hết hạn</p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Export Database */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            Export toàn bộ Database
+          </CardTitle>
+          <CardDescription>
+            Tải toàn bộ dữ liệu ra file JSON để chuyển sang database mới
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={async () => {
+              setExporting(true);
+              try {
+                const tables = [
+                  'products', 'orders', 'affiliates', 'affiliate_orders',
+                  'discount_codes', 'admin_notifications', 'order_status_history',
+                  'product_notifications', 'product_views', 'user_listings'
+                ] as const;
+
+                const exportData: Record<string, any[]> = {};
+
+                await Promise.all(
+                  tables.map(async (table) => {
+                    let allRows: any[] = [];
+                    let from = 0;
+                    const batchSize = 1000;
+                    let hasMore = true;
+
+                    while (hasMore) {
+                      const { data, error } = await supabase
+                        .from(table)
+                        .select('*')
+                        .range(from, from + batchSize - 1);
+
+                      if (error) throw new Error(`Error fetching ${table}: ${error.message}`);
+                      if (data && data.length > 0) {
+                        allRows = [...allRows, ...data];
+                        from += batchSize;
+                        hasMore = data.length === batchSize;
+                      } else {
+                        hasMore = false;
+                      }
+                    }
+
+                    exportData[table] = allRows;
+                  })
+                );
+
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `database-export-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                const totalRows = Object.values(exportData).reduce((sum, arr) => sum + arr.length, 0);
+                toast({
+                  title: "Export thành công!",
+                  description: `Đã tải ${totalRows} bản ghi từ ${tables.length} bảng`,
+                });
+              } catch (error: any) {
+                console.error("Export error:", error);
+                toast({
+                  title: "Lỗi export",
+                  description: error.message || "Không thể export dữ liệu",
+                  variant: "destructive"
+                });
+              } finally {
+                setExporting(false);
+              }
+            }}
+            disabled={exporting}
+            className="gap-2"
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {exporting ? "Đang export..." : "Export Database (JSON)"}
+          </Button>
+          <p className="text-sm text-muted-foreground mt-3">
+            Bao gồm: products, orders, affiliates, affiliate_orders, discount_codes, admin_notifications, order_status_history, product_notifications, product_views, user_listings
+          </p>
         </CardContent>
       </Card>
     </div>
