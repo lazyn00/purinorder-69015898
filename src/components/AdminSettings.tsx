@@ -362,10 +362,10 @@ export default function AdminSettings() {
             Export toàn bộ Database
           </CardTitle>
           <CardDescription>
-            Tải toàn bộ dữ liệu ra file JSON để chuyển sang database mới
+            Tải dữ liệu từng bảng ra file CSV để import vào Supabase mới
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <Button
             onClick={async () => {
               setExporting(true);
@@ -376,47 +376,70 @@ export default function AdminSettings() {
                   'product_notifications', 'product_views', 'user_listings'
                 ] as const;
 
-                const exportData: Record<string, any[]> = {};
+                let totalRows = 0;
 
-                await Promise.all(
-                  tables.map(async (table) => {
-                    let allRows: any[] = [];
-                    let from = 0;
-                    const batchSize = 1000;
-                    let hasMore = true;
+                for (const table of tables) {
+                  let allRows: any[] = [];
+                  let from = 0;
+                  const batchSize = 1000;
+                  let hasMore = true;
 
-                    while (hasMore) {
-                      const { data, error } = await supabase
-                        .from(table)
-                        .select('*')
-                        .range(from, from + batchSize - 1);
+                  while (hasMore) {
+                    const { data, error } = await supabase
+                      .from(table)
+                      .select('*')
+                      .range(from, from + batchSize - 1);
 
-                      if (error) throw new Error(`Error fetching ${table}: ${error.message}`);
-                      if (data && data.length > 0) {
-                        allRows = [...allRows, ...data];
-                        from += batchSize;
-                        hasMore = data.length === batchSize;
-                      } else {
-                        hasMore = false;
-                      }
+                    if (error) throw new Error(`Error fetching ${table}: ${error.message}`);
+                    if (data && data.length > 0) {
+                      allRows = [...allRows, ...data];
+                      from += batchSize;
+                      hasMore = data.length === batchSize;
+                    } else {
+                      hasMore = false;
                     }
+                  }
 
-                    exportData[table] = allRows;
-                  })
-                );
+                  if (allRows.length === 0) continue;
 
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `database-export-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
+                  // Convert to CSV
+                  const headers = Object.keys(allRows[0]);
+                  const csvRows = [headers.join(',')];
+                  for (const row of allRows) {
+                    const values = headers.map(h => {
+                      const val = row[h];
+                      if (val === null || val === undefined) return '';
+                      if (typeof val === 'object') {
+                        // JSON fields - wrap in quotes and escape
+                        const jsonStr = JSON.stringify(val).replace(/"/g, '""');
+                        return `"${jsonStr}"`;
+                      }
+                      const str = String(val);
+                      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                      }
+                      return str;
+                    });
+                    csvRows.push(values.join(','));
+                  }
 
-                const totalRows = Object.values(exportData).reduce((sum, arr) => sum + arr.length, 0);
+                  const csvContent = csvRows.join('\n');
+                  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${table}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  totalRows += allRows.length;
+
+                  // Small delay between downloads
+                  await new Promise(r => setTimeout(r, 300));
+                }
+
                 toast({
                   title: "Export thành công!",
-                  description: `Đã tải ${totalRows} bản ghi từ ${tables.length} bảng`,
+                  description: `Đã tải ${totalRows} bản ghi từ ${tables.length} bảng (CSV)`,
                 });
               } catch (error: any) {
                 console.error("Export error:", error);
@@ -437,10 +460,10 @@ export default function AdminSettings() {
             ) : (
               <Download className="h-4 w-4" />
             )}
-            {exporting ? "Đang export..." : "Export Database (JSON)"}
+            {exporting ? "Đang export..." : "Export tất cả (CSV)"}
           </Button>
-          <p className="text-sm text-muted-foreground mt-3">
-            Bao gồm: products, orders, affiliates, affiliate_orders, discount_codes, admin_notifications, order_status_history, product_notifications, product_views, user_listings
+          <p className="text-sm text-muted-foreground">
+            Sẽ tải về 10 file CSV riêng biệt. Vào Supabase mới → Table Editor → chọn bảng → Import CSV để nhập từng file.
           </p>
         </CardContent>
       </Card>
