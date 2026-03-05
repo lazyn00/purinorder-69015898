@@ -367,29 +367,39 @@ export default function Checkout() {
         // === TỰ ĐỘNG TRỪ TỒN KHO ATOMIC TRONG DATABASE (CHO NHÓM NÀY) ===
         try {
           for (const item of groupItems) {
-            // Check if variant has individual stock
-            const variantHasStock = item.selectedVariant && 
-              item.variants?.some(v => v.name === item.selectedVariant && v.stock !== undefined);
-            
-            if (variantHasStock) {
-              // Trừ stock ở cấp variant
-              await supabase.rpc('decrement_variant_stock', {
+            console.log("Đang xử lý trừ kho cho item:", item.name, item); // Log để kiểm tra xem item có chứa 'variants' và 'stock' không
+
+            // 1. LUÔN GỌI TRỪ VARIANT NẾU CÓ CHỌN VARIANT (Bỏ qua check item.variants vì trong cart có thể không có)
+            if (item.selectedVariant) {
+              console.log(`Đang gọi decrement_variant_stock cho ${item.selectedVariant}...`);
+              const { data: varData, error: varError } = await supabase.rpc('decrement_variant_stock', {
                 p_product_id: item.id,
                 p_variant_name: item.selectedVariant,
                 p_quantity: item.quantity,
               });
+              
+              if (varError) {
+                console.error('LỖI SUPABASE TRỪ VARIANT:', varError);
+              } else {
+                console.log('Trừ variant thành công:', varData);
+              }
             }
             
-            // Luôn trừ stock ở cấp product nếu product có stock
-            if (item.stock !== undefined && item.stock !== null) {
-              await supabase.rpc('decrement_product_stock', {
-                p_product_id: item.id,
-                p_quantity: item.quantity,
-              });
+            // 2. LUÔN GỌI TRỪ PRODUCT STOCK 
+            console.log(`Đang gọi decrement_product_stock cho ${item.id}...`);
+            const { data: prodData, error: prodError } = await supabase.rpc('decrement_product_stock', {
+              p_product_id: item.id,
+              p_quantity: item.quantity,
+            });
+
+            if (prodError) {
+              console.error('LỖI SUPABASE TRỪ PRODUCT:', prodError);
+            } else {
+              console.log('Trừ product thành công:', prodData);
             }
           }
         } catch (stockError) {
-          console.warn('Không thể cập nhật tồn kho:', stockError);
+          console.error('Lỗi code khi chạy vòng lặp trừ kho:', stockError);
         }
 
         // === TẠO AFFILIATE ORDER NẾU CÓ REFERRAL CODE ===
