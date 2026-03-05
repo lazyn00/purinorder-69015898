@@ -367,13 +367,21 @@ export default function Checkout() {
         // === TỰ ĐỘNG TRỪ TỒN KHO ATOMIC TRONG DATABASE (CHO NHÓM NÀY) ===
         try {
           for (const item of groupItems) {
-            if (item.selectedVariant) {
+            // Check if variant has individual stock
+            const variantHasStock = item.selectedVariant && 
+              item.variants?.some(v => v.name === item.selectedVariant && v.stock !== undefined);
+            
+            if (variantHasStock) {
+              // Trừ stock ở cấp variant
               await supabase.rpc('decrement_variant_stock', {
                 p_product_id: item.id,
                 p_variant_name: item.selectedVariant,
                 p_quantity: item.quantity,
               });
-            } else if (item.stock !== undefined) {
+            }
+            
+            // Luôn trừ stock ở cấp product nếu product có stock
+            if (item.stock !== undefined && item.stock !== null) {
               await supabase.rpc('decrement_product_stock', {
                 p_product_id: item.id,
                 p_quantity: item.quantity,
