@@ -145,13 +145,14 @@ export default function AdminOrderDetail() {
          if (orderError) throw orderError;
          
          const orderTyped = orderData as Order;
-         setOrder(orderTyped);
-         setPaymentStatus(orderTyped.payment_status || "");
-         setOrderProgress(orderTyped.order_progress || "");
-         setShippingProvider(orderTyped.shipping_provider || "");
-         setTrackingCode(orderTyped.tracking_code || "");
-         setSurcharge(orderTyped.surcharge?.toString() || "0");
-         setDeliveryNote(orderTyped.delivery_note || "");
+          setOrder(orderTyped);
+          setEditableItems(Array.isArray(orderTyped.items) ? [...orderTyped.items] : []);
+          setPaymentStatus(orderTyped.payment_status || "");
+          setOrderProgress(orderTyped.order_progress || "");
+          setShippingProvider(orderTyped.shipping_provider || "");
+          setTrackingCode(orderTyped.tracking_code || "");
+          setSurcharge(orderTyped.surcharge?.toString() || "0");
+          setDeliveryNote(orderTyped.delivery_note || "");
          
          // Fetch status history
          const { data: historyData } = await supabase
