@@ -1337,6 +1337,9 @@ ${generateEmailContent(order)}
               <TabsTrigger value="affiliates" className="h-10 w-10 p-0" title="Quản lý CTV">
                 <Users className="h-5 w-5" />
               </TabsTrigger>
+              <TabsTrigger value="product-tracking" className="h-10 w-10 p-0" title="Theo dõi tiến độ SP">
+                <Eye className="h-5 w-5" />
+              </TabsTrigger>
               <TabsTrigger value="settings" className="h-10 w-10 p-0" title="Cài đặt">
                 <Settings className="h-5 w-5" />
               </TabsTrigger>
@@ -2481,6 +2484,86 @@ ${generateEmailContent(order)}
               <AffiliateManagement />
             </TabsContent>
 
+
+            {/* ========== THEO DÕI TIẾN ĐỘ SẢN PHẨM ========== */}
+            <TabsContent value="product-tracking">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eye className="h-5 w-5" />
+                    Theo dõi tiến độ sản phẩm
+                  </CardTitle>
+                  <CardDescription>Tổng hợp sản phẩm đã đặt từ tất cả đơn hàng (trừ đơn huỷ)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    // Aggregate all items from non-cancelled orders
+                    const itemMap = new Map<string, { 
+                      productId: number; 
+                      name: string; 
+                      variant: string; 
+                      image: string; 
+                      totalQty: number; 
+                      progress: { [key: string]: number };
+                    }>();
+                    
+                    orders.forEach(order => {
+                      if (order.order_progress === 'Đã huỷ') return;
+                      const items = order.items as any[];
+                      items.forEach((item: any) => {
+                        const key = `${item.id}-${item.selectedVariant || 'no-variant'}`;
+                        const existing = itemMap.get(key);
+                        if (existing) {
+                          existing.totalQty += (item.quantity || 1);
+                          existing.progress[order.order_progress] = (existing.progress[order.order_progress] || 0) + (item.quantity || 1);
+                        } else {
+                          itemMap.set(key, {
+                            productId: item.id,
+                            name: item.name,
+                            variant: item.selectedVariant || '',
+                            image: item.image || item.images?.[0] || '',
+                            totalQty: item.quantity || 1,
+                            progress: { [order.order_progress]: item.quantity || 1 }
+                          });
+                        }
+                      });
+                    });
+                    
+                    const aggregated = Array.from(itemMap.values()).sort((a, b) => b.totalQty - a.totalQty);
+                    
+                    if (aggregated.length === 0) {
+                      return <p className="text-sm text-muted-foreground">Chưa có đơn hàng nào</p>;
+                    }
+                    
+                    return (
+                      <div className="space-y-3">
+                        {aggregated.map((item, idx) => (
+                          <div key={idx} className="flex gap-3 p-3 border rounded-lg">
+                            {item.image && (
+                              <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded flex-shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{item.name}</p>
+                              {item.variant && (
+                                <p className="text-xs text-muted-foreground">Phân loại: {item.variant}</p>
+                              )}
+                              <p className="text-sm font-semibold text-primary mt-0.5">Tổng đặt: {item.totalQty}</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {Object.entries(item.progress).map(([status, qty]) => (
+                                  <Badge key={status} variant="outline" className={`${getProgressColor(status)} text-[10px] px-1.5 py-0`}>
+                                    {status}: {qty}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             {/* ========== CÀI ĐẶT ========== */}
             <TabsContent value="settings">

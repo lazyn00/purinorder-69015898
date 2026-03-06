@@ -237,7 +237,7 @@ export default function Checkout() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!contactInfo.fb || !contactInfo.email || !contactInfo.phone) {
+    if (!contactInfo.fb || !contactInfo.phone) {
       toast({
         title: "Lỗi",
         description: "Vui lòng điền đầy đủ tất cả thông tin liên hệ.",
@@ -617,10 +617,6 @@ export default function Checkout() {
               <div>
                 <Label htmlFor="contact-fb">Link Facebook / Instagram *</Label>
                 <Input id="contact-fb" value={contactInfo.fb} onChange={(e) => setContactInfo({...contactInfo, fb: e.target.value})} placeholder="https://..." required />
-              </div>
-              <div>
-                <Label htmlFor="contact-email">Email *</Label>
-                <Input id="contact-email" type="email" value={contactInfo.email} onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})} placeholder="email@example.com" required />
               </div>
               <div>
                 <Label htmlFor="contact-phone">Số điện thoại *</Label>
