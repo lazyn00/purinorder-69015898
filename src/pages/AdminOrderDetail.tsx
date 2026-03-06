@@ -494,16 +494,37 @@ export default function AdminOrderDetail() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {editableItems.map((item: any, idx: number) => (
+                    {editableItems.map((item: any, idx: number) => {
+                      // Find product to get available variants
+                      const productData = products.find(p => p.id === item.id);
+                      const availableVariants = (productData as any)?.variants || [];
+                      
+                      return (
                       <div key={idx} className="flex gap-3 p-3 bg-muted/50 rounded-lg">
                         {item.image && (
                           <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{item.name}</p>
-                          {item.selectedVariant && (
+                          {availableVariants.length > 0 ? (
+                            <Select
+                              value={item.selectedVariant || ''}
+                              onValueChange={(val) => {
+                                setEditableItems(prev => prev.map((it, i) => i === idx ? { ...it, selectedVariant: val } : it));
+                              }}
+                            >
+                              <SelectTrigger className="h-7 text-xs mt-1 w-fit min-w-[120px]">
+                                <SelectValue placeholder="Chọn phân loại" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableVariants.map((v: any) => (
+                                  <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : item.selectedVariant ? (
                             <p className="text-sm text-muted-foreground">Phân loại: {item.selectedVariant}</p>
-                          )}
+                          ) : null}
                           {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
                             <p className="text-sm text-muted-foreground">
                               {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}
