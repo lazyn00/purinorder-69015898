@@ -237,7 +237,7 @@ export default function Checkout() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!contactInfo.fb || !contactInfo.email || !contactInfo.phone) {
+    if (!contactInfo.fb || !contactInfo.phone) {
       toast({
         title: "Lỗi",
         description: "Vui lòng điền đầy đủ tất cả thông tin liên hệ.",
