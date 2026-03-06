@@ -10,7 +10,9 @@
  import { Separator } from "@/components/ui/separator";
  import { useToast } from "@/hooks/use-toast";
  import { supabase } from "@/integrations/supabase/client";
- import { Loader2, ArrowLeft, ExternalLink, Copy, Save, Package, Phone, Mail, MapPin, Clock, History, FileText, CreditCard, Truck, User } from "lucide-react";
+import { Loader2, ArrowLeft, ExternalLink, Copy, Save, Package, Phone, Mail, MapPin, Clock, History, FileText, CreditCard, Truck, User, Plus, Trash2, Edit3 } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
  import { SHIPPING_PROVIDERS, findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
  import { Textarea } from "@/components/ui/textarea";
  
@@ -93,24 +95,30 @@
    changed_by: string;
  }
  
- export default function AdminOrderDetail() {
-   const { orderId } = useParams<{ orderId: string }>();
-   const navigate = useNavigate();
-   const { toast } = useToast();
-   
-   const [order, setOrder] = useState<Order | null>(null);
-   const [relatedOrders, setRelatedOrders] = useState<Order[]>([]);
-   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
-   const [isSaving, setIsSaving] = useState(false);
-   
-   // Editable fields
-   const [paymentStatus, setPaymentStatus] = useState("");
-   const [orderProgress, setOrderProgress] = useState("");
-   const [shippingProvider, setShippingProvider] = useState("");
-   const [trackingCode, setTrackingCode] = useState("");
-   const [surcharge, setSurcharge] = useState("");
-   const [deliveryNote, setDeliveryNote] = useState("");
+export default function AdminOrderDetail() {
+  const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { products } = useCart();
+  
+  const [order, setOrder] = useState<Order | null>(null);
+  const [relatedOrders, setRelatedOrders] = useState<Order[]>([]);
+  const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Editable fields
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [orderProgress, setOrderProgress] = useState("");
+  const [shippingProvider, setShippingProvider] = useState("");
+  const [trackingCode, setTrackingCode] = useState("");
+  const [surcharge, setSurcharge] = useState("");
+  const [deliveryNote, setDeliveryNote] = useState("");
+  
+  // Order items editing
+  const [editableItems, setEditableItems] = useState<any[]>([]);
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
    
    // Check admin login
    useEffect(() => {
@@ -137,13 +145,14 @@
          if (orderError) throw orderError;
          
          const orderTyped = orderData as Order;
-         setOrder(orderTyped);
-         setPaymentStatus(orderTyped.payment_status || "");
-         setOrderProgress(orderTyped.order_progress || "");
-         setShippingProvider(orderTyped.shipping_provider || "");
-         setTrackingCode(orderTyped.tracking_code || "");
-         setSurcharge(orderTyped.surcharge?.toString() || "0");
-         setDeliveryNote(orderTyped.delivery_note || "");
+          setOrder(orderTyped);
+          setEditableItems(Array.isArray(orderTyped.items) ? [...orderTyped.items] : []);
+          setPaymentStatus(orderTyped.payment_status || "");
+          setOrderProgress(orderTyped.order_progress || "");
+          setShippingProvider(orderTyped.shipping_provider || "");
+          setTrackingCode(orderTyped.tracking_code || "");
+          setSurcharge(orderTyped.surcharge?.toString() || "0");
+          setDeliveryNote(orderTyped.delivery_note || "");
          
          // Fetch status history
          const { data: historyData } = await supabase
@@ -186,14 +195,17 @@
      
      setIsSaving(true);
      try {
-       const updates: any = {
-         payment_status: paymentStatus,
-         order_progress: orderProgress,
-         shipping_provider: shippingProvider,
-         tracking_code: trackingCode,
-         surcharge: parseInt(surcharge) || 0,
-         delivery_note: deliveryNote
-       };
+        const newTotalPrice = editableItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+        const updates: any = {
+          payment_status: paymentStatus,
+          order_progress: orderProgress,
+          shipping_provider: shippingProvider,
+          tracking_code: trackingCode,
+          surcharge: parseInt(surcharge) || 0,
+          delivery_note: deliveryNote,
+          items: editableItems,
+          total_price: newTotalPrice
+        };
        
        // Track status changes
        const historyInserts: any[] = [];
@@ -423,58 +435,129 @@
                </CardContent>
              </Card>
              
-             {/* Order Items */}
-             <Card>
-               <CardHeader>
-                 <CardTitle className="text-lg flex items-center gap-2">
-                   <FileText className="h-5 w-5" />
-                   Sản phẩm ({order.items.length})
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <div className="space-y-3">
-                   {order.items.map((item: any, idx: number) => (
-                     <div key={idx} className="flex gap-3 p-3 bg-muted/50 rounded-lg">
-                       {item.image && (
-                         <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
-                       )}
-                       <div className="flex-1 min-w-0">
-                         <p className="font-medium truncate">{item.name}</p>
-                         {item.selectedVariant && (
-                           <p className="text-sm text-muted-foreground">Phân loại: {item.selectedVariant}</p>
-                         )}
-                         {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                           <p className="text-sm text-muted-foreground">
-                             {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}
-                           </p>
-                         )}
-                         <p className="text-sm">
-                           <span className="text-primary font-medium">{item.price?.toLocaleString('vi-VN')}đ</span>
-                           <span className="text-muted-foreground"> x {item.quantity}</span>
-                         </p>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-                 
-                 <Separator className="my-4" />
-                 
-                 <div className="space-y-2">
-                   <div className="flex justify-between">
-                     <span>Tổng tiền</span>
-                     <span className="font-bold text-lg text-primary">
-                       {order.total_price.toLocaleString('vi-VN')}đ
-                     </span>
-                   </div>
-                   {parseInt(surcharge) > 0 && (
-                     <div className="flex justify-between text-orange-600">
-                       <span>Phụ thu</span>
-                       <span>+{parseInt(surcharge).toLocaleString('vi-VN')}đ</span>
-                     </div>
-                   )}
-                 </div>
-               </CardContent>
-             </Card>
+              {/* Order Items - Editable */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Sản phẩm ({editableItems.length})
+                    </CardTitle>
+                    <Dialog open={isAddingProduct} onOpenChange={setIsAddingProduct}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-4 w-4 mr-1" /> Thêm SP
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Thêm sản phẩm vào đơn</DialogTitle>
+                        </DialogHeader>
+                        <Input
+                          placeholder="Tìm sản phẩm..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="mb-3"
+                        />
+                        <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                          {products
+                            .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                            .slice(0, 20)
+                            .map(p => (
+                              <div key={p.id} className="flex items-center gap-3 p-2 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                                onClick={() => {
+                                  const newItem = {
+                                    id: p.id,
+                                    name: p.name,
+                                    price: p.price,
+                                    quantity: 1,
+                                    selectedVariant: p.variants?.[0]?.name || '',
+                                    image: p.images?.[0] || '',
+                                  };
+                                  setEditableItems(prev => [...prev, newItem]);
+                                  setIsAddingProduct(false);
+                                  setSearchQuery('');
+                                  toast({ title: "Đã thêm", description: p.name });
+                                }}
+                              >
+                                {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="w-10 h-10 object-cover rounded" />}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{p.name}</p>
+                                  <p className="text-xs text-muted-foreground">{p.price?.toLocaleString('vi-VN')}đ</p>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {editableItems.map((item: any, idx: number) => (
+                      <div key={idx} className="flex gap-3 p-3 bg-muted/50 rounded-lg">
+                        {item.image && (
+                          <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{item.name}</p>
+                          {item.selectedVariant && (
+                            <p className="text-sm text-muted-foreground">Phân loại: {item.selectedVariant}</p>
+                          )}
+                          {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                            <p className="text-sm text-muted-foreground">
+                              {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            <Input
+                              type="number"
+                              min={1}
+                              value={item.quantity}
+                              onChange={(e) => {
+                                const newQty = parseInt(e.target.value) || 1;
+                                setEditableItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: newQty } : it));
+                              }}
+                              className="w-16 h-7 text-xs"
+                            />
+                            <span className="text-sm text-primary font-medium">
+                              × {item.price?.toLocaleString('vi-VN')}đ = {((item.price || 0) * (item.quantity || 1)).toLocaleString('vi-VN')}đ
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            setEditableItems(prev => prev.filter((_, i) => i !== idx));
+                            toast({ title: "Đã xóa", description: item.name });
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Tổng tiền</span>
+                      <span className="font-bold text-lg text-primary">
+                        {editableItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0).toLocaleString('vi-VN')}đ
+                      </span>
+                    </div>
+                    {parseInt(surcharge) > 0 && (
+                      <div className="flex justify-between text-destructive">
+                        <span>Phụ thu</span>
+                        <span>+{parseInt(surcharge).toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
              
              {/* Payment Proof */}
              {(order.payment_proof_url || order.second_payment_proof_url) && (

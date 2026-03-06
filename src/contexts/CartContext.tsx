@@ -114,6 +114,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchProducts();
+
+    // Subscribe to realtime changes on products table for live stock updates
+    const channel = supabase
+      .channel('products-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        (payload) => {
+          if (payload.eventType === 'UPDATE') {
+            const updated = mapSupabaseProduct(payload.new);
+            setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+          } else if (payload.eventType === 'INSERT') {
+            const newProduct = mapSupabaseProduct(payload.new);
+            setProducts(prev => [newProduct, ...prev]);
+          } else if (payload.eventType === 'DELETE') {
+            setProducts(prev => prev.filter(p => p.id !== (payload.old as any).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const addToCart = (product: Product, quantity: number, variant: string) => {
