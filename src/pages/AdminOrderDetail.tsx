@@ -195,14 +195,17 @@ export default function AdminOrderDetail() {
      
      setIsSaving(true);
      try {
-       const updates: any = {
-         payment_status: paymentStatus,
-         order_progress: orderProgress,
-         shipping_provider: shippingProvider,
-         tracking_code: trackingCode,
-         surcharge: parseInt(surcharge) || 0,
-         delivery_note: deliveryNote
-       };
+        const newTotalPrice = editableItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+        const updates: any = {
+          payment_status: paymentStatus,
+          order_progress: orderProgress,
+          shipping_provider: shippingProvider,
+          tracking_code: trackingCode,
+          surcharge: parseInt(surcharge) || 0,
+          delivery_note: deliveryNote,
+          items: editableItems,
+          total_price: newTotalPrice
+        };
        
        // Track status changes
        const historyInserts: any[] = [];
