@@ -619,10 +619,6 @@ export default function Checkout() {
                 <Input id="contact-fb" value={contactInfo.fb} onChange={(e) => setContactInfo({...contactInfo, fb: e.target.value})} placeholder="https://..." required />
               </div>
               <div>
-                <Label htmlFor="contact-email">Email *</Label>
-                <Input id="contact-email" type="email" value={contactInfo.email} onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})} placeholder="email@example.com" required />
-              </div>
-              <div>
                 <Label htmlFor="contact-phone">Số điện thoại *</Label>
                 <Input id="contact-phone" type="tel" value={contactInfo.phone} onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})} placeholder="090..." required />
               </div>

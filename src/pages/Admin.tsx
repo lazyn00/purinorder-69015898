@@ -1337,6 +1337,9 @@ ${generateEmailContent(order)}
               <TabsTrigger value="affiliates" className="h-10 w-10 p-0" title="Quản lý CTV">
                 <Users className="h-5 w-5" />
               </TabsTrigger>
+              <TabsTrigger value="product-tracking" className="h-10 w-10 p-0" title="Theo dõi tiến độ SP">
+                <Eye className="h-5 w-5" />
+              </TabsTrigger>
               <TabsTrigger value="settings" className="h-10 w-10 p-0" title="Cài đặt">
                 <Settings className="h-5 w-5" />
               </TabsTrigger>
