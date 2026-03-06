@@ -95,24 +95,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
    changed_by: string;
  }
  
- export default function AdminOrderDetail() {
-   const { orderId } = useParams<{ orderId: string }>();
-   const navigate = useNavigate();
-   const { toast } = useToast();
-   
-   const [order, setOrder] = useState<Order | null>(null);
-   const [relatedOrders, setRelatedOrders] = useState<Order[]>([]);
-   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
-   const [isSaving, setIsSaving] = useState(false);
-   
-   // Editable fields
-   const [paymentStatus, setPaymentStatus] = useState("");
-   const [orderProgress, setOrderProgress] = useState("");
-   const [shippingProvider, setShippingProvider] = useState("");
-   const [trackingCode, setTrackingCode] = useState("");
-   const [surcharge, setSurcharge] = useState("");
-   const [deliveryNote, setDeliveryNote] = useState("");
+export default function AdminOrderDetail() {
+  const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { products } = useCart();
+  
+  const [order, setOrder] = useState<Order | null>(null);
+  const [relatedOrders, setRelatedOrders] = useState<Order[]>([]);
+  const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Editable fields
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [orderProgress, setOrderProgress] = useState("");
+  const [shippingProvider, setShippingProvider] = useState("");
+  const [trackingCode, setTrackingCode] = useState("");
+  const [surcharge, setSurcharge] = useState("");
+  const [deliveryNote, setDeliveryNote] = useState("");
+  
+  // Order items editing
+  const [editableItems, setEditableItems] = useState<any[]>([]);
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
    
    // Check admin login
    useEffect(() => {
