@@ -339,7 +339,7 @@ ${cta} ${productUrl}`;
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 md:py-10">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" onClick={() => navigate(product.category ? `/category/${encodeURIComponent(product.category)}` : '/products')} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> <span className="text-sm">Quay lại</span>
         </Button>
 
