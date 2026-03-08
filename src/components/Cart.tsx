@@ -9,8 +9,26 @@ import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Cart() {
-  const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice, products } = useCart();
   const [open, setOpen] = useState(false);
+
+  // Check if a cart item is out of stock based on latest realtime data
+  const getItemStockStatus = (item: typeof cartItems[0]) => {
+    const latestProduct = products.find(p => p.id === item.id);
+    if (!latestProduct) return { available: true, maxStock: undefined };
+    
+    const hasVariantStock = latestProduct.variants?.some((v: any) => v.stock !== undefined);
+    if (hasVariantStock && item.selectedVariant) {
+      const variant = latestProduct.variants?.find((v: any) => v.name === item.selectedVariant);
+      if (variant && variant.stock !== undefined) {
+        return { available: variant.stock > 0, maxStock: variant.stock };
+      }
+    }
+    if (latestProduct.stock !== undefined && latestProduct.stock !== null) {
+      return { available: latestProduct.stock > 0, maxStock: latestProduct.stock };
+    }
+    return { available: true, maxStock: undefined };
+  };
 
   const getVariantImage = (item: typeof cartItems[0]) => {
     if (item.selectedVariant && item.variantImageMap) {
