@@ -505,9 +505,19 @@ export default function AdminOrderDetail() {
                       
                       return (
                       <div key={idx} className="flex gap-3 p-3 bg-muted/50 rounded-lg">
-                        {item.image && (
-                          <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
-                        )}
+                        {(() => {
+                          // Try variant image first, then first image from array, then single image field
+                          let imgSrc = null;
+                          const images = item.images || (productData as any)?.images || [];
+                          const variantImageMap = item.variantImageMap || (productData as any)?.variantImageMap;
+                          if (item.selectedVariant && variantImageMap) {
+                            const idx = variantImageMap[item.selectedVariant];
+                            if (idx !== undefined && images[idx]) imgSrc = images[idx];
+                          }
+                          if (!imgSrc && images.length > 0) imgSrc = images[0];
+                          if (!imgSrc && item.image) imgSrc = item.image;
+                          return imgSrc ? <img src={imgSrc} alt={item.name} className="w-16 h-16 object-cover rounded flex-shrink-0" /> : null;
+                        })()}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{item.name}</p>
                           {availableVariants.length > 0 ? (
