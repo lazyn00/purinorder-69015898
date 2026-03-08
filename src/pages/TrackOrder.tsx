@@ -104,9 +104,6 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getTrackingUrl = (provider: string, code: string): string | null => {
-  return getTrackingUrlFromProvider(provider, code);
-};
 
 function getItemThumbnail(item: any): string | null {
   const images = item.images || [];
