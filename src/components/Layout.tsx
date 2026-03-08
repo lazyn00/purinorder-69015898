@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
+import { getActiveHoliday } from "@/hooks/useHoliday";
 
 interface PageVisibilitySettings {
   showSellPage: boolean;
@@ -98,14 +99,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const menuItems = getMenuItems(pageSettings);
 
+  const holiday = getActiveHoliday();
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="sticky top-0 z-50">
         <header className="border-b bg-card">
         <nav className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="text-2xl font-bold text-primary">
-              🍮 Purin Order
+            <Link to="/" className="text-2xl font-bold text-primary flex items-center gap-1">
+              {holiday ? <span>{holiday.emoji}</span> : <span>🍮</span>} Purin Order
+              {holiday && <span className="text-xs font-normal text-muted-foreground ml-1 hidden sm:inline">• {holiday.name}</span>}
             </Link>
 
             {/* Desktop Menu */}
