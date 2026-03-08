@@ -18,8 +18,6 @@ const PriceCheck = () => {
   const [priceCNY, setPriceCNY] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [rate, setRate] = useState(DEFAULT_RATE);
-  const [showRateSetting, setShowRateSetting] = useState(false);
-  const [rateInput, setRateInput] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(RATE_KEY);
@@ -27,21 +25,24 @@ const PriceCheck = () => {
       const parsed = Number(saved);
       if (!isNaN(parsed) && parsed > 0) {
         setRate(parsed);
-        setRateInput(String(parsed));
       }
-    } else {
-      setRateInput(String(DEFAULT_RATE));
     }
-  }, []);
 
-  const handleSaveRate = () => {
-    const parsed = Number(rateInput);
-    if (!isNaN(parsed) && parsed > 0) {
-      setRate(parsed);
-      localStorage.setItem(RATE_KEY, String(parsed));
-      setShowRateSetting(false);
-    }
-  };
+    // Listen for rate changes from admin
+    const handleStorageChange = () => {
+      const updated = localStorage.getItem(RATE_KEY);
+      if (updated) {
+        const parsed = Number(updated);
+        if (!isNaN(parsed) && parsed > 0) setRate(parsed);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('cnyRateChanged', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('cnyRateChanged', handleStorageChange);
+    };
+  }, []);
 
   const cny = parseFloat(priceCNY) || 0;
   const qty = parseInt(quantity) || 1;
@@ -61,37 +62,9 @@ const PriceCheck = () => {
 
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span>Quy đổi giá CNY → VND</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  setRateInput(String(rate));
-                  setShowRateSetting(!showRateSetting);
-                }}
-                title="Cài đặt tỷ giá"
-              >
-                <Settings2 className="h-4 w-4" />
-              </Button>
+            <CardTitle className="text-lg">
+              Quy đổi giá CNY → VND
             </CardTitle>
-
-            {showRateSetting && (
-              <div className="flex items-end gap-2 mt-2 p-3 rounded-lg bg-muted">
-                <div className="flex-1">
-                  <Label className="text-xs text-muted-foreground">Tỷ giá 1 CNY = ? VND</Label>
-                  <Input
-                    type="number"
-                    value={rateInput}
-                    onChange={(e) => setRateInput(e.target.value)}
-                    placeholder="3600"
-                    className="mt-1"
-                  />
-                </div>
-                <Button size="sm" onClick={handleSaveRate}>Lưu</Button>
-              </div>
-            )}
           </CardHeader>
 
           <CardContent className="space-y-4">

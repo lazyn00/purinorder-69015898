@@ -182,8 +182,52 @@ export default function AdminSettings() {
     return diffDays;
   };
 
+  const saveCnyRate = () => {
+    const parsed = Number(cnyRateInput);
+    if (!isNaN(parsed) && parsed > 0) {
+      setCnyRate(parsed);
+      localStorage.setItem(RATE_KEY, String(parsed));
+      window.dispatchEvent(new CustomEvent('cnyRateChanged'));
+      toast({
+        title: "Đã lưu tỷ giá",
+        description: `1 CNY = ${parsed.toLocaleString('vi-VN')}đ`,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* CNY Rate Setting */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Tỷ giá CNY → VND
+          </CardTitle>
+          <CardDescription>
+            Tỷ giá dùng cho trang Check giá sản phẩm
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Label className="text-sm">1 CNY = ? VND</Label>
+              <Input
+                type="number"
+                value={cnyRateInput}
+                onChange={(e) => setCnyRateInput(e.target.value)}
+                placeholder="3600"
+                className="mt-1"
+              />
+            </div>
+            <Button onClick={saveCnyRate}>Lưu tỷ giá</Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            Hiện tại: 1 CNY = {cnyRate.toLocaleString('vi-VN')}đ
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Page Visibility Settings */}
       <Card>
         <CardHeader>
