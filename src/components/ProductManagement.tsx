@@ -309,8 +309,8 @@ export default function ProductManagement() {
 
     return filtered.sort((a, b) => {
       // Admin: đẩy xuống cuối nếu HẾT HÀNG / HẾT HẠN / bị ẨN
-      const aOutOfStock = a.stock !== null && a.stock !== undefined && a.stock <= 0;
-      const bOutOfStock = b.stock !== null && b.stock !== undefined && b.stock <= 0;
+      const aOutOfStock = getAvailableStock(a) <= 0;
+      const bOutOfStock = getAvailableStock(b) <= 0;
       const aHidden = a.status === "Ẩn";
       const bHidden = b.status === "Ẩn";
       const aPriority = aHidden ? 6 : aOutOfStock ? 5 : getDeadlineStatus(a).priority;
