@@ -2472,7 +2472,7 @@ ${generateEmailContent(order)}
                     const allStatuses = Array.from(new Set(aggregated.flatMap(i => Object.keys(i.progress)))).sort();
                     
                     return (
-                      <ProductTrackingFiltered aggregated={aggregated} uniqueNames={uniqueNames} allStatuses={allStatuses} />
+                      <ProductTrackingFiltered aggregated={aggregated} uniqueNames={uniqueNames} allStatuses={allStatuses} products={products} />
                     );
                   })()}
                 </CardContent>
