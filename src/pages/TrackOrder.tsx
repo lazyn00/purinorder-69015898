@@ -52,6 +52,7 @@ interface Order {
   payment_type: string;
   payment_proof_url: string;
   second_payment_proof_url: string;
+  additional_bills: string[];
   shipping_provider: string;
   tracking_code: string;
   surcharge: number;
@@ -275,34 +276,34 @@ export default function TrackOrder() {
     }
   };
 
-  const handleUploadSecondPayment = async (orderId: string, file: File) => {
+  const handleUploadAdditionalBill = async (orderId: string, file: File) => {
     setUploadingOrderId(orderId);
     try {
       const order = orders.find(o => o.id === orderId);
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(filePath, file);
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('payment-proofs')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
+
+      // Append to additional_bills array
+      const currentBills = order?.additional_bills || [];
+      const newBills = [...currentBills, publicUrl];
 
       const { error: updateError } = await (supabase as any)
         .from('orders')
-        .update({ 
-          second_payment_proof_url: publicUrl
-        })
+        .update({ additional_bills: newBills })
         .eq('id', orderId);
 
       if (updateError) throw updateError;
 
-      // Gửi thông báo cho admin
       if (order) {
         await supabase.from('admin_notifications').insert({
           type: 'payment_proof',
@@ -314,7 +315,7 @@ export default function TrackOrder() {
 
       setOrders(orders.map(o => 
         o.id === orderId 
-          ? { ...o, second_payment_proof_url: publicUrl } 
+          ? { ...o, additional_bills: newBills } 
           : o
       ));
 
@@ -726,14 +727,23 @@ export default function TrackOrder() {
                             Xem thông tin CK <ExternalLink className="h-3 w-3" />
                           </a>
                         </div>
-                        <Input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleUploadSecondPayment(order.id, e.target.files[0]); }} disabled={uploadingOrderId === order.id} />
+                        <Input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleUploadAdditionalBill(order.id, e.target.files[0]); }} disabled={uploadingOrderId === order.id} />
                         {uploadingOrderId === order.id && (
                           <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Đang upload...</div>
                         )}
                         {order.second_payment_proof_url && (
-                          <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline flex items-center gap-1 mt-2">
-                            <Upload className="h-4 w-4" /> Xem bill đã đăng
+                          <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline flex items-center gap-1 mt-2 text-xs">
+                            <Upload className="h-3 w-3" /> Bill 2
                           </a>
+                        )}
+                        {order.additional_bills && order.additional_bills.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {order.additional_bills.map((url: string, i: number) => (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline flex items-center gap-1 text-xs">
+                                <Upload className="h-3 w-3" /> Bill bổ sung {i + 1}
+                              </a>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </CardContent>

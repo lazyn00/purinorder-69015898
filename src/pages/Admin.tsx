@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, Scan, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Tag, Merge, Users, Settings, BoxIcon } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Tag, Merge, Users, Settings, BoxIcon } from "lucide-react";
 import ProductManagement from "@/components/ProductManagement";
 import { DiscountCodeManagement } from "@/components/DiscountCodeManagement";
 import { OrderMerging } from "@/components/OrderMerging";
@@ -216,27 +216,6 @@ export default function Admin() {
   const [showNotifications, setShowNotifications] = useState(false);
   // =====================================================
   
-  // ========== STATE CHO AI BILL ANALYSIS ==========
-  const [analyzingBillOrderId, setAnalyzingBillOrderId] = useState<string | null>(null);
-  const [billAnalysisResults, setBillAnalysisResults] = useState<{[orderId: string]: {
-    extracted: {
-      amount: number | null;
-      date: string | null;
-      bank: string | null;
-      transactionId: string | null;
-      senderName: string | null;
-      receiverName: string | null;
-      content: string | null;
-      confidence: 'high' | 'medium' | 'low';
-    };
-    verification: {
-      extractedAmount: number;
-      expectedAmount: number;
-      isMatch: boolean;
-      difference: number;
-      percentDifference: string;
-    } | null;
-  }}>({});
   // =================================================
   
   const { toast } = useToast();
@@ -1115,50 +1094,6 @@ ${generateEmailContent(order)}
   };
   // ==========================================================
 
-  // ========== AI BILL ANALYSIS ==========
-  const analyzeBill = async (orderId: string, imageUrl: string, orderTotal: number) => {
-    setAnalyzingBillOrderId(orderId);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-payment-proof', {
-        body: { imageUrl, orderTotal }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        setBillAnalysisResults(prev => ({
-          ...prev,
-          [orderId]: {
-            extracted: data.extracted,
-            verification: data.verification
-          }
-        }));
-
-        // Auto-update payment status if amount matches
-        if (data.verification?.isMatch) {
-          toast({
-            title: "✅ Số tiền khớp!",
-            description: `Đã xác nhận bill ${data.extracted.amount?.toLocaleString('vi-VN')}đ = ${orderTotal.toLocaleString('vi-VN')}đ`,
-          });
-        } else if (data.verification && !data.verification.isMatch) {
-          toast({
-            title: "⚠️ Số tiền không khớp",
-            description: `Bill: ${data.extracted.amount?.toLocaleString('vi-VN')}đ | Đơn: ${orderTotal.toLocaleString('vi-VN')}đ (Chênh lệch: ${data.verification.difference.toLocaleString('vi-VN')}đ)`,
-            variant: "destructive"
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error analyzing bill:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể phân tích bill. Vui lòng thử lại.",
-        variant: "destructive"
-      });
-    } finally {
-      setAnalyzingBillOrderId(null);
-    }
-  };
   // ======================================
 
   if (!isLoggedIn) {
@@ -1814,70 +1749,24 @@ ${generateEmailContent(order)}
                           <div className="space-y-1">
                             <div className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</div>
                             {order.payment_proof_url && (
-                              <div className="flex items-center justify-end gap-1">
-                                <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                                  Bill 1 <ExternalLink className="h-3 w-3" />
-                                </a>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => analyzeBill(order.id, order.payment_proof_url, order.total_price)}
-                                  disabled={analyzingBillOrderId === order.id}
-                                  title="Phân tích bill bằng AI"
-                                >
-                                  {analyzingBillOrderId === order.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <Scan className="h-3 w-3" />
-                                  )}
-                                </Button>
-                              </div>
+                              <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
+                                Bill 1 <ExternalLink className="h-3 w-3" />
+                              </a>
                             )}
                             {order.second_payment_proof_url && (
-                              <div className="flex items-center justify-end gap-1">
-                                <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline flex items-center gap-1">
-                                  Bill 2 <ExternalLink className="h-3 w-3" />
+                              <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
+                                Bill 2 <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                            {(() => {
+                              const additionalBills = (order as any).additional_bills as string[] | null;
+                              if (!additionalBills || additionalBills.length === 0) return null;
+                              return additionalBills.map((url: string, i: number) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
+                                  Bill {i + 3} <ExternalLink className="h-3 w-3" />
                                 </a>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => analyzeBill(order.id, order.second_payment_proof_url, order.total_price / 2)}
-                                  disabled={analyzingBillOrderId === order.id}
-                                  title="Phân tích bill bằng AI"
-                                >
-                                  {analyzingBillOrderId === order.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <Scan className="h-3 w-3" />
-                                  )}
-                                </Button>
-                              </div>
-                            )}
-                            {/* AI Analysis Results */}
-                            {billAnalysisResults[order.id] && (
-                              <div className="text-left text-[10px] bg-muted/50 rounded p-1.5 mt-1 space-y-0.5">
-                                {billAnalysisResults[order.id].verification && (
-                                  <div className={`flex items-center gap-1 font-medium ${billAnalysisResults[order.id].verification?.isMatch ? 'text-green-600' : 'text-red-500'}`}>
-                                    {billAnalysisResults[order.id].verification?.isMatch ? (
-                                      <><CheckCircle className="h-3 w-3" /> Khớp</>
-                                    ) : (
-                                      <><AlertTriangle className="h-3 w-3" /> Chênh {billAnalysisResults[order.id].verification?.difference.toLocaleString('vi-VN')}đ</>
-                                    )}
-                                  </div>
-                                )}
-                                {billAnalysisResults[order.id].extracted.amount && (
-                                  <div>💰 {billAnalysisResults[order.id].extracted.amount?.toLocaleString('vi-VN')}đ</div>
-                                )}
-                                {billAnalysisResults[order.id].extracted.bank && (
-                                  <div>🏦 {billAnalysisResults[order.id].extracted.bank}</div>
-                                )}
-                                {billAnalysisResults[order.id].extracted.date && (
-                                  <div>📅 {billAnalysisResults[order.id].extracted.date}</div>
-                                )}
-                              </div>
-                            )}
+                              ));
+                            })()}
                           </div>
                         </TableCell>
 
