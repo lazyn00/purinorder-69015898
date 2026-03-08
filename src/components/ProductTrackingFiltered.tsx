@@ -70,7 +70,6 @@ interface EditFields {
   te: string;
   actual_rate: string;
   actual_can: string;
-  actual_pack: string;
   cong: string;
 }
 
@@ -78,7 +77,6 @@ const FIELD_LABELS: { key: keyof EditFields; label: string }[] = [
   { key: "te", label: "Tệ" },
   { key: "actual_rate", label: "Rate thực" },
   { key: "actual_can", label: "Cân thực" },
-  { key: "actual_pack", label: "Pack thực" },
   { key: "cong", label: "Công" },
 ];
 
@@ -87,7 +85,7 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
   const [filterStatus, setFilterStatus] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState<EditFields>({ te: "", actual_rate: "", actual_can: "", actual_pack: "", cong: "" });
+  const [editFields, setEditFields] = useState<EditFields>({ te: "", actual_rate: "", actual_can: "", cong: "" });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
@@ -117,7 +115,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
         te: variant?.te?.toString() ?? product.te?.toString() ?? "",
         actual_rate: variant?.actual_rate?.toString() ?? product.actual_rate?.toString() ?? "",
         actual_can: variant?.actual_can?.toString() ?? product.actual_can?.toString() ?? "",
-        actual_pack: variant?.actual_pack?.toString() ?? product.actual_pack?.toString() ?? "",
         cong: variant?.cong?.toString() ?? product.cong?.toString() ?? "",
       });
     } else {
@@ -125,7 +122,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
         te: product?.te?.toString() ?? "",
         actual_rate: product?.actual_rate?.toString() ?? "",
         actual_can: product?.actual_can?.toString() ?? "",
-        actual_pack: product?.actual_pack?.toString() ?? "",
         cong: product?.cong?.toString() ?? "",
       });
     }
@@ -134,7 +130,7 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
   const cancelEditing = () => {
     setEditingKey(null);
-    setEditFields({ te: "", actual_rate: "", actual_can: "", actual_pack: "", cong: "" });
+    setEditFields({ te: "", actual_rate: "", actual_can: "", cong: "" });
   };
 
   const saveEditing = async (item: AggregatedItem, product: ProductData | undefined) => {
@@ -153,7 +149,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
               te: parseNum(editFields.te),
               actual_rate: parseNum(editFields.actual_rate),
               actual_can: parseNum(editFields.actual_can),
-              actual_pack: parseNum(editFields.actual_pack),
               cong: parseNum(editFields.cong),
             };
           }
@@ -174,7 +169,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
             te: parseNum(editFields.te),
             actual_rate: parseNum(editFields.actual_rate),
             actual_can: parseNum(editFields.actual_can),
-            actual_pack: parseNum(editFields.actual_pack),
             cong: parseNum(editFields.cong),
           })
           .eq("id", product.id);
@@ -230,7 +224,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
         const displayTe = variant?.te ?? product?.te;
         const displayRate = variant?.actual_rate ?? product?.actual_rate;
         const displayCan = variant?.actual_can ?? product?.actual_can;
-        const displayPack = variant?.actual_pack ?? product?.actual_pack;
         const displayCong = variant?.cong ?? product?.cong;
 
         return (
@@ -335,10 +328,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Cân thực:</span>
                           <span className="font-medium">{fmt(displayCan)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Pack thực:</span>
-                          <span className="font-medium">{fmt(displayPack)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Công:</span>
