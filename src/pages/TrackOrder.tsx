@@ -128,10 +128,6 @@ export default function TrackOrder() {
 
   const { toast } = useToast();
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Đã copy", description: `Mã đơn: ${text}` });
-  };
 
   const filteredOrders = useMemo(() => {
     let result = [...orders];
