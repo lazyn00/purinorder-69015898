@@ -22,6 +22,7 @@ import SellProduct from "./pages/SellProduct";
 import AffiliateRegister from "./pages/AffiliateRegister";
 import AffiliateDashboard from "./pages/AffiliateDashboard";
 import PriceCheck from "./pages/PriceCheck";
+import CustomerOrderDetail from "./pages/CustomerOrderDetail";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/track-order" element={<TrackOrder />} />
+            <Route path="/order/:orderId" element={<CustomerOrderDetail />} />
             <Route path="/sell" element={<SellProduct />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/order/:orderId" element={<AdminOrderDetail />} />
