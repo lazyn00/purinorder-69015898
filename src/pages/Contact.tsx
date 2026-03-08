@@ -18,6 +18,7 @@ const PAYMENT_INFO = {
 export default function Contact() {
   const { toast } = useToast();
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
+  const [showQr, setShowQr] = useState<string | null>(null);
 
   const handleCopy = (label: string, value: string) => {
     const textToCopy = `${label}: ${value}\nTên: ${PAYMENT_INFO.accountName}`;
