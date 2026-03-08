@@ -2433,6 +2433,7 @@ ${generateEmailContent(order)}
                       image: string; 
                       totalQty: number; 
                       progress: { [key: string]: number };
+                      orderRefs: { orderId: string; orderNumber: string; qty: number; progress: string; deliveryName: string; }[];
                     }>();
                     
                     orders.forEach(order => {
@@ -2441,9 +2442,11 @@ ${generateEmailContent(order)}
                       items.forEach((item: any) => {
                         const key = `${item.id}-${item.selectedVariant || 'no-variant'}`;
                         const existing = itemMap.get(key);
+                        const orderRef = { orderId: order.id, orderNumber: order.order_number || order.id.slice(0, 8), qty: item.quantity || 1, progress: order.order_progress, deliveryName: order.delivery_name };
                         if (existing) {
                           existing.totalQty += (item.quantity || 1);
                           existing.progress[order.order_progress] = (existing.progress[order.order_progress] || 0) + (item.quantity || 1);
+                          existing.orderRefs.push(orderRef);
                         } else {
                           itemMap.set(key, {
                             productId: item.id,
@@ -2451,7 +2454,8 @@ ${generateEmailContent(order)}
                             variant: item.selectedVariant || '',
                             image: item.image || item.images?.[0] || '',
                             totalQty: item.quantity || 1,
-                            progress: { [order.order_progress]: item.quantity || 1 }
+                            progress: { [order.order_progress]: item.quantity || 1 },
+                            orderRefs: [orderRef]
                           });
                         }
                       });
