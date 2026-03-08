@@ -32,6 +32,7 @@ const App = () => (
       <CartProvider>
         <Toaster />
         <Sonner />
+        <HolidayEffects />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Products />} /> 
