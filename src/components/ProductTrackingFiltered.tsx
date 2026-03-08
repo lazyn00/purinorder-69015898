@@ -116,7 +116,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
         te: variant?.te?.toString() ?? product.te?.toString() ?? "",
         actual_rate: variant?.actual_rate?.toString() ?? product.actual_rate?.toString() ?? "",
         actual_can: variant?.actual_can?.toString() ?? product.actual_can?.toString() ?? "",
-        actual_pack: variant?.actual_pack?.toString() ?? product.actual_pack?.toString() ?? "",
         cong: variant?.cong?.toString() ?? product.cong?.toString() ?? "",
       });
     } else {
