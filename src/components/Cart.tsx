@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Trash2, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Trash2, Minus, Plus, AlertTriangle } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
