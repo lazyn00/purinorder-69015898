@@ -677,9 +677,12 @@ export default function ProductManagement() {
               const stockStatus = getStockStatus(product);
               const coverImage = Array.isArray(product.images) && product.images.length > 0 
                 ? product.images[0] as string : null;
+              // Chỉ mờ khi hết hạn HOẶC stock rõ ràng = 0 (không mờ khi stock = null)
+              const isOutOfStock = product.stock !== null && product.stock !== undefined && product.stock <= 0;
+              const isDimmed = deadlineStatus.priority === 4 || isOutOfStock;
               
               return (
-                <TableRow key={product.id} className={deadlineStatus.priority === 4 ? "opacity-50" : ""}>
+                <TableRow key={product.id} className={isDimmed ? "opacity-50" : ""}>
                   <TableCell className="font-mono text-xs">{product.id}</TableCell>
                   <TableCell>
                     {coverImage ? (
