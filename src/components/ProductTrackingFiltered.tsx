@@ -131,7 +131,7 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
   const cancelEditing = () => {
     setEditingKey(null);
-    setEditFields({ te: "", actual_rate: "", actual_can: "", actual_pack: "", cong: "" });
+    setEditFields({ te: "", actual_rate: "", actual_can: "", cong: "" });
   };
 
   const saveEditing = async (item: AggregatedItem, product: ProductData | undefined) => {
