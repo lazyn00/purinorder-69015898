@@ -229,11 +229,11 @@ export default function CategoryPage() {
         </Button>
 
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">{displayTitle}</h1>
+          <h1 className="text-4xl font-bold mb-4">{displayTitle || decodeURIComponent(category || '')}</h1>
           <p className="text-muted-foreground">
             {category === 'pass-gom' 
                 ? "Khám phá các sản phẩm đang tìm chủ"
-                : `Khám phá các sản phẩm ${displayTitle.toLowerCase()}`
+                : `Khám phá các sản phẩm ${(displayTitle || decodeURIComponent(category || '')).toLowerCase()}`
             }
           </p>
         </div>
