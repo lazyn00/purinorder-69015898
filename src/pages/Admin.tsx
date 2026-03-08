@@ -2543,29 +2543,6 @@ ${generateEmailContent(order)}
                       <ProductTrackingFiltered aggregated={aggregated} uniqueNames={uniqueNames} allStatuses={allStatuses} />
                     );
                   })()}
-                          <div key={idx} className="flex gap-3 p-3 border rounded-lg">
-                            {item.image && (
-                              <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded flex-shrink-0" />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{item.name}</p>
-                              {item.variant && (
-                                <p className="text-xs text-muted-foreground">Phân loại: {item.variant}</p>
-                              )}
-                              <p className="text-sm font-semibold text-primary mt-0.5">Tổng đặt: {item.totalQty}</p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {Object.entries(item.progress).map(([status, qty]) => (
-                                  <Badge key={status} variant="outline" className={`${getProgressColor(status)} text-[10px] px-1.5 py-0`}>
-                                    {status}: {qty}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
