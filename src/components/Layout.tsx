@@ -186,13 +186,15 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Messenger Chat Widget */}
       <a
-        href="https://m.me/105759462451542"
+        href="https://m.me/puorderin"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-20 right-6 z-50 bg-[#0084FF] hover:bg-[#0073E6] text-white rounded-full p-3.5 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
         title="Chat với chúng tôi qua Messenger"
       >
-        <MessageCircle className="h-6 w-6" />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
+          <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.2 5.42 3.15 7.2V22l2.96-1.63c.84.23 1.72.36 2.64.36h.25c5.64 0 10-4.13 10-9.7S17.64 2 12 2zm1.05 13.07l-2.54-2.72L5.8 15.07l5.13-5.45 2.6 2.72 4.65-2.72-5.13 5.45z"/>
+        </svg>
         <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
       </a>
     </div>
