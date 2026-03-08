@@ -88,6 +88,18 @@ export default function ProductDetail() {
   const [highlightVariant, setHighlightVariant] = useState(false);
   const variantRef = React.useRef<HTMLDivElement>(null);
 
+  // Reset all state when product id changes
+  useEffect(() => {
+    setQuantity(1);
+    setSelectedVariant("");
+    setSelectedOptions({});
+    setCurrentPrice(0);
+    setAvailableStock(undefined);
+    setCurrent(0);
+    setIsExpired(false);
+    setHighlightVariant(false);
+  }, [id]);
+
   useEffect(() => {
     if (!isLoading && products.length > 0) {
       const foundProduct = products.find(p => p.id == Number(id)); 
@@ -569,6 +581,27 @@ ${cta} ${productUrl}`;
             </div>
           </div>
         </div>
+
+        {/* Sản phẩm liên quan (cùng master) */}
+        {product.master && (() => {
+          const validStatuses = ['Sẵn', 'Đặt hàng', 'Sắp đóng order'];
+          const relatedProducts = products.filter(p => 
+            p.id !== product.id && 
+            p.master === product.master &&
+            p.status && validStatuses.includes(p.status)
+          );
+          if (relatedProducts.length === 0) return null;
+          return (
+            <div className="mt-10 border-t pt-8">
+              <h2 className="text-lg font-bold mb-4 text-foreground">Sản phẩm cùng master</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+                {relatedProducts.map(p => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </Layout>
   );
