@@ -212,7 +212,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.2 5.42 3.15 7.2V22l2.96-1.63c.84.23 1.72.36 2.64.36h.25c5.64 0 10-4.13 10-9.7S17.64 2 12 2zm1.05 13.07l-2.54-2.72L5.8 15.07l5.13-5.45 2.6 2.72 4.65-2.72-5.13 5.45z"/>
         </svg>
         <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-      </a>
+      </button>
     </div>
   );
 };
