@@ -58,6 +58,16 @@ export default function AdminSettings() {
     // Load email from localStorage
     const savedEmail = localStorage.getItem('purin_admin_email');
     if (savedEmail) setAdminEmail(savedEmail);
+
+    // Load CNY rate
+    const savedRate = localStorage.getItem(RATE_KEY);
+    if (savedRate) {
+      const parsed = Number(savedRate);
+      if (!isNaN(parsed) && parsed > 0) {
+        setCnyRate(parsed);
+        setCnyRateInput(String(parsed));
+      }
+    }
     
     // Check expiring products on mount
     checkExpiringProducts();
