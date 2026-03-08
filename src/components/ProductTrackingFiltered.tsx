@@ -225,7 +225,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
         const displayTe = variant?.te ?? product?.te;
         const displayRate = variant?.actual_rate ?? product?.actual_rate;
         const displayCan = variant?.actual_can ?? product?.actual_can;
-        const displayPack = variant?.actual_pack ?? product?.actual_pack;
         const displayCong = variant?.cong ?? product?.cong;
 
         return (
