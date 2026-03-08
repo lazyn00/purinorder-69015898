@@ -114,6 +114,7 @@ export default function AdminOrderDetail() {
   const [trackingCode, setTrackingCode] = useState("");
   const [surcharge, setSurcharge] = useState("");
   const [deliveryNote, setDeliveryNote] = useState("");
+  const [adminNote, setAdminNote] = useState("");
   
   // Order items editing
   const [editableItems, setEditableItems] = useState<any[]>([]);
