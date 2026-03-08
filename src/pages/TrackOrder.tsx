@@ -315,8 +315,8 @@ export default function TrackOrder() {
             {/* Order cards */}
             <div className="space-y-4">
               {filteredOrders.map((order) => {
-                const isExpanded = expandedOrderIds.has(order.id);
                 const itemCount = order.items?.length || 0;
+                
                 
                 return (
                   <Card key={order.id} className="overflow-hidden">
