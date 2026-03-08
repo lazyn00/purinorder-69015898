@@ -110,7 +110,10 @@ export function Cart() {
                   <ScrollArea className="mt-4 h-[calc(100vh-280px)] flex-1 px-4">
                     <div className="space-y-3">
                       <AnimatePresence initial={false}>
-                        {cartItems.map((item) => (
+                        {cartItems.map((item) => {
+                          const stockStatus = getItemStockStatus(item);
+                          const isOverStock = stockStatus.maxStock !== undefined && item.quantity > stockStatus.maxStock;
+                          return (
                           <motion.div
                             key={`${item.id}-${item.selectedVariant}`}
                             layout
@@ -118,7 +121,7 @@ export function Cart() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -30, height: 0, marginBottom: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="flex gap-3 rounded-xl border p-3"
+                            className={`flex gap-3 rounded-xl border p-3 ${!stockStatus.available ? 'opacity-60 border-destructive/30 bg-destructive/5' : isOverStock ? 'border-yellow-400/50 bg-yellow-50 dark:bg-yellow-950/20' : ''}`}
                           >
                             <img
                               src={getVariantImage(item)}
