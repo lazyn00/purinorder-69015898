@@ -88,6 +88,18 @@ export default function ProductDetail() {
   const [highlightVariant, setHighlightVariant] = useState(false);
   const variantRef = React.useRef<HTMLDivElement>(null);
 
+  // Reset all state when product id changes
+  useEffect(() => {
+    setQuantity(1);
+    setSelectedVariant("");
+    setSelectedOptions({});
+    setCurrentPrice(0);
+    setAvailableStock(undefined);
+    setCurrent(0);
+    setIsExpired(false);
+    setHighlightVariant(false);
+  }, [id]);
+
   useEffect(() => {
     if (!isLoading && products.length > 0) {
       const foundProduct = products.find(p => p.id == Number(id)); 
