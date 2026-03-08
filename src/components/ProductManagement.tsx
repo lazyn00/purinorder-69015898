@@ -680,7 +680,7 @@ export default function ProductManagement() {
                 ? product.images[0] as string : null;
               
               return (
-                <TableRow key={product.id} className={deadlineStatus.priority === 4 ? "opacity-50" : ""}>
+                <TableRow key={product.id} className={deadlineStatus.priority === 4 || product.status === "Ẩn" ? "opacity-50" : ""}>
                   <TableCell className="font-mono text-xs">{product.id}</TableCell>
                   <TableCell>
                     {coverImage ? (
