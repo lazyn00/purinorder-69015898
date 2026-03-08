@@ -8,11 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, User, MapPin, CreditCard, ShoppingBag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+
+const checkoutSteps = [
+  { icon: User, label: "Liên hệ" },
+  { icon: MapPin, label: "Nhận hàng" },
+  { icon: CreditCard, label: "Thanh toán" },
+  { icon: ShoppingBag, label: "Xác nhận" },
+];
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
@@ -610,9 +618,31 @@ export default function Checkout() {
           Tiếp tục mua sắm
         </Button>
       
-        <form onSubmit={handleSubmitOrder} className="space-y-8">
-          <div className="rounded-lg border p-6">
-            <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
+        {/* Progress Steps */}
+        <div className="flex items-center justify-between mb-10 max-w-md mx-auto">
+          {checkoutSteps.map((step, idx) => (
+            <div key={step.label} className="flex items-center">
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                  <step.icon className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-[10px] text-muted-foreground font-medium">{step.label}</span>
+              </div>
+              {idx < checkoutSteps.length - 1 && (
+                <div className="w-8 sm:w-12 h-px bg-border mx-1 mb-4" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmitOrder} className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="rounded-xl border p-6"
+          >
+            <h2 className="text-xl font-semibold mb-5">Thông tin liên hệ</h2>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="contact-fb">Link Facebook / Instagram *</Label>
@@ -623,7 +653,7 @@ export default function Checkout() {
                 <Input id="contact-phone" type="tel" value={contactInfo.phone} onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})} placeholder="090..." required />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thông tin nhận hàng</h2>
