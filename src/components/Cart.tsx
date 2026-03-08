@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 export function Cart() {
   const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
   const [open, setOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; variant: string } | null>(null);
 
   // === HÀM HELPER: LẤY ẢNH THEO VARIANT ===
   const getVariantImage = (item: typeof cartItems[0]) => {
