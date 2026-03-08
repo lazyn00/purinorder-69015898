@@ -60,7 +60,7 @@ export default function OrderSuccess() {
   className="w-full bg-[#AFC6F7] hover:bg-[#94B4EE] text-[#2F4C8A]"
   onClick={() =>
     window.open(
-      `m.me/105759462451542`,
+      `https://m.me/puorderin`,
       "_blank"
     )
   }
