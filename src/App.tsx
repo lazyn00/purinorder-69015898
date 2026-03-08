@@ -21,6 +21,7 @@ import AdminOrderDetail from "./pages/AdminOrderDetail";
 import SellProduct from "./pages/SellProduct";
 import AffiliateRegister from "./pages/AffiliateRegister";
 import AffiliateDashboard from "./pages/AffiliateDashboard";
+import PriceCheck from "./pages/PriceCheck";
 
 const queryClient = new QueryClient();
 
