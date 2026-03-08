@@ -86,7 +86,7 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
   const [filterStatus, setFilterStatus] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState<EditFields>({ te: "", actual_rate: "", actual_can: "", actual_pack: "", cong: "" });
+  const [editFields, setEditFields] = useState<EditFields>({ te: "", actual_rate: "", actual_can: "", cong: "" });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
