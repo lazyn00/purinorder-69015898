@@ -22,6 +22,8 @@ interface PageVisibilitySettings {
 }
 
 const SETTINGS_KEY = 'purin_admin_page_settings';
+const RATE_KEY = 'purin_cny_rate';
+const DEFAULT_RATE = 3600;
 
 export default function AdminSettings() {
   const { toast } = useToast();
