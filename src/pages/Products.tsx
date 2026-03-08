@@ -61,6 +61,7 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
+  const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
   const [searchParams] = useSearchParams();
 
   // Capture referral code from URL and store in localStorage
