@@ -727,14 +727,23 @@ export default function TrackOrder() {
                             Xem thông tin CK <ExternalLink className="h-3 w-3" />
                           </a>
                         </div>
-                        <Input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleUploadSecondPayment(order.id, e.target.files[0]); }} disabled={uploadingOrderId === order.id} />
+                        <Input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleUploadAdditionalBill(order.id, e.target.files[0]); }} disabled={uploadingOrderId === order.id} />
                         {uploadingOrderId === order.id && (
                           <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Đang upload...</div>
                         )}
                         {order.second_payment_proof_url && (
-                          <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline flex items-center gap-1 mt-2">
-                            <Upload className="h-4 w-4" /> Xem bill đã đăng
+                          <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline flex items-center gap-1 mt-2 text-xs">
+                            <Upload className="h-3 w-3" /> Bill 2
                           </a>
+                        )}
+                        {order.additional_bills && order.additional_bills.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {order.additional_bills.map((url: string, i: number) => (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline flex items-center gap-1 text-xs">
+                                <Upload className="h-3 w-3" /> Bill bổ sung {i + 1}
+                              </a>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </CardContent>
