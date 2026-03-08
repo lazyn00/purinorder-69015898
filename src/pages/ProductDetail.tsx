@@ -88,7 +88,7 @@ export default function ProductDetail() {
   const [highlightVariant, setHighlightVariant] = useState(false);
   const variantRef = React.useRef<HTMLDivElement>(null);
 
-  // Reset all state when product id changes
+  // Reset all state when product id changes + scroll to top
   useEffect(() => {
     setQuantity(1);
     setSelectedVariant("");
@@ -98,6 +98,7 @@ export default function ProductDetail() {
     setCurrent(0);
     setIsExpired(false);
     setHighlightVariant(false);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [id]);
 
   useEffect(() => {
