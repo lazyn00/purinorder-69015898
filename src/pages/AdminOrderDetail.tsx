@@ -154,6 +154,7 @@ export default function AdminOrderDetail() {
           setTrackingCode(orderTyped.tracking_code || "");
           setSurcharge(orderTyped.surcharge?.toString() || "0");
           setDeliveryNote(orderTyped.delivery_note || "");
+          setAdminNote((orderTyped as any).admin_note || "");
          
          // Fetch status history
          const { data: historyData } = await supabase
