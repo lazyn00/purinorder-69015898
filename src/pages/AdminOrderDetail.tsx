@@ -205,6 +205,7 @@ export default function AdminOrderDetail() {
           tracking_code: trackingCode,
           surcharge: parseInt(surcharge) || 0,
           delivery_note: deliveryNote,
+          admin_note: adminNote,
           items: editableItems,
           total_price: newTotalPrice
         };
