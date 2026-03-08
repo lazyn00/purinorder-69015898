@@ -505,8 +505,20 @@ export default function CustomerOrderDetail() {
         {/* Contact */}
         <Card>
           <CardContent className="pt-4 pb-4">
-            <p className="text-sm text-muted-foreground mb-3">Cần hỗ trợ? Liên hệ Purin qua:</p>
-            <Button className="w-full gap-2" onClick={() => window.open(`m.me/105759462451542`, "_blank")}>
+            <p className="text-sm text-muted-foreground mb-3">Cần hỗ trợ? Liên hệ Purin qua Messenger:</p>
+            <Button className="w-full gap-2" onClick={() => {
+              const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+              if (isMobile) {
+                const openApp = window.confirm("Mở bằng App Messenger?\n\nBấm OK để mở App, Cancel để mở trình duyệt.");
+                if (openApp) {
+                  window.open("fb-messenger://user-thread/105759462451542", "_blank");
+                } else {
+                  window.open("https://www.messenger.com/t/puorderin", "_blank");
+                }
+              } else {
+                window.open("https://www.messenger.com/t/puorderin", "_blank");
+              }
+            }}>
               <Facebook className="w-4 h-4" />
               Nhắn tin xác nhận đơn #{orderCode}
             </Button>
