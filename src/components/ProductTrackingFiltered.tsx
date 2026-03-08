@@ -331,10 +331,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
                           <span className="font-medium">{fmt(displayCan)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Pack thực:</span>
-                          <span className="font-medium">{fmt(displayPack)}</span>
-                        </div>
-                        <div className="flex justify-between">
                           <span className="text-muted-foreground">Công:</span>
                           <span className="font-medium">{fmt(displayCong)}</span>
                         </div>
