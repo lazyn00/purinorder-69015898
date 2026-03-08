@@ -22,7 +22,6 @@ import SellProduct from "./pages/SellProduct";
 import AffiliateRegister from "./pages/AffiliateRegister";
 import AffiliateDashboard from "./pages/AffiliateDashboard";
 import PriceCheck from "./pages/PriceCheck";
-import { HolidayEffects } from "./components/HolidayEffects";
 
 const queryClient = new QueryClient();
 
@@ -32,7 +31,6 @@ const App = () => (
       <CartProvider>
         <Toaster />
         <Sonner />
-        <HolidayEffects />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Products />} /> 
