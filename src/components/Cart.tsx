@@ -4,30 +4,39 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ShoppingCart, Trash2, Minus, Plus } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 export function Cart() {
   const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
   const [open, setOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; variant: string } | null>(null);
 
-  // === HÀM HELPER: LẤY ẢNH THEO VARIANT ===
-  const getVariantImage = (item: typeof cartItems[0]) => {
-    if (item.selectedVariant && item.variantImageMap) {
-      const imageIndex = item.variantImageMap[item.selectedVariant];
-      if (imageIndex !== undefined && item.images[imageIndex]) {
-        return item.images[imageIndex];
-      }
-    }
-    return item.images[0]; // Trả về ảnh đầu tiên nếu không tìm thấy
-  };
-  // === KẾT THÚC HÀM HELPER ===
+  const getVariantImage = (item: typeof cartItems[0]) => {
+    if (item.selectedVariant && item.variantImageMap) {
+      const imageIndex = item.variantImageMap[item.selectedVariant];
+      if (imageIndex !== undefined && item.images[imageIndex]) {
+        return item.images[imageIndex];
+      }
+    }
+    return item.images[0];
+  };
 
   return (
     <>
-      {/* Nút mở giỏ hàng */}
       <Button
         variant="outline"
         size="icon"
@@ -45,7 +54,6 @@ export function Cart() {
         )}
       </Button>
 
-      {/* Overlay + panel giỏ hàng */}
       {open && (
         <>
           <div
@@ -108,29 +116,37 @@ export function Cart() {
                                 variant="outline"
                                 size="icon"
                                 className="h-6 w-6"
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.id,
-                                    item.selectedVariant,
-                                    item.quantity - 1,
-                                  )
-                                }
+                                onClick={() => {
+                                  if (item.quantity <= 1) {
+                                    setDeleteConfirm({ id: item.id, variant: item.selectedVariant });
+                                  } else {
+                                    updateQuantity(item.id, item.selectedVariant, item.quantity - 1);
+                                  }
+                                }}
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="w-8 text-center text-sm font-medium">
-                                {item.quantity}
-                              </span>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (isNaN(val) || val < 0) return;
+                                  if (val === 0) {
+                                    setDeleteConfirm({ id: item.id, variant: item.selectedVariant });
+                                  } else {
+                                    updateQuantity(item.id, item.selectedVariant, val);
+                                  }
+                                }}
+                                className="w-12 h-6 text-center text-sm font-medium p-0 border-0 focus-visible:ring-0 shadow-none"
+                              />
                               <Button
                                 variant="outline"
                                 size="icon"
                                 className="h-6 w-6"
                                 onClick={() =>
-                                  updateQuantity(
-                                    item.id,
-                                    item.selectedVariant,
-                                    item.quantity + 1,
-                                  )
+                                  updateQuantity(item.id, item.selectedVariant, item.quantity + 1)
                                 }
                               >
                                 <Plus className="h-3 w-3" />
@@ -177,6 +193,31 @@ export function Cart() {
           </div>
         </>
       )}
+
+      {/* Dialog xác nhận xoá */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => !o && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá sản phẩm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có muốn xoá sản phẩm này khỏi giỏ hàng không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirm) {
+                  removeFromCart(deleteConfirm.id, deleteConfirm.variant);
+                  setDeleteConfirm(null);
+                }
+              }}
+            >
+              Xoá
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
