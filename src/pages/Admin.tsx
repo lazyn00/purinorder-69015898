@@ -1094,50 +1094,6 @@ ${generateEmailContent(order)}
   };
   // ==========================================================
 
-  // ========== AI BILL ANALYSIS ==========
-  const analyzeBill = async (orderId: string, imageUrl: string, orderTotal: number) => {
-    setAnalyzingBillOrderId(orderId);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-payment-proof', {
-        body: { imageUrl, orderTotal }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        setBillAnalysisResults(prev => ({
-          ...prev,
-          [orderId]: {
-            extracted: data.extracted,
-            verification: data.verification
-          }
-        }));
-
-        // Auto-update payment status if amount matches
-        if (data.verification?.isMatch) {
-          toast({
-            title: "✅ Số tiền khớp!",
-            description: `Đã xác nhận bill ${data.extracted.amount?.toLocaleString('vi-VN')}đ = ${orderTotal.toLocaleString('vi-VN')}đ`,
-          });
-        } else if (data.verification && !data.verification.isMatch) {
-          toast({
-            title: "⚠️ Số tiền không khớp",
-            description: `Bill: ${data.extracted.amount?.toLocaleString('vi-VN')}đ | Đơn: ${orderTotal.toLocaleString('vi-VN')}đ (Chênh lệch: ${data.verification.difference.toLocaleString('vi-VN')}đ)`,
-            variant: "destructive"
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error analyzing bill:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể phân tích bill. Vui lòng thử lại.",
-        variant: "destructive"
-      });
-    } finally {
-      setAnalyzingBillOrderId(null);
-    }
-  };
   // ======================================
 
   if (!isLoggedIn) {
