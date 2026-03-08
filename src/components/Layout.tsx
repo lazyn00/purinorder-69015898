@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
+import { getActiveHoliday } from "@/hooks/useHoliday";
 
 interface PageVisibilitySettings {
   showSellPage: boolean;
