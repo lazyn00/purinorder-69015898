@@ -77,7 +77,7 @@ const FIELD_LABELS: { key: keyof EditFields; label: string }[] = [
   { key: "te", label: "Tệ" },
   { key: "actual_rate", label: "Rate thực" },
   { key: "actual_can", label: "Cân thực" },
-  { key: "actual_pack", label: "Pack thực" },
+  { key: "cong", label: "Công" },
   { key: "cong", label: "Công" },
 ];
 
