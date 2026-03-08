@@ -216,27 +216,6 @@ export default function Admin() {
   const [showNotifications, setShowNotifications] = useState(false);
   // =====================================================
   
-  // ========== STATE CHO AI BILL ANALYSIS ==========
-  const [analyzingBillOrderId, setAnalyzingBillOrderId] = useState<string | null>(null);
-  const [billAnalysisResults, setBillAnalysisResults] = useState<{[orderId: string]: {
-    extracted: {
-      amount: number | null;
-      date: string | null;
-      bank: string | null;
-      transactionId: string | null;
-      senderName: string | null;
-      receiverName: string | null;
-      content: string | null;
-      confidence: 'high' | 'medium' | 'low';
-    };
-    verification: {
-      extractedAmount: number;
-      expectedAmount: number;
-      isMatch: boolean;
-      difference: number;
-      percentDifference: string;
-    } | null;
-  }}>({});
   // =================================================
   
   const { toast } = useToast();
