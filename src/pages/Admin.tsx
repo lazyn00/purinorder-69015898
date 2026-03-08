@@ -1749,70 +1749,24 @@ ${generateEmailContent(order)}
                           <div className="space-y-1">
                             <div className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</div>
                             {order.payment_proof_url && (
-                              <div className="flex items-center justify-end gap-1">
-                                <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                                  Bill 1 <ExternalLink className="h-3 w-3" />
-                                </a>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => analyzeBill(order.id, order.payment_proof_url, order.total_price)}
-                                  disabled={analyzingBillOrderId === order.id}
-                                  title="Phân tích bill bằng AI"
-                                >
-                                  {analyzingBillOrderId === order.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <Scan className="h-3 w-3" />
-                                  )}
-                                </Button>
-                              </div>
+                              <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
+                                Bill 1 <ExternalLink className="h-3 w-3" />
+                              </a>
                             )}
                             {order.second_payment_proof_url && (
-                              <div className="flex items-center justify-end gap-1">
-                                <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline flex items-center gap-1">
-                                  Bill 2 <ExternalLink className="h-3 w-3" />
+                              <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
+                                Bill 2 <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                            {(() => {
+                              const additionalBills = (order as any).additional_bills as string[] | null;
+                              if (!additionalBills || additionalBills.length === 0) return null;
+                              return additionalBills.map((url: string, i: number) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
+                                  Bill {i + 3} <ExternalLink className="h-3 w-3" />
                                 </a>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => analyzeBill(order.id, order.second_payment_proof_url, order.total_price / 2)}
-                                  disabled={analyzingBillOrderId === order.id}
-                                  title="Phân tích bill bằng AI"
-                                >
-                                  {analyzingBillOrderId === order.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <Scan className="h-3 w-3" />
-                                  )}
-                                </Button>
-                              </div>
-                            )}
-                            {/* AI Analysis Results */}
-                            {billAnalysisResults[order.id] && (
-                              <div className="text-left text-[10px] bg-muted/50 rounded p-1.5 mt-1 space-y-0.5">
-                                {billAnalysisResults[order.id].verification && (
-                                  <div className={`flex items-center gap-1 font-medium ${billAnalysisResults[order.id].verification?.isMatch ? 'text-green-600' : 'text-red-500'}`}>
-                                    {billAnalysisResults[order.id].verification?.isMatch ? (
-                                      <><CheckCircle className="h-3 w-3" /> Khớp</>
-                                    ) : (
-                                      <><AlertTriangle className="h-3 w-3" /> Chênh {billAnalysisResults[order.id].verification?.difference.toLocaleString('vi-VN')}đ</>
-                                    )}
-                                  </div>
-                                )}
-                                {billAnalysisResults[order.id].extracted.amount && (
-                                  <div>💰 {billAnalysisResults[order.id].extracted.amount?.toLocaleString('vi-VN')}đ</div>
-                                )}
-                                {billAnalysisResults[order.id].extracted.bank && (
-                                  <div>🏦 {billAnalysisResults[order.id].extracted.bank}</div>
-                                )}
-                                {billAnalysisResults[order.id].extracted.date && (
-                                  <div>📅 {billAnalysisResults[order.id].extracted.date}</div>
-                                )}
-                              </div>
-                            )}
+                              ));
+                            })()}
                           </div>
                         </TableCell>
 
