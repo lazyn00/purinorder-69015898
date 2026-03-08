@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
-import { OrderProgressStepper } from "@/components/OrderProgressStepper";
+
 
 interface StatusHistory {
   id: string;
