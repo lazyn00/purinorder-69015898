@@ -170,7 +170,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
             te: parseNum(editFields.te),
             actual_rate: parseNum(editFields.actual_rate),
             actual_can: parseNum(editFields.actual_can),
-            actual_pack: parseNum(editFields.actual_pack),
             cong: parseNum(editFields.cong),
           })
           .eq("id", product.id);
