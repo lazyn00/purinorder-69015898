@@ -266,13 +266,14 @@ export default function AdminOrderDetail() {
          description: "Cập nhật đơn hàng thành công"
        });
        
-     } catch (error) {
-       console.error('Error saving order:', error);
-       toast({
-         title: "Lỗi",
-         description: "Không thể cập nhật đơn hàng",
-         variant: "destructive"
-       });
+      } catch (error: any) {
+        console.error('Error saving order:', error);
+        const errorMsg = error?.message || error?.details || JSON.stringify(error);
+        toast({
+          title: "Lỗi",
+          description: `Không thể cập nhật đơn hàng: ${errorMsg}`,
+          variant: "destructive"
+        });
      } finally {
        setIsSaving(false);
      }
