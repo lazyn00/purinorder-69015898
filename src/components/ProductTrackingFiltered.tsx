@@ -78,7 +78,7 @@ const FIELD_LABELS: { key: keyof EditFields; label: string }[] = [
   { key: "actual_rate", label: "Rate thực" },
   { key: "actual_can", label: "Cân thực" },
   { key: "cong", label: "Công" },
-  { key: "cong", label: "Công" },
+];
 ];
 
 export default function ProductTrackingFiltered({ aggregated, uniqueNames, allStatuses, products, onProductUpdated }: Props) {
