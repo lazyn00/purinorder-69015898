@@ -183,6 +183,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       </footer>
       
       <ScrollToTop />
+      
+      {/* Messenger Chat Widget */}
+      <a
+        href="https://m.me/105759462451542"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 bg-[#0084FF] hover:bg-[#0073E6] text-white rounded-full p-3.5 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 group"
+        title="Chat với chúng tôi qua Messenger"
+      >
+        <MessageCircle className="h-6 w-6" />
+        <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+      </a>
     </div>
   );
 };
