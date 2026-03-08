@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Calculator, Settings2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Calculator } from "lucide-react";
 
 const RATE_KEY = "purin_cny_rate";
 const DEFAULT_RATE = 3600;
