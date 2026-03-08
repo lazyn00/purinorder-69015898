@@ -185,29 +185,6 @@ export default function TrackOrder() {
     fetchStatusHistory();
   }, [orders]);
 
-  const toggleHistoryExpand = (orderId: string) => {
-    setExpandedHistoryIds(prev => {
-      const n = new Set(prev);
-      n.has(orderId) ? n.delete(orderId) : n.add(orderId);
-      return n;
-    });
-  };
-
-  const toggleOrderExpand = (orderId: string) => {
-    setExpandedOrderIds(prev => {
-      const n = new Set(prev);
-      n.has(orderId) ? n.delete(orderId) : n.add(orderId);
-      return n;
-    });
-  };
-
-  const formatHistoryDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('vi-VN', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,90 +214,6 @@ export default function TrackOrder() {
     } finally {
       setIsSearching(false);
     }
-  };
-
-  const handleUploadAdditionalBill = async (orderId: string, file: File) => {
-    setUploadingOrderId(orderId);
-    try {
-      const order = orders.find(o => o.id === orderId);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('payment-proofs').upload(fileName, file);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('payment-proofs').getPublicUrl(fileName);
-      const currentBills = order?.additional_bills || [];
-      const newBills = [...currentBills, publicUrl];
-      const { error: updateError } = await (supabase as any).from('orders').update({ additional_bills: newBills }).eq('id', orderId);
-      if (updateError) throw updateError;
-      if (order) {
-        await supabase.from('admin_notifications').insert({
-          type: 'payment_proof', order_id: orderId,
-          order_number: order.order_number || orderId.slice(0, 8),
-          message: `Khách hàng đã upload bill bổ sung cho đơn #${order.order_number || orderId.slice(0, 8)}`
-        });
-      }
-      setOrders(orders.map(o => o.id === orderId ? { ...o, additional_bills: newBills } : o));
-      toast({ title: "Thành công", description: "Đã upload bill bổ sung thành công!" });
-    } catch (error) {
-      console.error(error);
-      toast({ title: "Lỗi", description: "Không thể upload bill. Vui lòng thử lại.", variant: "destructive" });
-    } finally {
-      setUploadingOrderId(null);
-    }
-  };
-
-  const handleUpdateDeliveryInfo = async (order: Order) => {
-    setIsUpdatingDelivery(true);
-    const orderId = order.id;
-    const newDeliveryData = {
-      delivery_name: tempDeliveryData.delivery_name || order.delivery_name,
-      delivery_phone: tempDeliveryData.delivery_phone || order.delivery_phone,
-      delivery_address: tempDeliveryData.delivery_address || order.delivery_address,
-      delivery_note: tempDeliveryData.delivery_note || order.delivery_note,
-    };
-    try {
-      const { error: updateError } = await (supabase as any).from('orders').update(newDeliveryData).eq('id', orderId);
-      if (updateError) throw updateError;
-      setOrders(orders.map(o => o.id === orderId ? { ...o, ...newDeliveryData } : o));
-      await supabase.from('admin_notifications').insert({
-        type: 'delivery_update', order_id: orderId,
-        order_number: order.order_number || orderId.slice(0, 8),
-        message: `Khách hàng đã cập nhật thông tin giao hàng cho đơn #${order.order_number || orderId.slice(0, 8)}`
-      });
-      setEditingOrderId(null);
-      setTempDeliveryData({});
-      toast({ title: "Thành công", description: "Đã cập nhật thông tin giao hàng." });
-    } catch (error) {
-      console.error(error);
-      toast({ title: "Lỗi", description: "Không thể cập nhật thông tin giao hàng. Vui lòng thử lại.", variant: "destructive" });
-    } finally {
-      setIsUpdatingDelivery(false);
-    }
-  };
-
-  const handleConfirmComplete = async (orderId: string) => {
-    setConfirmingOrderId(orderId);
-    try {
-      const { error } = await supabase.from('orders').update({ order_progress: 'Đã hoàn thành' }).eq('id', orderId);
-      if (error) throw error;
-      setOrders(orders.map(o => o.id === orderId ? { ...o, order_progress: 'Đã hoàn thành' } : o));
-      toast({ title: "Thành công", description: "Đơn hàng đã được xác nhận hoàn thành!" });
-    } catch (error) {
-      console.error(error);
-      toast({ title: "Lỗi", description: "Không thể xác nhận đơn hàng. Vui lòng thử lại.", variant: "destructive" });
-    } finally {
-      setConfirmingOrderId(null);
-    }
-  };
-
-  const startEditing = (order: Order) => {
-    setEditingOrderId(order.id);
-    setTempDeliveryData({
-      delivery_name: order.delivery_name,
-      delivery_phone: order.delivery_phone,
-      delivery_address: order.delivery_address,
-      delivery_note: order.delivery_note,
-    });
   };
 
   return (
