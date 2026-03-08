@@ -114,6 +114,7 @@ export default function AdminOrderDetail() {
   const [trackingCode, setTrackingCode] = useState("");
   const [surcharge, setSurcharge] = useState("");
   const [deliveryNote, setDeliveryNote] = useState("");
+  const [adminNote, setAdminNote] = useState("");
   
   // Order items editing
   const [editableItems, setEditableItems] = useState<any[]>([]);
@@ -153,6 +154,7 @@ export default function AdminOrderDetail() {
           setTrackingCode(orderTyped.tracking_code || "");
           setSurcharge(orderTyped.surcharge?.toString() || "0");
           setDeliveryNote(orderTyped.delivery_note || "");
+          setAdminNote((orderTyped as any).admin_note || "");
          
          // Fetch status history
          const { data: historyData } = await supabase
@@ -203,6 +205,7 @@ export default function AdminOrderDetail() {
           tracking_code: trackingCode,
           surcharge: parseInt(surcharge) || 0,
           delivery_note: deliveryNote,
+          admin_note: adminNote,
           items: editableItems,
           total_price: newTotalPrice
         };
@@ -694,7 +697,18 @@ export default function AdminOrderDetail() {
                      placeholder="Ghi chú..."
                      rows={3}
                    />
-                 </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs text-muted-foreground">📌 Ghi chú nội bộ (chỉ admin thấy)</Label>
+                    <Textarea
+                      className="mt-1 text-sm border-amber-200 bg-amber-50/50"
+                      value={adminNote}
+                      onChange={(e) => setAdminNote(e.target.value)}
+                      placeholder="Ghi chú riêng cho admin..."
+                      rows={3}
+                    />
+                  </div>
                </CardContent>
              </Card>
              

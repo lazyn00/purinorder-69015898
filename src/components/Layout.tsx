@@ -3,7 +3,7 @@ import { Menu, X, Moon, Sun, MessageCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
-import { ScrollToTop } from "./ScrollToTop";
+
 
 interface PageVisibilitySettings {
   showSellPage: boolean;
@@ -181,8 +181,6 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </footer>
-      
-      <ScrollToTop />
       
       {/* Messenger Chat Widget */}
       <a
