@@ -582,30 +582,35 @@ export default function AdminOrderDetail() {
               </Card>
              
              {/* Payment Proof */}
-             {(order.payment_proof_url || order.second_payment_proof_url) && (
-               <Card>
-                 <CardHeader>
-                   <CardTitle className="text-lg flex items-center gap-2">
-                     <CreditCard className="h-5 w-5" />
-                     Bằng chứng thanh toán
-                   </CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                   <div className="flex gap-4 flex-wrap">
-                     {order.payment_proof_url && (
-                       <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                         <img src={order.payment_proof_url} alt="Payment proof" className="w-40 h-auto rounded border hover:opacity-80 transition" />
-                       </a>
-                     )}
-                     {order.second_payment_proof_url && (
-                       <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer">
-                         <img src={order.second_payment_proof_url} alt="Second payment proof" className="w-40 h-auto rounded border hover:opacity-80 transition" />
-                       </a>
-                     )}
-                   </div>
-                 </CardContent>
-               </Card>
-             )}
+             {(order.payment_proof_url || order.second_payment_proof_url || ((order as any).additional_bills && (order as any).additional_bills.length > 0)) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      Bằng chứng thanh toán
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-4 flex-wrap">
+                      {order.payment_proof_url && (
+                        <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer">
+                          <img src={order.payment_proof_url} alt="Bill 1" className="w-40 h-auto rounded border hover:opacity-80 transition" />
+                        </a>
+                      )}
+                      {order.second_payment_proof_url && (
+                        <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer">
+                          <img src={order.second_payment_proof_url} alt="Bill 2" className="w-40 h-auto rounded border hover:opacity-80 transition" />
+                        </a>
+                      )}
+                      {((order as any).additional_bills as string[] | null)?.map((url: string, i: number) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                          <img src={url} alt={`Bill ${i + 3}`} className="w-40 h-auto rounded border hover:opacity-80 transition" />
+                        </a>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
              
              {/* Status History */}
              <Card>
