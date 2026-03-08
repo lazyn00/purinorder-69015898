@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Mail, Phone, MapPin, Facebook, Instagram, MessageSquare, Music2, Users, CreditCard, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import qrMomo from "@/assets/qr-momo.jpg";
+import qrZalopay from "@/assets/qr-zalopay.jpg";
+import qrVpbank from "@/assets/qr-vpbank.jpg";
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
@@ -89,6 +92,22 @@ export default function Contact() {
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
+
+                {/* QR Codes */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
+                  <div className="text-center">
+                    <p className="text-xs font-medium mb-2 text-muted-foreground">VPBank</p>
+                    <img src={qrVpbank} alt="QR VPBank" className="w-full max-w-[180px] mx-auto rounded-lg shadow-sm" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-medium mb-2 text-muted-foreground">Momo</p>
+                    <img src={qrMomo} alt="QR Momo" className="w-full max-w-[180px] mx-auto rounded-lg shadow-sm" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-medium mb-2 text-muted-foreground">ZaloPay</p>
+                    <img src={qrZalopay} alt="QR ZaloPay" className="w-full max-w-[180px] mx-auto rounded-lg shadow-sm" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
             

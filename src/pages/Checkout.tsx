@@ -13,12 +13,21 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
+import qrMomo from "@/assets/qr-momo.jpg";
+import qrZalopay from "@/assets/qr-zalopay.jpg";
+import qrVpbank from "@/assets/qr-vpbank.jpg";
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
   vpbank: "0395939035",
   momo: "0395939035",
   zalopay: "0395939035"
+};
+
+const QR_IMAGES: { [key: string]: string } = {
+  "Ngân hàng": qrVpbank,
+  "Momo": qrMomo,
+  "Zalopay": qrZalopay,
 };
 
 // === HÀM HELPER: LẤY ẢNH THEO VARIANT ===
@@ -710,7 +719,7 @@ export default function Checkout() {
                 </Select>
               </div>
 
-              <div className="bg-muted/50 p-4 rounded-md space-y-2">
+              <div className="bg-muted/50 p-4 rounded-md space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-lg">Chuyển khoản</p>
                   <Button
@@ -732,6 +741,16 @@ export default function Checkout() {
                 <p>Chủ tài khoản: <span className="font-bold">{PAYMENT_INFO.accountName}</span></p>
                 <p>Ngân hàng/Ví: <span className="font-bold">{paymentDetails.label}</span></p>
                 <p>Số tài khoản: <span className="font-bold">{paymentDetails.number}</span></p>
+                
+                {QR_IMAGES[selectedMethod] && (
+                  <div className="flex justify-center pt-2">
+                    <img 
+                      src={QR_IMAGES[selectedMethod]} 
+                      alt={`QR ${selectedMethod}`} 
+                      className="max-w-[250px] rounded-lg shadow-sm"
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
