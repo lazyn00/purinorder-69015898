@@ -121,17 +121,10 @@ export default function TrackOrder() {
   const [phone, setPhone] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
-  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
-  const [tempDeliveryData, setTempDeliveryData] = useState<Partial<Order>>({});
-  const [isUpdatingDelivery, setIsUpdatingDelivery] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [progressFilter, setProgressFilter] = useState<string>("all");
-  const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
   const [statusHistoryMap, setStatusHistoryMap] = useState<Record<string, StatusHistory[]>>({});
-  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Set<string>>(new Set());
-  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
 
   const { toast } = useToast();
 
