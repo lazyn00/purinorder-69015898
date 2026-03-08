@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Eye, EyeOff, Clock, Mail, Loader2, AlertTriangle, Send, Download, Database } from "lucide-react";
+import { Settings, Eye, EyeOff, Clock, Mail, Loader2, AlertTriangle, Send, Download, Database, DollarSign } from "lucide-react";
 
 interface ExpiringProduct {
   id: number;
