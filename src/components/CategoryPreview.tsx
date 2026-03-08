@@ -39,7 +39,7 @@ export function CategoryPreview({ title, categorySlug, products }: CategoryPrevi
       </div>
 
       <Carousel opts={{ align: "start", loop: false }} className="w-full">
-        <CarouselContent className="-ml-2 md:-ml-3">
+        <CarouselContent className="-ml-1.5 md:-ml-2">
           {displayProducts.map((product, idx) => (
             <CarouselItem
               key={product.id}

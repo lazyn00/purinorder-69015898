@@ -64,50 +64,50 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link to={productLink} className="group block">
-      <div className="overflow-hidden rounded-xl bg-card border border-border/40 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+      <div className="overflow-hidden rounded-sm bg-card border border-border/30 transition-all duration-200 hover:shadow-sm">
 
-        <div className="relative aspect-square overflow-hidden bg-muted/30">
+        <div className="relative aspect-square overflow-hidden bg-muted/20">
           <ImageSkeleton
             src={thumbnail}
             alt={product.name}
-            className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${isUnavailable ? 'opacity-50' : ''}`}
+            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] ${isUnavailable ? 'opacity-50' : ''}`}
           />
 
           {isUnavailable && (
-            <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex items-center justify-center">
-              <Badge variant="destructive" className="text-xs">
+            <div className="absolute inset-0 bg-background/40 flex items-center justify-center">
+              <Badge variant="destructive" className="text-[10px] px-1.5 h-4">
                 {isOutOfStock ? "Hết hàng" : "Hết hạn"}
               </Badge>
             </div>
           )}
 
-          <div className="absolute top-1.5 left-1.5 flex items-start gap-1">
+          <div className="absolute top-1 left-1 flex items-start gap-0.5">
             {product.status && !isUnavailable && (
-              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] opacity-90 shadow-sm backdrop-blur-sm">
+              <Badge variant="secondary" className="h-4 px-1 text-[9px] opacity-90">
                 {product.status}
               </Badge>
             )}
             {product.artist && !isUnavailable && !product.isUserListing && (
-              <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-primary text-primary-foreground backdrop-blur-sm">
+              <Badge variant="default" className="h-4 px-1 text-[9px] bg-primary text-primary-foreground">
                 {product.artist}
               </Badge>
             )}
           </div>
 
           {!isUnavailable && stockDisplay !== undefined && stockDisplay < 10 && (
-            <div className="absolute bottom-1.5 right-1.5">
-              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] backdrop-blur-sm">
+            <div className="absolute bottom-1 right-1">
+              <Badge variant="secondary" className="h-4 px-1 text-[9px]">
                 Còn {stockDisplay}
               </Badge>
             </div>
           )}
         </div>
 
-        <div className="p-2.5">
-          <h3 className="h-10 text-sm font-medium line-clamp-2 leading-5">
+        <div className="px-1.5 py-1.5">
+          <h3 className="text-xs font-normal line-clamp-2 leading-4 min-h-[32px] text-foreground/90">
             {product.name}
           </h3>
-          <p className={`mt-1 truncate text-sm font-bold md:text-base ${isUnavailable ? 'text-muted-foreground' : 'text-primary'}`}>
+          <p className={`mt-0.5 truncate text-sm font-semibold ${isUnavailable ? 'text-muted-foreground' : 'text-primary'}`}>
             {priceDisplay}
           </p>
         </div>
