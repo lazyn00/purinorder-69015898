@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Mail, Phone, MapPin, Facebook, Instagram, MessageSquare, Music2, Users, CreditCard, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import qrMomo from "@/assets/qr-momo.jpg";
+import qrZalopay from "@/assets/qr-zalopay.jpg";
+import qrVpbank from "@/assets/qr-vpbank.jpg";
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
