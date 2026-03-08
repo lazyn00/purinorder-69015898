@@ -849,7 +849,22 @@ export default function Checkout() {
                 {finalPrice.toLocaleString('vi-VN')}đ
               </span>
             </div>
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+            <div className="flex items-start gap-2 pt-2">
+              <Checkbox 
+                id="agree-policy" 
+                checked={agreedPolicy} 
+                onCheckedChange={(checked) => setAgreedPolicy(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="agree-policy" className="text-sm text-muted-foreground leading-snug cursor-pointer">
+                Tôi đã đọc kỹ thông tin sản phẩm và đồng ý với{" "}
+                <a href="/policy" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
+                  chính sách đặt hàng
+                </a>{" "}
+                của Purin Order.
+              </label>
+            </div>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !agreedPolicy}>
                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Đặt hàng ngay"}
             </Button>
           </div>
