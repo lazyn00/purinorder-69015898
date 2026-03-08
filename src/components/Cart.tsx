@@ -2,15 +2,33 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Trash2, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Trash2, Minus, Plus, AlertTriangle } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Cart() {
-  const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice, products } = useCart();
   const [open, setOpen] = useState(false);
+
+  // Check if a cart item is out of stock based on latest realtime data
+  const getItemStockStatus = (item: typeof cartItems[0]) => {
+    const latestProduct = products.find(p => p.id === item.id);
+    if (!latestProduct) return { available: true, maxStock: undefined };
+    
+    const hasVariantStock = latestProduct.variants?.some((v: any) => v.stock !== undefined);
+    if (hasVariantStock && item.selectedVariant) {
+      const variant = latestProduct.variants?.find((v: any) => v.name === item.selectedVariant);
+      if (variant && variant.stock !== undefined) {
+        return { available: variant.stock > 0, maxStock: variant.stock };
+      }
+    }
+    if (latestProduct.stock !== undefined && latestProduct.stock !== null) {
+      return { available: latestProduct.stock > 0, maxStock: latestProduct.stock };
+    }
+    return { available: true, maxStock: undefined };
+  };
 
   const getVariantImage = (item: typeof cartItems[0]) => {
     if (item.selectedVariant && item.variantImageMap) {
@@ -92,7 +110,10 @@ export function Cart() {
                   <ScrollArea className="mt-4 h-[calc(100vh-280px)] flex-1 px-4">
                     <div className="space-y-3">
                       <AnimatePresence initial={false}>
-                        {cartItems.map((item) => (
+                        {cartItems.map((item) => {
+                          const stockStatus = getItemStockStatus(item);
+                          const isOverStock = stockStatus.maxStock !== undefined && item.quantity > stockStatus.maxStock;
+                          return (
                           <motion.div
                             key={`${item.id}-${item.selectedVariant}`}
                             layout
@@ -100,7 +121,7 @@ export function Cart() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -30, height: 0, marginBottom: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="flex gap-3 rounded-xl border p-3"
+                            className={`flex gap-3 rounded-xl border p-3 ${!stockStatus.available ? 'opacity-60 border-destructive/30 bg-destructive/5' : isOverStock ? 'border-yellow-400/50 bg-yellow-50 dark:bg-yellow-950/20' : ''}`}
                           >
                             <img
                               src={getVariantImage(item)}
@@ -114,6 +135,16 @@ export function Cart() {
                               {item.selectedVariant && (
                                 <p className="text-xs text-muted-foreground">
                                   Phân loại: {item.selectedVariant}
+                                </p>
+                              )}
+                              {!stockStatus.available && (
+                                <p className="text-xs text-destructive flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" /> Sản phẩm đã hết hàng
+                                </p>
+                              )}
+                              {stockStatus.available && isOverStock && (
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" /> Chỉ còn {stockStatus.maxStock} sản phẩm
                                 </p>
                               )}
                               <p className="text-sm font-bold text-primary">
@@ -138,7 +169,8 @@ export function Cart() {
                               </div>
                             </div>
                           </motion.div>
-                        ))}
+                          );
+                        })}
                       </AnimatePresence>
                     </div>
                   </ScrollArea>
