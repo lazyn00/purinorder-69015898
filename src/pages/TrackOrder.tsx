@@ -454,7 +454,7 @@ export default function TrackOrder() {
                             <Badge variant="outline" className={`${getStatusColor(order.order_progress)} border font-medium text-[10px] px-1.5 py-0`}>
                               {order.order_progress}
                             </Badge>
-                            {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                            <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
                           </div>
                         </div>
                       </CardHeader>
