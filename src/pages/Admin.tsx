@@ -15,6 +15,7 @@ import { OrderMerging } from "@/components/OrderMerging";
 import AffiliateManagement from "@/components/AffiliateManagement";
 
 import AdminSettings from "@/components/AdminSettings";
+import ProductTrackingFiltered from "@/components/ProductTrackingFiltered";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -2534,31 +2535,13 @@ ${generateEmailContent(order)}
                     if (aggregated.length === 0) {
                       return <p className="text-sm text-muted-foreground">Chưa có đơn hàng nào</p>;
                     }
+
+                    // Get unique product names and statuses for filters
+                    const uniqueNames = Array.from(new Set(aggregated.map(i => i.name))).sort();
+                    const allStatuses = Array.from(new Set(aggregated.flatMap(i => Object.keys(i.progress)))).sort();
                     
                     return (
-                      <div className="space-y-3">
-                        {aggregated.map((item, idx) => (
-                          <div key={idx} className="flex gap-3 p-3 border rounded-lg">
-                            {item.image && (
-                              <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded flex-shrink-0" />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{item.name}</p>
-                              {item.variant && (
-                                <p className="text-xs text-muted-foreground">Phân loại: {item.variant}</p>
-                              )}
-                              <p className="text-sm font-semibold text-primary mt-0.5">Tổng đặt: {item.totalQty}</p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {Object.entries(item.progress).map(([status, qty]) => (
-                                  <Badge key={status} variant="outline" className={`${getProgressColor(status)} text-[10px] px-1.5 py-0`}>
-                                    {status}: {qty}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <ProductTrackingFiltered aggregated={aggregated} uniqueNames={uniqueNames} allStatuses={allStatuses} />
                     );
                   })()}
                 </CardContent>
