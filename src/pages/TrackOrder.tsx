@@ -52,6 +52,7 @@ interface Order {
   payment_type: string;
   payment_proof_url: string;
   second_payment_proof_url: string;
+  additional_bills: string[];
   shipping_provider: string;
   tracking_code: string;
   surcharge: number;
