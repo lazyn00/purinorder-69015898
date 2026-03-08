@@ -2534,10 +2534,15 @@ ${generateEmailContent(order)}
                     if (aggregated.length === 0) {
                       return <p className="text-sm text-muted-foreground">Chưa có đơn hàng nào</p>;
                     }
+
+                    // Get unique product names and statuses for filters
+                    const uniqueNames = Array.from(new Set(aggregated.map(i => i.name))).sort();
+                    const allStatuses = Array.from(new Set(aggregated.flatMap(i => Object.keys(i.progress)))).sort();
                     
                     return (
-                      <div className="space-y-3">
-                        {aggregated.map((item, idx) => (
+                      <ProductTrackingFiltered aggregated={aggregated} uniqueNames={uniqueNames} allStatuses={allStatuses} />
+                    );
+                  })()}
                           <div key={idx} className="flex gap-3 p-3 border rounded-lg">
                             {item.image && (
                               <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded flex-shrink-0" />
