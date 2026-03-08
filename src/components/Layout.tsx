@@ -81,21 +81,19 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  const openMessengerChat = () => {
-    const appDeepLink = "fb-messenger://user-thread/105759462451542";
-    const webFallback = "https://www.facebook.com/messages/t/puorderin";
-    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const openMessengerChat = useCallback(() => {
+    setShowMessengerPopup(true);
+  }, []);
 
-    if (isMobileDevice) {
-      window.location.href = appDeepLink;
-      window.setTimeout(() => {
-        window.location.href = webFallback;
-      }, 1200);
-      return;
-    }
+  const handleOpenApp = useCallback(() => {
+    setShowMessengerPopup(false);
+    window.location.href = "fb-messenger://user-thread/105759462451542";
+  }, []);
 
-    window.open(webFallback, "_blank", "noopener,noreferrer");
-  };
+  const handleOpenWeb = useCallback(() => {
+    setShowMessengerPopup(false);
+    window.open("https://www.facebook.com/messages/t/puorderin", "_blank", "noopener,noreferrer");
+  }, []);
 
   const menuItems = getMenuItems(pageSettings);
 
