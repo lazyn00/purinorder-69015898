@@ -70,7 +70,6 @@ interface EditFields {
   te: string;
   actual_rate: string;
   actual_can: string;
-  actual_pack: string;
   cong: string;
 }
 
