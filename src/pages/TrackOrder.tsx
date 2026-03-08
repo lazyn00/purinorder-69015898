@@ -440,7 +440,7 @@ export default function TrackOrder() {
                 return (
                   <Card key={order.id} className="overflow-hidden">
                     {/* Summary row with thumbnails */}
-                    <button onClick={() => toggleOrderExpand(order.id)} className="w-full text-left">
+                    <button onClick={() => navigate(`/order/${order.id}`)} className="w-full text-left">
                       <CardHeader className="pb-2 pt-3 px-4">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
