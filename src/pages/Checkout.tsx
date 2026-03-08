@@ -58,6 +58,8 @@ export default function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  useEffect(() => { window.scrollTo({ top: 0 }); }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [contactInfo, setContactInfo] = useState({
