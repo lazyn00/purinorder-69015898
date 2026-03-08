@@ -95,6 +95,28 @@ export default function Products() {
     fetchUserListings();
   }, []);
 
+  // Fetch view counts for products
+  useEffect(() => {
+    const fetchViewCounts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('product_views')
+          .select('product_id');
+        
+        if (error) throw error;
+        
+        const counts: Record<number, number> = {};
+        (data || []).forEach((row: { product_id: number }) => {
+          counts[row.product_id] = (counts[row.product_id] || 0) + 1;
+        });
+        setViewCounts(counts);
+      } catch (error) {
+        console.error('Error fetching view counts:', error);
+      }
+    };
+    fetchViewCounts();
+  }, []);
+
   const listingProducts = useMemo(() => {
     return userListings.map(convertListingToProduct);
   }, [userListings]);
