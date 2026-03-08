@@ -123,6 +123,7 @@ function getItemThumbnail(item: any): string | null {
 }
 
 export default function TrackOrder() {
+  const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [isSearching, setIsSearching] = useState(false);
