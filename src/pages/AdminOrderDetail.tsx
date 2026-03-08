@@ -697,7 +697,18 @@ export default function AdminOrderDetail() {
                      placeholder="Ghi chú..."
                      rows={3}
                    />
-                 </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs text-muted-foreground">📌 Ghi chú nội bộ (chỉ admin thấy)</Label>
+                    <Textarea
+                      className="mt-1 text-sm border-amber-200 bg-amber-50/50"
+                      value={adminNote}
+                      onChange={(e) => setAdminNote(e.target.value)}
+                      placeholder="Ghi chú riêng cho admin..."
+                      rows={3}
+                    />
+                  </div>
                </CardContent>
              </Card>
              

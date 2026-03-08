@@ -182,8 +182,6 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </footer>
       
-      <ScrollToTop />
-      
       {/* Messenger Chat Widget */}
       <a
         href="https://m.me/105759462451542"
