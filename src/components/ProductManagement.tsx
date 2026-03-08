@@ -677,11 +677,12 @@ export default function ProductManagement() {
             {sortedProducts.map(product => {
               const deadlineStatus = getDeadlineStatus(product);
               const stockStatus = getStockStatus(product);
+              const isOutOfStock = product.stock !== null && product.stock !== undefined && product.stock <= 0;
               const coverImage = Array.isArray(product.images) && product.images.length > 0 
                 ? product.images[0] as string : null;
               
               return (
-                <TableRow key={product.id} className={deadlineStatus.priority === 4 || product.status === "Ẩn" ? "opacity-50" : ""}>
+                <TableRow key={product.id} className={deadlineStatus.priority === 4 || product.status === "Ẩn" || isOutOfStock ? "opacity-50" : ""}>
                   <TableCell className="font-mono text-xs">{product.id}</TableCell>
                   <TableCell>
                     {coverImage ? (
