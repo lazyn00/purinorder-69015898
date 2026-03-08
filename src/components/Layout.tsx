@@ -38,6 +38,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [showMessengerPopup, setShowMessengerPopup] = useState(false);
   const [pageSettings, setPageSettings] = useState<PageVisibilitySettings>({
     showSellPage: false,
     showAffiliatePage: false
