@@ -42,7 +42,8 @@ export default function AdminSettings() {
   const [adminEmail, setAdminEmail] = useState("ppurin.order@gmail.com");
   const [sendingEmail, setSendingEmail] = useState(false);
   const [exporting, setExporting] = useState(false);
-
+  const [cnyRate, setCnyRate] = useState(DEFAULT_RATE);
+  const [cnyRateInput, setCnyRateInput] = useState(String(DEFAULT_RATE));
   // Load settings from localStorage on mount
   useEffect(() => {
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
