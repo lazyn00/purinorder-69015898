@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, SquareCheck } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
@@ -81,6 +82,7 @@ export default function Checkout() {
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [agreedPolicy, setAgreedPolicy] = useState(false);
 
   // Auto-fill delivery info from database when contact phone changes
   useEffect(() => {
@@ -847,7 +849,22 @@ export default function Checkout() {
                 {finalPrice.toLocaleString('vi-VN')}đ
               </span>
             </div>
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+            <div className="flex items-start gap-2 pt-2">
+              <Checkbox 
+                id="agree-policy" 
+                checked={agreedPolicy} 
+                onCheckedChange={(checked) => setAgreedPolicy(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="agree-policy" className="text-sm text-muted-foreground leading-snug cursor-pointer">
+                Tôi đã đọc kỹ thông tin sản phẩm và đồng ý với{" "}
+                <a href="/policy" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
+                  chính sách đặt hàng
+                </a>{" "}
+                của Purin Order.
+              </label>
+            </div>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !agreedPolicy}>
                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Đặt hàng ngay"}
             </Button>
           </div>
