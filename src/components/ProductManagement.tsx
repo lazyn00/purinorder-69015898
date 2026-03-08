@@ -107,12 +107,27 @@ const getDeadlineStatus = (product: SupabaseProduct) => {
   return { label: "Còn hạn", color: "bg-green-100 text-green-700", priority: 1 };
 };
 
+// Helper: tính tồn khả dụng (ưu tiên tồn theo variant nếu có)
+const getAvailableStock = (product: SupabaseProduct): number => {
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const hasVariantStock = variants.some((v: any) => v?.stock !== undefined && v?.stock !== null);
+
+  if (hasVariantStock) {
+    return variants
+      .filter((v: any) => v?.stock !== undefined && v?.stock !== null)
+      .reduce((sum: number, v: any) => sum + Number(v.stock || 0), 0);
+  }
+
+  if (product.stock === null || product.stock === undefined) return 0;
+  return Number(product.stock || 0);
+};
+
 // Helper: check stock status
 const getStockStatus = (product: SupabaseProduct) => {
-  if (product.stock === null || product.stock === undefined) return null;
-  if (product.stock <= 0) return { label: "Hết hàng", color: "bg-red-100 text-red-700" };
-  if (product.stock <= 5) return { label: `Còn ${product.stock}`, color: "bg-orange-100 text-orange-700" };
-  return { label: `Còn ${product.stock}`, color: "bg-green-100 text-green-700" };
+  const availableStock = getAvailableStock(product);
+  if (availableStock <= 0) return { label: "Hết hàng", color: "bg-red-100 text-red-700" };
+  if (availableStock <= 5) return { label: `Còn ${availableStock}`, color: "bg-orange-100 text-orange-700" };
+  return { label: `Còn ${availableStock}`, color: "bg-green-100 text-green-700" };
 };
 
 export default function ProductManagement() {
@@ -294,8 +309,8 @@ export default function ProductManagement() {
 
     return filtered.sort((a, b) => {
       // Admin: đẩy xuống cuối nếu HẾT HÀNG / HẾT HẠN / bị ẨN
-      const aOutOfStock = a.stock !== null && a.stock !== undefined && a.stock <= 0;
-      const bOutOfStock = b.stock !== null && b.stock !== undefined && b.stock <= 0;
+      const aOutOfStock = getAvailableStock(a) <= 0;
+      const bOutOfStock = getAvailableStock(b) <= 0;
       const aHidden = a.status === "Ẩn";
       const bHidden = b.status === "Ẩn";
       const aPriority = aHidden ? 6 : aOutOfStock ? 5 : getDeadlineStatus(a).priority;
@@ -677,7 +692,7 @@ export default function ProductManagement() {
             {sortedProducts.map(product => {
               const deadlineStatus = getDeadlineStatus(product);
               const stockStatus = getStockStatus(product);
-              const isOutOfStock = product.stock !== null && product.stock !== undefined && product.stock <= 0;
+              const isOutOfStock = getAvailableStock(product) <= 0;
               const coverImage = Array.isArray(product.images) && product.images.length > 0 
                 ? product.images[0] as string : null;
               
