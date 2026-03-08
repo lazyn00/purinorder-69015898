@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Link } from "react-router-dom";
 
 const getProgressColor = (progress: string) => {
   switch (progress) {
@@ -17,6 +19,14 @@ const getProgressColor = (progress: string) => {
   }
 };
 
+interface OrderRef {
+  orderId: string;
+  orderNumber: string;
+  qty: number;
+  progress: string;
+  deliveryName: string;
+}
+
 interface AggregatedItem {
   productId: number;
   name: string;
@@ -24,23 +34,57 @@ interface AggregatedItem {
   image: string;
   totalQty: number;
   progress: { [key: string]: number };
+  orderRefs: OrderRef[];
+}
+
+interface ProductData {
+  id: number;
+  name: string;
+  price: number;
+  te?: number;
+  rate?: number;
+  actual_rate?: number;
+  actual_can?: number;
+  actual_pack?: number;
+  cong?: number;
+  pack?: number;
+  total?: number;
+  chenh?: number;
+  r_v?: number;
+  can_weight?: number;
+  variants?: any[];
 }
 
 interface Props {
   aggregated: AggregatedItem[];
   uniqueNames: string[];
   allStatuses: string[];
+  products: ProductData[];
 }
 
-export default function ProductTrackingFiltered({ aggregated, uniqueNames, allStatuses }: Props) {
+export default function ProductTrackingFiltered({ aggregated, uniqueNames, allStatuses, products }: Props) {
   const [searchName, setSearchName] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = aggregated.filter(item => {
     const matchName = !searchName || item.name.toLowerCase().includes(searchName.toLowerCase());
     const matchStatus = filterStatus === "all" || item.progress[filterStatus];
     return matchName && matchStatus;
   });
+
+  const getProductData = (productId: number) => products.find(p => p.id === productId);
+
+  const getVariantTe = (product: ProductData | undefined, variantName: string) => {
+    if (!product?.variants) return null;
+    const variant = product.variants.find((v: any) => v.name === variantName);
+    return variant?.te || variant?.price || null;
+  };
+
+  const fmt = (val: number | null | undefined) => {
+    if (val === null || val === undefined) return '—';
+    return val.toLocaleString('vi-VN');
+  };
 
   return (
     <div className="space-y-3">
@@ -69,27 +113,119 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
       <p className="text-xs text-muted-foreground">{filtered.length} sản phẩm</p>
 
-      {filtered.map((item, idx) => (
-        <div key={idx} className="flex gap-3 p-3 border rounded-lg">
-          {item.image && (
-            <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded flex-shrink-0" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="font-medium truncate">{item.name}</p>
-            {item.variant && (
-              <p className="text-xs text-muted-foreground">Phân loại: {item.variant}</p>
-            )}
-            <p className="text-sm font-semibold text-primary mt-0.5">Tổng đặt: {item.totalQty}</p>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {Object.entries(item.progress).map(([status, qty]) => (
-                <Badge key={status} variant="outline" className={`${getProgressColor(status)} text-[10px] px-1.5 py-0`}>
-                  {status}: {qty}
-                </Badge>
-              ))}
+      {filtered.map((item, idx) => {
+        const itemKey = `${item.productId}-${item.variant}`;
+        const isExpanded = expandedId === itemKey;
+        const product = getProductData(item.productId);
+        const variantTe = item.variant ? getVariantTe(product, item.variant) : null;
+
+        return (
+          <div key={idx} className="border rounded-lg overflow-hidden">
+            <div
+              className="flex gap-3 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+              onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+            >
+              {item.image && (
+                <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1">
+                  <p className="font-medium truncate">{item.name}</p>
+                  {isExpanded ? <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
+                </div>
+                {item.variant && (
+                  <p className="text-xs text-muted-foreground">Phân loại: {item.variant}</p>
+                )}
+                <p className="text-sm font-semibold text-primary mt-0.5">Tổng đặt: {item.totalQty}</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {Object.entries(item.progress).map(([status, qty]) => (
+                    <Badge key={status} variant="outline" className={`${getProgressColor(status)} text-[10px] px-1.5 py-0`}>
+                      {status}: {qty}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
+
+            {isExpanded && (
+              <div className="border-t bg-muted/20 p-3 space-y-3">
+                {/* Product financial details */}
+                {product && (
+                  <div>
+                    <p className="text-xs font-semibold mb-1.5">📊 Thông tin chi phí</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Giá bán:</span>
+                        <span className="font-medium">{fmt(product.price)}đ</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tệ:</span>
+                        <span className="font-medium">{variantTe ? fmt(variantTe) : fmt(product.te)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Rate thực:</span>
+                        <span className="font-medium">{fmt(product.actual_rate)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Cân thực:</span>
+                        <span className="font-medium">{fmt(product.actual_can)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Pack thực:</span>
+                        <span className="font-medium">{fmt(product.actual_pack)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Công:</span>
+                        <span className="font-medium">{fmt(product.cong)}</span>
+                      </div>
+                      {product.chenh !== null && product.chenh !== undefined && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Chênh:</span>
+                          <span className={`font-medium ${product.chenh >= 0 ? 'text-green-600' : 'text-red-500'}`}>{fmt(product.chenh)}đ</span>
+                        </div>
+                      )}
+                      {product.total !== null && product.total !== undefined && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Tổng:</span>
+                          <span className="font-medium">{fmt(product.total)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <Separator />
+
+                {/* Orders containing this product */}
+                <div>
+                  <p className="text-xs font-semibold mb-1.5">📦 Đơn hàng ({item.orderRefs.length})</p>
+                  <div className="space-y-1.5 max-h-[250px] overflow-y-auto">
+                    {item.orderRefs.map((ref, i) => (
+                      <Link
+                        key={i}
+                        to={`/admin/order/${ref.orderId}`}
+                        className="flex items-center justify-between p-2 rounded bg-background border text-xs hover:border-primary/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-medium text-primary">#{ref.orderNumber}</span>
+                          <span className="text-muted-foreground truncate">{ref.deliveryName}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span>x{ref.qty}</span>
+                          <Badge variant="outline" className={`${getProgressColor(ref.progress)} text-[10px] px-1.5 py-0`}>
+                            {ref.progress}
+                          </Badge>
+                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {filtered.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">Không tìm thấy sản phẩm phù hợp</p>

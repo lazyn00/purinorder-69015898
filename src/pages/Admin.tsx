@@ -156,6 +156,11 @@ interface ProductData {
   actual_can?: number;
   actual_pack?: number;
   cong?: number;
+  pack?: number;
+  total?: number;
+  chenh?: number;
+  r_v?: number;
+  can_weight?: number;
   variants?: any[];
 }
 
@@ -431,7 +436,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, variants');
+        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, pack, total, chenh, r_v, can_weight, variants');
       
       if (error) throw error;
       setProducts((data as ProductData[]) || []);
@@ -2428,6 +2433,7 @@ ${generateEmailContent(order)}
                       image: string; 
                       totalQty: number; 
                       progress: { [key: string]: number };
+                      orderRefs: { orderId: string; orderNumber: string; qty: number; progress: string; deliveryName: string; }[];
                     }>();
                     
                     orders.forEach(order => {
@@ -2436,9 +2442,11 @@ ${generateEmailContent(order)}
                       items.forEach((item: any) => {
                         const key = `${item.id}-${item.selectedVariant || 'no-variant'}`;
                         const existing = itemMap.get(key);
+                        const orderRef = { orderId: order.id, orderNumber: order.order_number || order.id.slice(0, 8), qty: item.quantity || 1, progress: order.order_progress, deliveryName: order.delivery_name };
                         if (existing) {
                           existing.totalQty += (item.quantity || 1);
                           existing.progress[order.order_progress] = (existing.progress[order.order_progress] || 0) + (item.quantity || 1);
+                          existing.orderRefs.push(orderRef);
                         } else {
                           itemMap.set(key, {
                             productId: item.id,
@@ -2446,7 +2454,8 @@ ${generateEmailContent(order)}
                             variant: item.selectedVariant || '',
                             image: item.image || item.images?.[0] || '',
                             totalQty: item.quantity || 1,
-                            progress: { [order.order_progress]: item.quantity || 1 }
+                            progress: { [order.order_progress]: item.quantity || 1 },
+                            orderRefs: [orderRef]
                           });
                         }
                       });
@@ -2463,7 +2472,7 @@ ${generateEmailContent(order)}
                     const allStatuses = Array.from(new Set(aggregated.flatMap(i => Object.keys(i.progress)))).sort();
                     
                     return (
-                      <ProductTrackingFiltered aggregated={aggregated} uniqueNames={uniqueNames} allStatuses={allStatuses} />
+                      <ProductTrackingFiltered aggregated={aggregated} uniqueNames={uniqueNames} allStatuses={allStatuses} products={products} />
                     );
                   })()}
                 </CardContent>
