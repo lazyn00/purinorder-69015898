@@ -43,7 +43,7 @@ export function CategoryPreview({ title, categorySlug, products }: CategoryPrevi
           {displayProducts.map((product, idx) => (
             <CarouselItem
               key={product.id}
-              className="pl-2 md:pl-2.5 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6 xl:basis-[14.28%]"
+              className="pl-2 md:pl-2.5 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
             >
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
