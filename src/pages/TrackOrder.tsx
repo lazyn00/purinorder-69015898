@@ -276,34 +276,34 @@ export default function TrackOrder() {
     }
   };
 
-  const handleUploadSecondPayment = async (orderId: string, file: File) => {
+  const handleUploadAdditionalBill = async (orderId: string, file: File) => {
     setUploadingOrderId(orderId);
     try {
       const order = orders.find(o => o.id === orderId);
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(filePath, file);
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('payment-proofs')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
+
+      // Append to additional_bills array
+      const currentBills = order?.additional_bills || [];
+      const newBills = [...currentBills, publicUrl];
 
       const { error: updateError } = await (supabase as any)
         .from('orders')
-        .update({ 
-          second_payment_proof_url: publicUrl
-        })
+        .update({ additional_bills: newBills })
         .eq('id', orderId);
 
       if (updateError) throw updateError;
 
-      // Gửi thông báo cho admin
       if (order) {
         await supabase.from('admin_notifications').insert({
           type: 'payment_proof',
@@ -315,7 +315,7 @@ export default function TrackOrder() {
 
       setOrders(orders.map(o => 
         o.id === orderId 
-          ? { ...o, second_payment_proof_url: publicUrl } 
+          ? { ...o, additional_bills: newBills } 
           : o
       ));
 
