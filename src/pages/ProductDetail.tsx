@@ -594,10 +594,12 @@ ${cta} ${productUrl}`;
           if (relatedProducts.length === 0) return null;
           return (
             <div className="mt-10 border-t pt-8">
-              <h2 className="text-lg font-bold mb-4 text-foreground">Sản phẩm cùng master</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+              <h2 className="text-lg font-bold mb-4 text-foreground">Sản phẩm liên quan</h2>
+              <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory">
                 {relatedProducts.map(p => (
-                  <ProductCard key={p.id} product={p} />
+                  <div key={p.id} className="flex-shrink-0 w-40 md:w-48 snap-start">
+                    <ProductCard product={p} />
+                  </div>
                 ))}
               </div>
             </div>
