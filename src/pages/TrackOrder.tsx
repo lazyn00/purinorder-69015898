@@ -644,9 +644,17 @@ export default function TrackOrder() {
                         <div className="space-y-2">
                           {order.items && order.items.map((item: any, index: number) => (
                             <div key={index} className="flex items-center gap-2 text-sm">
-                              {(item.image || item.images?.[0]) && (
-                                <img src={item.image || item.images?.[0]} alt={item.name} className="w-10 h-10 object-cover rounded border flex-shrink-0" />
-                              )}
+                              {(() => {
+                                const images = item.images || [];
+                                let imgSrc = null;
+                                if (item.selectedVariant && item.variantImageMap) {
+                                  const vi = item.variantImageMap[item.selectedVariant];
+                                  if (vi !== undefined && images[vi]) imgSrc = images[vi];
+                                }
+                                if (!imgSrc && images.length > 0) imgSrc = images[0];
+                                if (!imgSrc && item.image) imgSrc = item.image;
+                                return imgSrc ? <img src={imgSrc} alt={item.name} className="w-10 h-10 object-cover rounded border flex-shrink-0" /> : null;
+                              })()}
                               <div className="min-w-0">
                                 <p className="truncate">x{item.quantity} {item.name}</p>
                                 {item.selectedVariant && (
