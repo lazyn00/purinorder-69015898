@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, ExternalLink, Save, Pencil, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const getProgressColor = (progress: string) => {
   switch (progress) {
@@ -60,12 +63,33 @@ interface Props {
   uniqueNames: string[];
   allStatuses: string[];
   products: ProductData[];
+  onProductUpdated?: () => void;
 }
 
-export default function ProductTrackingFiltered({ aggregated, uniqueNames, allStatuses, products }: Props) {
+interface EditFields {
+  te: string;
+  actual_rate: string;
+  actual_can: string;
+  actual_pack: string;
+  cong: string;
+}
+
+const FIELD_LABELS: { key: keyof EditFields; label: string }[] = [
+  { key: "te", label: "Tệ" },
+  { key: "actual_rate", label: "Rate thực" },
+  { key: "actual_can", label: "Cân thực" },
+  { key: "actual_pack", label: "Pack thực" },
+  { key: "cong", label: "Công" },
+];
+
+export default function ProductTrackingFiltered({ aggregated, uniqueNames, allStatuses, products, onProductUpdated }: Props) {
   const [searchName, setSearchName] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<EditFields>({ te: "", actual_rate: "", actual_can: "", actual_pack: "", cong: "" });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
   const filtered = aggregated.filter(item => {
     const matchName = !searchName || item.name.toLowerCase().includes(searchName.toLowerCase());
@@ -75,15 +99,97 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
   const getProductData = (productId: number) => products.find(p => p.id === productId);
 
-  const getVariantTe = (product: ProductData | undefined, variantName: string) => {
+  const getVariantData = (product: ProductData | undefined, variantName: string) => {
     if (!product?.variants) return null;
-    const variant = product.variants.find((v: any) => v.name === variantName);
-    return variant?.te || variant?.price || null;
+    return product.variants.find((v: any) => v.name === variantName);
   };
 
   const fmt = (val: number | null | undefined) => {
     if (val === null || val === undefined) return '—';
     return val.toLocaleString('vi-VN');
+  };
+
+  const startEditing = (item: AggregatedItem, product: ProductData | undefined) => {
+    const itemKey = `${item.productId}-${item.variant}`;
+    if (item.variant && product?.variants) {
+      const variant = getVariantData(product, item.variant);
+      setEditFields({
+        te: variant?.te?.toString() ?? product.te?.toString() ?? "",
+        actual_rate: variant?.actual_rate?.toString() ?? product.actual_rate?.toString() ?? "",
+        actual_can: variant?.actual_can?.toString() ?? product.actual_can?.toString() ?? "",
+        actual_pack: variant?.actual_pack?.toString() ?? product.actual_pack?.toString() ?? "",
+        cong: variant?.cong?.toString() ?? product.cong?.toString() ?? "",
+      });
+    } else {
+      setEditFields({
+        te: product?.te?.toString() ?? "",
+        actual_rate: product?.actual_rate?.toString() ?? "",
+        actual_can: product?.actual_can?.toString() ?? "",
+        actual_pack: product?.actual_pack?.toString() ?? "",
+        cong: product?.cong?.toString() ?? "",
+      });
+    }
+    setEditingKey(itemKey);
+  };
+
+  const cancelEditing = () => {
+    setEditingKey(null);
+    setEditFields({ te: "", actual_rate: "", actual_can: "", actual_pack: "", cong: "" });
+  };
+
+  const saveEditing = async (item: AggregatedItem, product: ProductData | undefined) => {
+    if (!product) return;
+    setSaving(true);
+
+    const parseNum = (v: string) => v === "" ? null : parseFloat(v);
+
+    try {
+      if (item.variant && product.variants) {
+        // Update variant-level fields
+        const updatedVariants = product.variants.map((v: any) => {
+          if (v.name === item.variant) {
+            return {
+              ...v,
+              te: parseNum(editFields.te),
+              actual_rate: parseNum(editFields.actual_rate),
+              actual_can: parseNum(editFields.actual_can),
+              actual_pack: parseNum(editFields.actual_pack),
+              cong: parseNum(editFields.cong),
+            };
+          }
+          return v;
+        });
+
+        const { error } = await supabase
+          .from("products")
+          .update({ variants: updatedVariants as any })
+          .eq("id", product.id);
+
+        if (error) throw error;
+      } else {
+        // Update product-level fields
+        const { error } = await supabase
+          .from("products")
+          .update({
+            te: parseNum(editFields.te),
+            actual_rate: parseNum(editFields.actual_rate),
+            actual_can: parseNum(editFields.actual_can),
+            actual_pack: parseNum(editFields.actual_pack),
+            cong: parseNum(editFields.cong),
+          })
+          .eq("id", product.id);
+
+        if (error) throw error;
+      }
+
+      toast({ title: "Đã lưu", description: `Cập nhật thành công ${item.variant ? `phân loại "${item.variant}"` : item.name}` });
+      setEditingKey(null);
+      onProductUpdated?.();
+    } catch (err: any) {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -116,8 +222,16 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
       {filtered.map((item, idx) => {
         const itemKey = `${item.productId}-${item.variant}`;
         const isExpanded = expandedId === itemKey;
+        const isEditing = editingKey === itemKey;
         const product = getProductData(item.productId);
-        const variantTe = item.variant ? getVariantTe(product, item.variant) : null;
+        const variant = item.variant ? getVariantData(product, item.variant) : null;
+
+        // Get display values: variant-level > product-level
+        const displayTe = variant?.te ?? product?.te;
+        const displayRate = variant?.actual_rate ?? product?.actual_rate;
+        const displayCan = variant?.actual_can ?? product?.actual_can;
+        const displayPack = variant?.actual_pack ?? product?.actual_pack;
+        const displayCong = variant?.cong ?? product?.cong;
 
         return (
           <div key={idx} className="border rounded-lg overflow-hidden">
@@ -152,45 +266,92 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
                 {/* Product financial details */}
                 {product && (
                   <div>
-                    <p className="text-xs font-semibold mb-1.5">📊 Thông tin chi phí</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Giá bán:</span>
-                        <span className="font-medium">{fmt(product.price)}đ</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tệ:</span>
-                        <span className="font-medium">{variantTe ? fmt(variantTe) : fmt(product.te)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Rate thực:</span>
-                        <span className="font-medium">{fmt(product.actual_rate)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Cân thực:</span>
-                        <span className="font-medium">{fmt(product.actual_can)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Pack thực:</span>
-                        <span className="font-medium">{fmt(product.actual_pack)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Công:</span>
-                        <span className="font-medium">{fmt(product.cong)}</span>
-                      </div>
-                      {product.chenh !== null && product.chenh !== undefined && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Chênh:</span>
-                          <span className={`font-medium ${product.chenh >= 0 ? 'text-green-600' : 'text-red-500'}`}>{fmt(product.chenh)}đ</span>
-                        </div>
-                      )}
-                      {product.total !== null && product.total !== undefined && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Tổng:</span>
-                          <span className="font-medium">{fmt(product.total)}</span>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-xs font-semibold">📊 Thông tin chi phí {item.variant ? `- ${item.variant}` : ''}</p>
+                      {!isEditing ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          onClick={(e) => { e.stopPropagation(); startEditing(item, product); }}
+                        >
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Sửa
+                        </Button>
+                      ) : (
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs"
+                            onClick={(e) => { e.stopPropagation(); cancelEditing(); }}
+                            disabled={saving}
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Huỷ
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={(e) => { e.stopPropagation(); saveEditing(item, product); }}
+                            disabled={saving}
+                          >
+                            <Save className="h-3 w-3 mr-1" />
+                            Lưu
+                          </Button>
                         </div>
                       )}
                     </div>
+
+                    {isEditing ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {FIELD_LABELS.map(({ key, label }) => (
+                          <div key={key}>
+                            <label className="text-[10px] text-muted-foreground">{label}</label>
+                            <Input
+                              type="number"
+                              className="h-7 text-xs"
+                              value={editFields[key]}
+                              onChange={e => setEditFields(prev => ({ ...prev, [key]: e.target.value }))}
+                              onClick={e => e.stopPropagation()}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Giá bán:</span>
+                          <span className="font-medium">{fmt(product.price)}đ</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Tệ:</span>
+                          <span className="font-medium">{fmt(displayTe)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Rate thực:</span>
+                          <span className="font-medium">{fmt(displayRate)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Cân thực:</span>
+                          <span className="font-medium">{fmt(displayCan)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Pack thực:</span>
+                          <span className="font-medium">{fmt(displayPack)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Công:</span>
+                          <span className="font-medium">{fmt(displayCong)}</span>
+                        </div>
+                        {product.chenh !== null && product.chenh !== undefined && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Chênh:</span>
+                            <span className={`font-medium ${product.chenh >= 0 ? 'text-green-600' : 'text-red-500'}`}>{fmt(product.chenh)}đ</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
