@@ -82,6 +82,7 @@ export default function Checkout() {
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [agreedPolicy, setAgreedPolicy] = useState(false);
 
   // Auto-fill delivery info from database when contact phone changes
   useEffect(() => {
