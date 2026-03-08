@@ -96,6 +96,7 @@ export default function ProductDetail() {
     setCurrentPrice(0);
     setAvailableStock(undefined);
     setCurrent(0);
+    if (carouselApi) carouselApi.scrollTo(0);
     setIsExpired(false);
     setHighlightVariant(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
