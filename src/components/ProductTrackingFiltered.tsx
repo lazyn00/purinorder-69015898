@@ -123,7 +123,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
         te: product?.te?.toString() ?? "",
         actual_rate: product?.actual_rate?.toString() ?? "",
         actual_can: product?.actual_can?.toString() ?? "",
-        actual_pack: product?.actual_pack?.toString() ?? "",
         cong: product?.cong?.toString() ?? "",
       });
     }
