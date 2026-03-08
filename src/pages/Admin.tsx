@@ -1379,6 +1379,39 @@ ${generateEmailContent(order)}
                           />
                         </PopoverContent>
                       </Popover>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => {
+                          const startDate = dateRange.from;
+                          const endDate = dateRange.to;
+                          const periodOrders = orders.filter(order => {
+                            const orderDate = new Date(order.created_at);
+                            return orderDate >= startDate && orderDate <= endDate && order.order_progress !== 'Đã huỷ';
+                          });
+                          
+                          const exportData = periodOrders.map(order => ({
+                            'Mã đơn': order.order_number || order.id.slice(0, 8),
+                            'Ngày đặt': format(new Date(order.created_at), 'dd/MM/yyyy'),
+                            'Khách hàng': order.delivery_name,
+                            'SĐT': order.customer_phone,
+                            'Sản phẩm': (order.items as any[]).map((i: any) => `${i.name}${i.selectedVariant ? ` (${i.selectedVariant})` : ''} x${i.quantity}`).join(', '),
+                            'Tổng tiền': order.total_price,
+                            'Phụ thu': order.surcharge || 0,
+                            'Thanh toán': order.payment_status,
+                            'Tiến độ': order.order_progress,
+                          }));
+                          
+                          const ws = XLSX.utils.json_to_sheet(exportData);
+                          const wb = XLSX.utils.book_new();
+                          XLSX.utils.book_append_sheet(wb, ws, 'Doanh thu');
+                          XLSX.writeFile(wb, `doanh-thu_${format(startDate, 'ddMMyy')}-${format(endDate, 'ddMMyy')}.xlsx`);
+                        }}
+                      >
+                        <FileDown className="mr-1 h-3 w-3" />
+                        Xuất Excel
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="px-2 sm:px-6">
