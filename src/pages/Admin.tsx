@@ -436,7 +436,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, variants');
+        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, pack, total, chenh, r_v, can_weight, variants');
       
       if (error) throw error;
       setProducts((data as ProductData[]) || []);
