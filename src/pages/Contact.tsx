@@ -18,6 +18,7 @@ const PAYMENT_INFO = {
 export default function Contact() {
   const { toast } = useToast();
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
+  const [showQr, setShowQr] = useState<string | null>(null);
 
   const handleCopy = (label: string, value: string) => {
     const textToCopy = `${label}: ${value}\nTên: ${PAYMENT_INFO.accountName}`;
@@ -57,7 +58,7 @@ export default function Contact() {
                 <Button
                   variant="outline"
                   className="w-full justify-between h-auto py-3"
-                  onClick={() => handleCopy("VPBank", PAYMENT_INFO.vpbank)}
+                  onClick={() => { handleCopy("VPBank", PAYMENT_INFO.vpbank); setShowQr(showQr === "VPBank" ? null : "VPBank"); }}
                 >
                   <span className="font-medium">VPBank</span>
                   {copiedItem === "VPBank" ? (
@@ -66,11 +67,16 @@ export default function Contact() {
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
+                {showQr === "VPBank" && (
+                  <div className="flex justify-center py-2">
+                    <img src={qrVpbank} alt="QR VPBank" className="max-w-[220px] rounded-lg shadow-sm" />
+                  </div>
+                )}
 
                 <Button
                   variant="outline"
                   className="w-full justify-between h-auto py-3"
-                  onClick={() => handleCopy("Momo", PAYMENT_INFO.momo)}
+                  onClick={() => { handleCopy("Momo", PAYMENT_INFO.momo); setShowQr(showQr === "Momo" ? null : "Momo"); }}
                 >
                   <span className="font-medium">Momo</span>
                   {copiedItem === "Momo" ? (
@@ -79,11 +85,16 @@ export default function Contact() {
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
+                {showQr === "Momo" && (
+                  <div className="flex justify-center py-2">
+                    <img src={qrMomo} alt="QR Momo" className="max-w-[220px] rounded-lg shadow-sm" />
+                  </div>
+                )}
 
                 <Button
                   variant="outline"
                   className="w-full justify-between h-auto py-3"
-                  onClick={() => handleCopy("ZaloPay", PAYMENT_INFO.zalopay)}
+                  onClick={() => { handleCopy("ZaloPay", PAYMENT_INFO.zalopay); setShowQr(showQr === "ZaloPay" ? null : "ZaloPay"); }}
                 >
                   <span className="font-medium">ZaloPay</span>
                   {copiedItem === "ZaloPay" ? (
@@ -92,22 +103,11 @@ export default function Contact() {
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
-
-                {/* QR Codes */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
-                  <div className="text-center">
-                    <p className="text-xs font-medium mb-2 text-muted-foreground">VPBank</p>
-                    <img src={qrVpbank} alt="QR VPBank" className="w-full max-w-[180px] mx-auto rounded-lg shadow-sm" />
+                {showQr === "ZaloPay" && (
+                  <div className="flex justify-center py-2">
+                    <img src={qrZalopay} alt="QR ZaloPay" className="max-w-[220px] rounded-lg shadow-sm" />
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs font-medium mb-2 text-muted-foreground">Momo</p>
-                    <img src={qrMomo} alt="QR Momo" className="w-full max-w-[180px] mx-auto rounded-lg shadow-sm" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-medium mb-2 text-muted-foreground">ZaloPay</p>
-                    <img src={qrZalopay} alt="QR ZaloPay" className="w-full max-w-[180px] mx-auto rounded-lg shadow-sm" />
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
             
