@@ -13,12 +13,21 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
+import qrMomo from "@/assets/qr-momo.jpg";
+import qrZalopay from "@/assets/qr-zalopay.jpg";
+import qrVpbank from "@/assets/qr-vpbank.jpg";
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
   vpbank: "0395939035",
   momo: "0395939035",
   zalopay: "0395939035"
+};
+
+const QR_IMAGES: { [key: string]: string } = {
+  "Ngân hàng": qrVpbank,
+  "Momo": qrMomo,
+  "Zalopay": qrZalopay,
 };
 
 // === HÀM HELPER: LẤY ẢNH THEO VARIANT ===
