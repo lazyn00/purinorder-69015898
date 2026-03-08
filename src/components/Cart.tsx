@@ -120,19 +120,42 @@ export function Cart() {
                                 variant="outline"
                                 size="icon"
                                 className="h-6 w-6"
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.id,
-                                    item.selectedVariant,
-                                    item.quantity - 1,
-                                  )
-                                }
+                                onClick={() => {
+                                  if (item.quantity <= 1) {
+                                    setDeleteConfirm({ id: item.id, variant: item.selectedVariant });
+                                  } else {
+                                    updateQuantity(item.id, item.selectedVariant, item.quantity - 1);
+                                  }
+                                }}
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="w-8 text-center text-sm font-medium">
-                                {item.quantity}
-                              </span>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (isNaN(val) || val < 0) return;
+                                  if (val === 0) {
+                                    setDeleteConfirm({ id: item.id, variant: item.selectedVariant });
+                                  } else {
+                                    updateQuantity(item.id, item.selectedVariant, val);
+                                  }
+                                }}
+                                className="w-12 h-6 text-center text-sm font-medium p-0 border-0 focus-visible:ring-0 shadow-none"
+                              />
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() =>
+                                  updateQuantity(item.id, item.selectedVariant, item.quantity + 1)
+                                }
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
                               <Button
                                 variant="outline"
                                 size="icon"
