@@ -156,6 +156,11 @@ interface ProductData {
   actual_can?: number;
   actual_pack?: number;
   cong?: number;
+  pack?: number;
+  total?: number;
+  chenh?: number;
+  r_v?: number;
+  can_weight?: number;
   variants?: any[];
 }
 
