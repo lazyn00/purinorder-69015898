@@ -584,7 +584,7 @@ ${cta} ${productUrl}`;
 
         {/* Sản phẩm liên quan (cùng master) */}
         {product.master && (() => {
-          const validStatuses = ['Sẵn', 'Đặt hàng', 'Sắp đóng order'];
+          const validStatuses = ['Sẵn', 'Đặt hàng', 'Sắp đóng order', 'Order', 'Pre-order', 'Deal'];
           const relatedProducts = products.filter(p => 
             p.id !== product.id && 
             p.master === product.master &&
