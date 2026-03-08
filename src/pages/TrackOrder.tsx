@@ -641,10 +641,18 @@ export default function TrackOrder() {
                       {/* Products list */}
                       <div>
                         <p className="text-muted-foreground text-xs mb-1">Sản phẩm:</p>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {order.items && order.items.map((item: any, index: number) => (
-                            <div key={index} className="text-sm">
-                              x{item.quantity} {item.name}{item.selectedVariant && ` (${item.selectedVariant})`}
+                            <div key={index} className="flex items-center gap-2 text-sm">
+                              {(item.image || item.images?.[0]) && (
+                                <img src={item.image || item.images?.[0]} alt={item.name} className="w-10 h-10 object-cover rounded border flex-shrink-0" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="truncate">x{item.quantity} {item.name}</p>
+                                {item.selectedVariant && (
+                                  <p className="text-xs text-muted-foreground">{item.selectedVariant}</p>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
