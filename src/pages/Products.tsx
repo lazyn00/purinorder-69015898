@@ -150,6 +150,10 @@ export default function Products() {
     if (!aAvailable && bAvailable) return 1;
     if ((a as any).isUserListing && !(b as any).isUserListing) return -1;
     if (!(a as any).isUserListing && (b as any).isUserListing) return 1;
+    // Ưu tiên sản phẩm có nhiều lượt xem hơn
+    const aViews = viewCounts[Math.abs(a.id)] || 0;
+    const bViews = viewCounts[Math.abs(b.id)] || 0;
+    if (aViews !== bViews) return bViews - aViews;
     return Math.abs(b.id) - Math.abs(a.id);
   });
 
