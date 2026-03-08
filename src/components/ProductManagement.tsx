@@ -107,12 +107,44 @@ const getDeadlineStatus = (product: SupabaseProduct) => {
   return { label: "Còn hạn", color: "bg-green-100 text-green-700", priority: 1 };
 };
 
+// Helper: out of stock logic for admin list
+const isOutOfStockProduct = (product: SupabaseProduct) => {
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const hasVariantStock = variants.some((v: any) => v?.stock !== null && v?.stock !== undefined);
+
+  if (hasVariantStock) {
+    const totalVariantStock = variants
+      .filter((v: any) => v?.stock !== null && v?.stock !== undefined)
+      .reduce((sum: number, v: any) => sum + (Number(v.stock) || 0), 0);
+    return totalVariantStock <= 0;
+  }
+
+  // Không điền stock cũng coi là hết hàng trong admin sorting UI
+  if (product.stock === null || product.stock === undefined) return true;
+  return product.stock <= 0;
+};
+
 // Helper: check stock status
 const getStockStatus = (product: SupabaseProduct) => {
-  if (product.stock === null || product.stock === undefined) return null;
-  if (product.stock <= 0) return { label: "Hết hàng", color: "bg-red-100 text-red-700" };
-  if (product.stock <= 5) return { label: `Còn ${product.stock}`, color: "bg-orange-100 text-orange-700" };
-  return { label: `Còn ${product.stock}`, color: "bg-green-100 text-green-700" };
+  if (isOutOfStockProduct(product)) return { label: "Hết hàng", color: "bg-red-100 text-red-700" };
+
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const hasVariantStock = variants.some((v: any) => v?.stock !== null && v?.stock !== undefined);
+
+  if (hasVariantStock) {
+    const totalVariantStock = variants
+      .filter((v: any) => v?.stock !== null && v?.stock !== undefined)
+      .reduce((sum: number, v: any) => sum + (Number(v.stock) || 0), 0);
+    if (totalVariantStock <= 5) return { label: `Còn ${totalVariantStock}`, color: "bg-orange-100 text-orange-700" };
+    return { label: `Còn ${totalVariantStock}`, color: "bg-green-100 text-green-700" };
+  }
+
+  if (product.stock !== null && product.stock !== undefined) {
+    if (product.stock <= 5) return { label: `Còn ${product.stock}`, color: "bg-orange-100 text-orange-700" };
+    return { label: `Còn ${product.stock}`, color: "bg-green-100 text-green-700" };
+  }
+
+  return { label: "Hết hàng", color: "bg-red-100 text-red-700" };
 };
 
 export default function ProductManagement() {
