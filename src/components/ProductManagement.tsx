@@ -709,8 +709,8 @@ export default function ProductManagement() {
               const stockStatus = getStockStatus(product);
               const coverImage = Array.isArray(product.images) && product.images.length > 0 
                 ? product.images[0] as string : null;
-              // Chỉ mờ khi hết hạn HOẶC stock rõ ràng = 0 (không mờ khi stock = null)
-              const isOutOfStock = product.stock !== null && product.stock !== undefined && product.stock <= 0;
+              // Mờ khi hết hạn HOẶC hết hàng (bao gồm stock = 0 hoặc không điền)
+              const isOutOfStock = isOutOfStockProduct(product);
               const isDimmed = deadlineStatus.priority === 4 || isOutOfStock;
               
               return (
