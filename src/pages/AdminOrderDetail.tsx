@@ -514,7 +514,9 @@ export default function AdminOrderDetail() {
                             <Select
                               value={item.selectedVariant || ''}
                               onValueChange={(val) => {
-                                setEditableItems(prev => prev.map((it, i) => i === idx ? { ...it, selectedVariant: val } : it));
+                                const variant = availableVariants.find((v: any) => v.name === val);
+                                const variantPrice = variant?.price != null ? variant.price : item.price;
+                                setEditableItems(prev => prev.map((it, i) => i === idx ? { ...it, selectedVariant: val, price: variantPrice } : it));
                               }}
                             >
                               <SelectTrigger className="h-7 text-xs mt-1 w-fit min-w-[120px]">
