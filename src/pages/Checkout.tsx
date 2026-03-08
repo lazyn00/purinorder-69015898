@@ -8,11 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, User, MapPin, CreditCard, ShoppingBag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+
+const checkoutSteps = [
+  { icon: User, label: "Liên hệ" },
+  { icon: MapPin, label: "Nhận hàng" },
+  { icon: CreditCard, label: "Thanh toán" },
+  { icon: ShoppingBag, label: "Xác nhận" },
+];
 
 const PAYMENT_INFO = {
   accountName: "BUI THANH NHU Y",
