@@ -294,10 +294,11 @@ export default function ProductManagement() {
 
     return filtered.sort((a, b) => {
       // Out of stock items go to bottom (before expired)
-      const aOutOfStock = (a.stock !== null && a.stock !== undefined && a.stock <= 0);
-      const bOutOfStock = (b.stock !== null && b.stock !== undefined && b.stock <= 0);
-      const aPriority = aOutOfStock ? 3 : getDeadlineStatus(a).priority;
-      const bPriority = bOutOfStock ? 3 : getDeadlineStatus(b).priority;
+      // Admin: chỉ đẩy xuống cuối nếu HẾT HẠN hoặc bị ẨN, không đẩy xuống vì stock
+      const aHidden = a.status === "Ẩn";
+      const bHidden = b.status === "Ẩn";
+      const aPriority = aHidden ? 5 : getDeadlineStatus(a).priority;
+      const bPriority = bHidden ? 5 : getDeadlineStatus(b).priority;
       if (aPriority !== bPriority) return aPriority - bPriority;
       return b.id - a.id;
     });
