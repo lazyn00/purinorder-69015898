@@ -8,6 +8,11 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+interface ViewCount {
+  product_id: number;
+  count: number;
+}
+
 interface UserListing {
   id: string;
   listing_code: string;
@@ -56,6 +61,7 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
+  const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
   const [searchParams] = useSearchParams();
 
   // Capture referral code from URL and store in localStorage
@@ -87,6 +93,28 @@ export default function Products() {
     };
 
     fetchUserListings();
+  }, []);
+
+  // Fetch view counts for products
+  useEffect(() => {
+    const fetchViewCounts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('product_views')
+          .select('product_id');
+        
+        if (error) throw error;
+        
+        const counts: Record<number, number> = {};
+        (data || []).forEach((row: { product_id: number }) => {
+          counts[row.product_id] = (counts[row.product_id] || 0) + 1;
+        });
+        setViewCounts(counts);
+      } catch (error) {
+        console.error('Error fetching view counts:', error);
+      }
+    };
+    fetchViewCounts();
   }, []);
 
   const listingProducts = useMemo(() => {
@@ -122,6 +150,10 @@ export default function Products() {
     if (!aAvailable && bAvailable) return 1;
     if ((a as any).isUserListing && !(b as any).isUserListing) return -1;
     if (!(a as any).isUserListing && (b as any).isUserListing) return 1;
+    // Ưu tiên sản phẩm có nhiều lượt xem hơn
+    const aViews = viewCounts[Math.abs(a.id)] || 0;
+    const bViews = viewCounts[Math.abs(b.id)] || 0;
+    if (aViews !== bViews) return bViews - aViews;
     return Math.abs(b.id) - Math.abs(a.id);
   });
 
