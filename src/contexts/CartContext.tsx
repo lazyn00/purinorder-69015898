@@ -140,23 +140,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Sync cart items stock with latest product data from realtime
-  useEffect(() => {
-    if (cartItems.length === 0 || products.length === 0) return;
-    
-    setCartItems(prev => prev.map(cartItem => {
-      const latestProduct = products.find(p => p.id === cartItem.id);
-      if (!latestProduct) return cartItem;
-      
-      // Update stock info in cart item
-      return {
-        ...cartItem,
-        stock: latestProduct.stock,
-        variants: latestProduct.variants,
-      };
-    }));
-  }, [products]); // Only re-sync when products change (via realtime)
-
   const addToCart = (product: Product, quantity: number, variant: string) => {
     setCartItems(prev => {
       const existingItem = prev.find(item => 

@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
 import {
   Carousel,
   CarouselContent,
@@ -18,47 +17,41 @@ interface CategoryPreviewProps {
 }
 
 export function CategoryPreview({ title, categorySlug, products }: CategoryPreviewProps) {
+  // Hiển thị tối đa 50 sản phẩm trong danh sách đã được lọc
   const displayProducts = products.slice(0, 50);
-  if (displayProducts.length === 0) return null;
+
+  if (displayProducts.length === 0) {
+    return null;
+  }
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="mb-12"
-    >
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h2>
+    <section className="mb-12">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl md:text-3xl font-bold">{title}</h2>
         <Link to={`/category/${categorySlug}`}>
-          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" className="gap-2">
             Xem thêm <ChevronRight className="h-4 w-4" />
           </Button>
         </Link>
       </div>
 
-      <Carousel opts={{ align: "start", loop: false }} className="w-full">
-        <CarouselContent className="-ml-1.5 md:-ml-2">
-          {displayProducts.map((product, idx) => (
-            <CarouselItem
-              key={product.id}
-              className="pl-2 md:pl-2.5 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
-            >
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.3) }}
-              >
-                <ProductCard product={product} />
-              </motion.div>
+      <Carousel
+        opts={{
+          align: "start",
+          loop: false,
+        }}
+        className="w-full"
+      >
+        <CarouselContent className="-ml-2 md:-ml-4">
+          {displayProducts.map((product) => (
+            <CarouselItem key={product.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6">
+              <ProductCard product={product} />
             </CarouselItem>
           ))}
         </CarouselContent>
         <CarouselPrevious className="hidden md:flex" />
         <CarouselNext className="hidden md:flex" />
       </Carousel>
-    </motion.section>
+    </section>
   );
 }
