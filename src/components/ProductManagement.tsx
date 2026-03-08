@@ -692,7 +692,7 @@ export default function ProductManagement() {
             {sortedProducts.map(product => {
               const deadlineStatus = getDeadlineStatus(product);
               const stockStatus = getStockStatus(product);
-              const isOutOfStock = product.stock !== null && product.stock !== undefined && product.stock <= 0;
+              const isOutOfStock = getAvailableStock(product) <= 0;
               const coverImage = Array.isArray(product.images) && product.images.length > 0 
                 ? product.images[0] as string : null;
               
