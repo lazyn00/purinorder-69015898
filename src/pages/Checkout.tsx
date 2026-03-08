@@ -653,7 +653,7 @@ export default function Checkout() {
                 <Input id="contact-phone" type="tel" value={contactInfo.phone} onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})} placeholder="090..." required />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thông tin nhận hàng</h2>
