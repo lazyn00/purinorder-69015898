@@ -137,6 +137,16 @@ export function Cart() {
                                   Phân loại: {item.selectedVariant}
                                 </p>
                               )}
+                              {!stockStatus.available && (
+                                <p className="text-xs text-destructive flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" /> Sản phẩm đã hết hàng
+                                </p>
+                              )}
+                              {stockStatus.available && isOverStock && (
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" /> Chỉ còn {stockStatus.maxStock} sản phẩm
+                                </p>
+                              )}
                               <p className="text-sm font-bold text-primary">
                                 {(item.price * item.quantity).toLocaleString("vi-VN")}đ
                               </p>
@@ -159,7 +169,8 @@ export function Cart() {
                               </div>
                             </div>
                           </motion.div>
-                        ))}
+                          );
+                        })}
                       </AnimatePresence>
                     </div>
                   </ScrollArea>
