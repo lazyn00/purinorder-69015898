@@ -293,12 +293,13 @@ export default function ProductManagement() {
     });
 
     return filtered.sort((a, b) => {
-      // Out of stock items go to bottom (before expired)
-      // Admin: chỉ đẩy xuống cuối nếu HẾT HẠN hoặc bị ẨN, không đẩy xuống vì stock
+      // Admin: đẩy xuống cuối nếu HẾT HÀNG / HẾT HẠN / bị ẨN
+      const aOutOfStock = a.stock !== null && a.stock !== undefined && a.stock <= 0;
+      const bOutOfStock = b.stock !== null && b.stock !== undefined && b.stock <= 0;
       const aHidden = a.status === "Ẩn";
       const bHidden = b.status === "Ẩn";
-      const aPriority = aHidden ? 5 : getDeadlineStatus(a).priority;
-      const bPriority = bHidden ? 5 : getDeadlineStatus(b).priority;
+      const aPriority = aHidden ? 6 : aOutOfStock ? 5 : getDeadlineStatus(a).priority;
+      const bPriority = bHidden ? 6 : bOutOfStock ? 5 : getDeadlineStatus(b).priority;
       if (aPriority !== bPriority) return aPriority - bPriority;
       return b.id - a.id;
     });
