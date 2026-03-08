@@ -104,7 +104,7 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="px-1.5 py-1.5">
-          <h3 className="text-xs font-normal line-clamp-2 leading-4 min-h-[32px] text-foreground/90">
+          <h3 className="text-xs font-semibold line-clamp-2 leading-4 min-h-[32px] text-foreground/90">
             {product.name}
           </h3>
           <p className={`mt-0.5 truncate text-sm font-semibold ${isUnavailable ? 'text-muted-foreground' : 'text-primary'}`}>
