@@ -494,10 +494,7 @@ export default function TrackOrder() {
                     {/* Expanded details */}
                     {isExpanded && (
                       <CardContent className="pt-0 px-4 pb-4 space-y-3 text-sm border-t">
-                        {/* Progress Stepper */}
-                        <div className="pt-3 pb-1">
-                          <OrderProgressStepper currentProgress={order.order_progress} />
-                        </div>
+                        <div className="pt-3" />
 
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Mã đơn:</span>
