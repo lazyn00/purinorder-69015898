@@ -363,6 +363,7 @@ export default function ProductManagement() {
       stock: product.stock,
       link_order: product.link_order,
       proof: product.proof,
+      proof_images: Array.isArray(product.proof_images) ? product.proof_images as string[] : [],
       actual_rate: product.actual_rate,
       actual_can: product.actual_can,
       actual_pack: product.actual_pack,
