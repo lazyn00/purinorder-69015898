@@ -119,6 +119,22 @@ export default function CustomerOrderDetail() {
       if (error) throw error;
       setOrder(data as Order);
 
+      // Fetch proof images for products in the order
+      const orderItems = (data as any).items || [];
+      const productIds = orderItems.map((item: any) => item.id).filter(Boolean);
+      if (productIds.length > 0) {
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('id, name, proof_images')
+          .in('id', productIds);
+        if (productsData) {
+          const proofs = productsData
+            .filter((p: any) => p.proof_images && Array.isArray(p.proof_images) && p.proof_images.length > 0)
+            .map((p: any) => ({ productName: p.name, images: p.proof_images as string[] }));
+          setProofImages(proofs);
+        }
+      }
+
       // Fetch status history
       const { data: historyData } = await supabase
         .from("order_status_history")
