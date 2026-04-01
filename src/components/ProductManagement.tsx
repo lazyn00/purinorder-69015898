@@ -917,9 +917,37 @@ export default function ProductManagement() {
                 <Label className="text-xs">Link order</Label>
                 <Input value={form.link_order || ""} onChange={e => setForm(prev => ({ ...prev, link_order: e.target.value }))} className="h-8 text-sm" />
               </div>
-              <div>
+               <div>
                 <Label className="text-xs">Proof</Label>
                 <Input value={form.proof || ""} onChange={e => setForm(prev => ({ ...prev, proof: e.target.value }))} className="h-8 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Ảnh bill checkout (proof mua)</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {(form.proof_images || []).map((url: string, i: number) => (
+                    <div key={i} className="relative group">
+                      <img src={url} alt={`proof-${i}`} className="w-16 h-16 object-cover rounded border" />
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => ({ ...prev, proof_images: prev.proof_images.filter((_: string, idx: number) => idx !== i) }))}
+                        className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >×</button>
+                    </div>
+                  ))}
+                  <label className="w-16 h-16 border-2 border-dashed rounded flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                    <span className="text-xl text-muted-foreground">+</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const fileExt = file.name.split('.').pop();
+                      const fileName = `proof_${Date.now()}.${fileExt}`;
+                      const { error } = await supabase.storage.from('product-images').upload(fileName, file);
+                      if (error) { toast({ title: "Lỗi upload", variant: "destructive" }); return; }
+                      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);
+                      setForm(prev => ({ ...prev, proof_images: [...(prev.proof_images || []), publicUrl] }));
+                    }} />
+                  </label>
+                </div>
               </div>
             </div>
 
