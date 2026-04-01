@@ -436,15 +436,31 @@ export default function AdminOrderDetail() {
                    </div>
                  )}
                  
-                 <div>
-                   <Label>Phụ thu (đ)</Label>
-                   <Input
-                     className="mt-1"
-                     type="number"
-                     value={surcharge}
-                     onChange={(e) => setSurcharge(e.target.value)}
-                   />
-                 </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Ship nội địa (đ)</Label>
+                      <Input
+                        className="mt-1"
+                        type="number"
+                        value={shippingFee}
+                        onChange={(e) => setShippingFee(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label>Khác (đ)</Label>
+                      <Input
+                        className="mt-1"
+                        type="number"
+                        value={otherFee}
+                        onChange={(e) => setOtherFee(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Phụ thu: <span className="font-semibold text-foreground">{((parseInt(shippingFee) || 0) + (parseInt(otherFee) || 0)).toLocaleString('vi-VN')}đ</span>
+                  </div>
                </CardContent>
              </Card>
              
