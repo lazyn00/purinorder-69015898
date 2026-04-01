@@ -407,7 +407,29 @@ export default function CustomerOrderDetail() {
           </CardContent>
         </Card>
 
-        {/* Payment info */}
+        {/* Proof images */}
+        {proofImages.length > 0 && (
+          <Card className="mb-4 border-green-200 bg-green-50 dark:bg-green-950/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">✅ Proof mua hàng</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {proofImages.map((proof, i) => (
+                <div key={i}>
+                  <p className="text-sm font-medium mb-1.5">{proof.productName}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {proof.images.map((url, j) => (
+                      <a key={j} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt={`Proof ${j + 1}`} className="w-20 h-20 object-cover rounded-lg border hover:opacity-80 transition-opacity" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="mb-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-1.5"><CreditCard className="h-4 w-4" /> Thanh toán</CardTitle>
