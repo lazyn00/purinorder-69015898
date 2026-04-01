@@ -261,11 +261,13 @@ export type Database = {
           items: Json
           order_number: string | null
           order_progress: string | null
+          other_fee: number | null
           payment_method: string
           payment_proof_url: string | null
           payment_status: string | null
           payment_type: string
           second_payment_proof_url: string | null
+          shipping_fee: number | null
           shipping_provider: string | null
           status: string | null
           surcharge: number | null
@@ -290,11 +292,13 @@ export type Database = {
           items: Json
           order_number?: string | null
           order_progress?: string | null
+          other_fee?: number | null
           payment_method: string
           payment_proof_url?: string | null
           payment_status?: string | null
           payment_type?: string
           second_payment_proof_url?: string | null
+          shipping_fee?: number | null
           shipping_provider?: string | null
           status?: string | null
           surcharge?: number | null
@@ -319,11 +323,13 @@ export type Database = {
           items?: Json
           order_number?: string | null
           order_progress?: string | null
+          other_fee?: number | null
           payment_method?: string
           payment_proof_url?: string | null
           payment_status?: string | null
           payment_type?: string
           second_payment_proof_url?: string | null
+          shipping_fee?: number | null
           shipping_provider?: string | null
           status?: string | null
           surcharge?: number | null
@@ -410,6 +416,7 @@ export type Database = {
           price_display: string | null
           production_time: string | null
           proof: string | null
+          proof_images: Json | null
           r_v: number | null
           rate: number | null
           size: string | null
@@ -448,6 +455,7 @@ export type Database = {
           price_display?: string | null
           production_time?: string | null
           proof?: string | null
+          proof_images?: Json | null
           r_v?: number | null
           rate?: number | null
           size?: string | null
@@ -486,6 +494,7 @@ export type Database = {
           price_display?: string | null
           production_time?: string | null
           proof?: string | null
+          proof_images?: Json | null
           r_v?: number | null
           rate?: number | null
           size?: string | null
