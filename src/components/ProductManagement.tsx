@@ -90,6 +90,7 @@ const emptyForm: ProductFormData = {
   stock: null,
   link_order: null,
   proof: null,
+  proof_images: [],
   actual_rate: null,
   actual_can: null,
   actual_pack: null,
