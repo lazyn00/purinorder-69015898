@@ -46,6 +46,7 @@ interface SupabaseProduct {
   stock: number | null;
   link_order: string | null;
   proof: string | null;
+  proof_images: string[];
   actual_rate: number | null;
   actual_can: number | null;
   actual_pack: number | null;
