@@ -203,18 +203,21 @@ export default function AdminOrderDetail() {
      
      setIsSaving(true);
      try {
-        const newTotalPrice = editableItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
-        const updates: any = {
-          payment_status: paymentStatus,
-          order_progress: orderProgress,
-          shipping_provider: shippingProvider,
-          tracking_code: trackingCode,
-          surcharge: parseInt(surcharge) || 0,
-          delivery_note: deliveryNote,
-          admin_note: adminNote,
-          items: editableItems,
-          total_price: newTotalPrice
-        };
+         const newTotalPrice = editableItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+         const computedSurcharge = (parseInt(shippingFee) || 0) + (parseInt(otherFee) || 0);
+         const updates: any = {
+           payment_status: paymentStatus,
+           order_progress: orderProgress,
+           shipping_provider: shippingProvider,
+           tracking_code: trackingCode,
+           surcharge: computedSurcharge,
+           shipping_fee: parseInt(shippingFee) || 0,
+           other_fee: parseInt(otherFee) || 0,
+           delivery_note: deliveryNote,
+           admin_note: adminNote,
+           items: editableItems,
+           total_price: newTotalPrice
+         };
        
        // Track status changes
        const historyInserts: any[] = [];
