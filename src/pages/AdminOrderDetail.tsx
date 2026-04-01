@@ -156,7 +156,9 @@ export default function AdminOrderDetail() {
           setOrderProgress(orderTyped.order_progress || "");
           setShippingProvider(orderTyped.shipping_provider || "");
           setTrackingCode(orderTyped.tracking_code || "");
-          setSurcharge(orderTyped.surcharge?.toString() || "0");
+           setSurcharge(orderTyped.surcharge?.toString() || "0");
+           setShippingFee((orderTyped as any).shipping_fee?.toString() || "0");
+           setOtherFee((orderTyped as any).other_fee?.toString() || "0");
           setDeliveryNote(orderTyped.delivery_note || "");
           setAdminNote((orderTyped as any).admin_note || "");
          
