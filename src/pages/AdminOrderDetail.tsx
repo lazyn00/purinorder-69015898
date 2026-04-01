@@ -114,7 +114,9 @@ export default function AdminOrderDetail() {
   const [orderProgress, setOrderProgress] = useState("");
   const [shippingProvider, setShippingProvider] = useState("");
   const [trackingCode, setTrackingCode] = useState("");
-  const [surcharge, setSurcharge] = useState("");
+   const [surcharge, setSurcharge] = useState("");
+   const [shippingFee, setShippingFee] = useState("");
+   const [otherFee, setOtherFee] = useState("");
   const [deliveryNote, setDeliveryNote] = useState("");
   const [adminNote, setAdminNote] = useState("");
   

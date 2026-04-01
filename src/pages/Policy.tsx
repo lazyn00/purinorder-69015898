@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MiddlemanPolicy } from "@/components/MiddlemanPolicy";
+
 
 export default function Policy() {
   return (
