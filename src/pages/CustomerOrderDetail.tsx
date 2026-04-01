@@ -99,6 +99,7 @@ export default function CustomerOrderDetail() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [uploadingBill, setUploadingBill] = useState(false);
   const [confirmingComplete, setConfirmingComplete] = useState(false);
+  const [proofImages, setProofImages] = useState<{ productName: string; images: string[] }[]>([]);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
