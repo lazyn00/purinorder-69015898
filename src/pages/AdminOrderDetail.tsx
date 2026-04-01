@@ -62,29 +62,31 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
    }
  };
  
- interface Order {
-   id: string;
-   order_number: string;
-   created_at: string;
-   customer_phone: string;
-   customer_email: string;
-   customer_fb: string;
-   delivery_name: string;
-   delivery_phone: string;
-   delivery_address: string;
-   delivery_note: string;
-   items: any[];
-   total_price: number;
-   payment_status: string;
-   order_progress: string;
-   payment_method: string;
-   payment_type: string;
-   payment_proof_url: string;
-   second_payment_proof_url: string;
-   shipping_provider: string;
-   tracking_code: string;
-   surcharge: number;
- }
+  interface Order {
+    id: string;
+    order_number: string;
+    created_at: string;
+    customer_phone: string;
+    customer_email: string;
+    customer_fb: string;
+    delivery_name: string;
+    delivery_phone: string;
+    delivery_address: string;
+    delivery_note: string;
+    items: any[];
+    total_price: number;
+    payment_status: string;
+    order_progress: string;
+    payment_method: string;
+    payment_type: string;
+    payment_proof_url: string;
+    second_payment_proof_url: string;
+    shipping_provider: string;
+    tracking_code: string;
+    surcharge: number;
+    shipping_fee: number;
+    other_fee: number;
+  }
  
  interface StatusHistory {
    id: string;
