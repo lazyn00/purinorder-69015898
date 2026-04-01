@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MiddlemanPolicy } from "@/components/MiddlemanPolicy";
+
 
 export default function Policy() {
   return (
@@ -112,15 +112,6 @@ export default function Policy() {
             </CardContent>
           </Card>
 
-          {/* 7. Chính sách Trung gian Pass/Gom */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">7. Chính sách Trung gian Pass/Gom</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MiddlemanPolicy />
-            </CardContent>
-          </Card>
         </div>
       </div>
     </Layout>

@@ -50,6 +50,8 @@ interface Order {
   shipping_provider: string;
   tracking_code: string;
   surcharge: number;
+  shipping_fee: number;
+  other_fee: number;
 }
 
 const getStatusColor = (status: string) => {
@@ -97,6 +99,7 @@ export default function CustomerOrderDetail() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [uploadingBill, setUploadingBill] = useState(false);
   const [confirmingComplete, setConfirmingComplete] = useState(false);
+  const [proofImages, setProofImages] = useState<{ productName: string; images: string[] }[]>([]);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -115,6 +118,22 @@ export default function CustomerOrderDetail() {
         .single();
       if (error) throw error;
       setOrder(data as Order);
+
+      // Fetch proof images for products in the order
+      const orderItems = (data as any).items || [];
+      const productIds = orderItems.map((item: any) => item.id).filter(Boolean);
+      if (productIds.length > 0) {
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('id, name, proof_images')
+          .in('id', productIds);
+        if (productsData) {
+          const proofs = productsData
+            .filter((p: any) => p.proof_images && Array.isArray(p.proof_images) && p.proof_images.length > 0)
+            .map((p: any) => ({ productName: p.name, images: p.proof_images as string[] }));
+          setProofImages(proofs);
+        }
+      }
 
       // Fetch status history
       const { data: historyData } = await supabase
@@ -362,9 +381,23 @@ export default function CustomerOrderDetail() {
             })}
             <Separator />
             {order.surcharge > 0 && (
-              <div className="flex justify-between text-sm text-orange-600">
-                <span>Phụ thu:</span>
-                <span className="font-bold">+{order.surcharge.toLocaleString("vi-VN")}đ</span>
+              <div className="space-y-1">
+                {(order.shipping_fee || 0) > 0 && (
+                  <div className="flex justify-between text-sm text-orange-600">
+                    <span>Ship nội địa:</span>
+                    <span>+{order.shipping_fee.toLocaleString("vi-VN")}đ</span>
+                  </div>
+                )}
+                {(order.other_fee || 0) > 0 && (
+                  <div className="flex justify-between text-sm text-orange-600">
+                    <span>Phí khác:</span>
+                    <span>+{order.other_fee.toLocaleString("vi-VN")}đ</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm text-orange-600 font-bold">
+                  <span>Phụ thu:</span>
+                  <span>+{order.surcharge.toLocaleString("vi-VN")}đ</span>
+                </div>
               </div>
             )}
             <div className="flex justify-between items-center">
@@ -374,7 +407,29 @@ export default function CustomerOrderDetail() {
           </CardContent>
         </Card>
 
-        {/* Payment info */}
+        {/* Proof images */}
+        {proofImages.length > 0 && (
+          <Card className="mb-4 border-green-200 bg-green-50 dark:bg-green-950/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">✅ Proof mua hàng</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {proofImages.map((proof, i) => (
+                <div key={i}>
+                  <p className="text-sm font-medium mb-1.5">{proof.productName}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {proof.images.map((url, j) => (
+                      <a key={j} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt={`Proof ${j + 1}`} className="w-20 h-20 object-cover rounded-lg border hover:opacity-80 transition-opacity" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="mb-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-1.5"><CreditCard className="h-4 w-4" /> Thanh toán</CardTitle>
