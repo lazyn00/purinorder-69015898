@@ -426,6 +426,7 @@ export default function ProductManagement() {
         stock: form.stock,
         link_order: form.link_order || null,
         proof: form.proof || null,
+        proof_images: form.proof_images || [],
         actual_rate: form.actual_rate,
         actual_can: form.actual_can,
         actual_pack: form.actual_pack,
