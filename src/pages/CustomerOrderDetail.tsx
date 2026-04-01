@@ -364,9 +364,23 @@ export default function CustomerOrderDetail() {
             })}
             <Separator />
             {order.surcharge > 0 && (
-              <div className="flex justify-between text-sm text-orange-600">
-                <span>Phụ thu:</span>
-                <span className="font-bold">+{order.surcharge.toLocaleString("vi-VN")}đ</span>
+              <div className="space-y-1">
+                {(order.shipping_fee || 0) > 0 && (
+                  <div className="flex justify-between text-sm text-orange-600">
+                    <span>Ship nội địa:</span>
+                    <span>+{order.shipping_fee.toLocaleString("vi-VN")}đ</span>
+                  </div>
+                )}
+                {(order.other_fee || 0) > 0 && (
+                  <div className="flex justify-between text-sm text-orange-600">
+                    <span>Phí khác:</span>
+                    <span>+{order.other_fee.toLocaleString("vi-VN")}đ</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm text-orange-600 font-bold">
+                  <span>Phụ thu:</span>
+                  <span>+{order.surcharge.toLocaleString("vi-VN")}đ</span>
+                </div>
               </div>
             )}
             <div className="flex justify-between items-center">
