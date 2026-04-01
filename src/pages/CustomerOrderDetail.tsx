@@ -50,6 +50,8 @@ interface Order {
   shipping_provider: string;
   tracking_code: string;
   surcharge: number;
+  shipping_fee: number;
+  other_fee: number;
 }
 
 const getStatusColor = (status: string) => {
