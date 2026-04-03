@@ -243,10 +243,10 @@ export default function AdminOrderDetail() {
        }
        
        // Update order
-       const { error: updateError } = await supabase
-         .from('orders')
-         .update(updates)
-         .eq('id', order.id);
+        const { error: updateError } = await (supabase as any)
+          .from('orders')
+          .update(updates)
+          .eq('id', order.id);
        
        if (updateError) throw updateError;
        
