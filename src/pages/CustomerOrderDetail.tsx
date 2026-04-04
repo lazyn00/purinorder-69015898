@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, ArrowLeft, Copy, Save, Package, MapPin, History,
   CreditCard, Truck, ExternalLink, Upload, Edit2, CheckCircle,
-  ChevronDown, ChevronUp, Facebook
+  ChevronDown, ChevronUp, Facebook, Megaphone
 } from "lucide-react";
 import { findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
 
