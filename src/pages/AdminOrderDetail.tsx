@@ -62,31 +62,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
    }
  };
  
-  interface Order {
-    id: string;
-    order_number: string;
-    created_at: string;
-    customer_phone: string;
-    customer_email: string;
-    customer_fb: string;
-    delivery_name: string;
-    delivery_phone: string;
-    delivery_address: string;
-    delivery_note: string;
-    items: any[];
-    total_price: number;
-    payment_status: string;
-    order_progress: string;
-    payment_method: string;
-    payment_type: string;
-    payment_proof_url: string;
-    second_payment_proof_url: string;
-    shipping_provider: string;
-    tracking_code: string;
-    surcharge: number;
-    shipping_fee: number;
-    other_fee: number;
-  }
+ interface Order {
+   id: string;
+   order_number: string;
+   created_at: string;
+   customer_phone: string;
+   customer_email: string;
+   customer_fb: string;
+   delivery_name: string;
+   delivery_phone: string;
+   delivery_address: string;
+   delivery_note: string;
+   items: any[];
+   total_price: number;
+   payment_status: string;
+   order_progress: string;
+   payment_method: string;
+   payment_type: string;
+   payment_proof_url: string;
+   second_payment_proof_url: string;
+   shipping_provider: string;
+   tracking_code: string;
+   surcharge: number;
+ }
  
  interface StatusHistory {
    id: string;
@@ -114,9 +112,7 @@ export default function AdminOrderDetail() {
   const [orderProgress, setOrderProgress] = useState("");
   const [shippingProvider, setShippingProvider] = useState("");
   const [trackingCode, setTrackingCode] = useState("");
-   const [surcharge, setSurcharge] = useState("");
-   const [shippingFee, setShippingFee] = useState("");
-   const [otherFee, setOtherFee] = useState("");
+  const [surcharge, setSurcharge] = useState("");
   const [deliveryNote, setDeliveryNote] = useState("");
   const [adminNote, setAdminNote] = useState("");
   
@@ -156,9 +152,7 @@ export default function AdminOrderDetail() {
           setOrderProgress(orderTyped.order_progress || "");
           setShippingProvider(orderTyped.shipping_provider || "");
           setTrackingCode(orderTyped.tracking_code || "");
-           setSurcharge(orderTyped.surcharge?.toString() || "0");
-           setShippingFee((orderTyped as any).shipping_fee?.toString() || "0");
-           setOtherFee((orderTyped as any).other_fee?.toString() || "0");
+          setSurcharge(orderTyped.surcharge?.toString() || "0");
           setDeliveryNote(orderTyped.delivery_note || "");
           setAdminNote((orderTyped as any).admin_note || "");
          
@@ -203,21 +197,18 @@ export default function AdminOrderDetail() {
      
      setIsSaving(true);
      try {
-         const newTotalPrice = editableItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
-         const computedSurcharge = (parseInt(shippingFee) || 0) + (parseInt(otherFee) || 0);
-         const updates: any = {
-           payment_status: paymentStatus,
-           order_progress: orderProgress,
-           shipping_provider: shippingProvider,
-           tracking_code: trackingCode,
-           surcharge: computedSurcharge,
-           shipping_fee: parseInt(shippingFee) || 0,
-           other_fee: parseInt(otherFee) || 0,
-           delivery_note: deliveryNote,
-           admin_note: adminNote,
-           items: editableItems,
-           total_price: newTotalPrice
-         };
+        const newTotalPrice = editableItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+        const updates: any = {
+          payment_status: paymentStatus,
+          order_progress: orderProgress,
+          shipping_provider: shippingProvider,
+          tracking_code: trackingCode,
+          surcharge: parseInt(surcharge) || 0,
+          delivery_note: deliveryNote,
+          admin_note: adminNote,
+          items: editableItems,
+          total_price: newTotalPrice
+        };
        
        // Track status changes
        const historyInserts: any[] = [];
@@ -243,10 +234,10 @@ export default function AdminOrderDetail() {
        }
        
        // Update order
-        const { error: updateError } = await (supabase as any)
-          .from('orders')
-          .update(updates)
-          .eq('id', order.id);
+       const { error: updateError } = await supabase
+         .from('orders')
+         .update(updates)
+         .eq('id', order.id);
        
        if (updateError) throw updateError;
        
@@ -436,31 +427,15 @@ export default function AdminOrderDetail() {
                    </div>
                  )}
                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Ship nội địa (đ)</Label>
-                      <Input
-                        className="mt-1"
-                        type="number"
-                        value={shippingFee}
-                        onChange={(e) => setShippingFee(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div>
-                      <Label>Khác (đ)</Label>
-                      <Input
-                        className="mt-1"
-                        type="number"
-                        value={otherFee}
-                        onChange={(e) => setOtherFee(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Phụ thu: <span className="font-semibold text-foreground">{((parseInt(shippingFee) || 0) + (parseInt(otherFee) || 0)).toLocaleString('vi-VN')}đ</span>
-                  </div>
+                 <div>
+                   <Label>Phụ thu (đ)</Label>
+                   <Input
+                     className="mt-1"
+                     type="number"
+                     value={surcharge}
+                     onChange={(e) => setSurcharge(e.target.value)}
+                   />
+                 </div>
                </CardContent>
              </Card>
              
