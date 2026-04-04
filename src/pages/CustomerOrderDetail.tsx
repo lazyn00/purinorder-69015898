@@ -125,6 +125,18 @@ export default function CustomerOrderDetail() {
         .eq("order_id", orderId)
         .order("changed_at", { ascending: false });
       if (historyData) setStatusHistory(historyData as StatusHistory[]);
+
+      // Fetch master updates for products in this order
+      const items = (data as any).items || [];
+      const masterNames = [...new Set(items.map((item: any) => item.master).filter(Boolean))] as string[];
+      if (masterNames.length > 0) {
+        const { data: updatesData } = await (supabase as any)
+          .from("master_updates")
+          .select("*")
+          .in("master_name", masterNames)
+          .order("created_at", { ascending: false });
+        if (updatesData) setMasterUpdates(updatesData);
+      }
     } catch (error) {
       console.error(error);
       toast({ title: "Lỗi", description: "Không tìm thấy đơn hàng.", variant: "destructive" });
