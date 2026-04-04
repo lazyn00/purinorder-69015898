@@ -97,6 +97,8 @@ export default function CustomerOrderDetail() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [uploadingBill, setUploadingBill] = useState(false);
   const [confirmingComplete, setConfirmingComplete] = useState(false);
+  const [masterUpdates, setMasterUpdates] = useState<any[]>([]);
+  const [masterUpdatesExpanded, setMasterUpdatesExpanded] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
