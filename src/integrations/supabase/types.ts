@@ -212,6 +212,30 @@ export type Database = {
         }
         Relationships: []
       }
+      master_updates: {
+        Row: {
+          created_at: string
+          id: string
+          images: Json | null
+          master_name: string
+          message: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          images?: Json | null
+          master_name: string
+          message: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          images?: Json | null
+          master_name?: string
+          message?: string
+        }
+        Relationships: []
+      }
       order_status_history: {
         Row: {
           changed_at: string
