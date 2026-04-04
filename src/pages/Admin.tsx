@@ -2417,6 +2417,21 @@ ${generateEmailContent(order)}
             </TabsContent>
 
 
+            {/* ========== QUẢN LÝ MASTER ========== */}
+            <TabsContent value="master-mgmt">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Layers className="h-5 w-5" />
+                    Quản lý Master
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MasterManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* ========== THEO DÕI TIẾN ĐỘ SẢN PHẨM ========== */}
             <TabsContent value="product-tracking">
               <Card>
