@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Tag, Merge, Users, Settings, BoxIcon } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Tag, Merge, Users, Settings, BoxIcon, Layers } from "lucide-react";
 import ProductManagement from "@/components/ProductManagement";
 import { DiscountCodeManagement } from "@/components/DiscountCodeManagement";
 import { OrderMerging } from "@/components/OrderMerging";
@@ -16,6 +16,7 @@ import AffiliateManagement from "@/components/AffiliateManagement";
 
 import AdminSettings from "@/components/AdminSettings";
 import ProductTrackingFiltered from "@/components/ProductTrackingFiltered";
+import MasterManagement from "@/components/MasterManagement";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -1278,6 +1279,9 @@ ${generateEmailContent(order)}
               <TabsTrigger value="affiliates" className="h-10 w-10 p-0" title="Quản lý CTV">
                 <Users className="h-5 w-5" />
               </TabsTrigger>
+              <TabsTrigger value="master-mgmt" className="h-10 w-10 p-0" title="Quản lý Master">
+                <Layers className="h-5 w-5" />
+              </TabsTrigger>
               <TabsTrigger value="product-tracking" className="h-10 w-10 p-0" title="Theo dõi tiến độ SP">
                 <Eye className="h-5 w-5" />
               </TabsTrigger>
@@ -2412,6 +2416,21 @@ ${generateEmailContent(order)}
               <AffiliateManagement />
             </TabsContent>
 
+
+            {/* ========== QUẢN LÝ MASTER ========== */}
+            <TabsContent value="master-mgmt">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Layers className="h-5 w-5" />
+                    Quản lý Master
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MasterManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             {/* ========== THEO DÕI TIẾN ĐỘ SẢN PHẨM ========== */}
             <TabsContent value="product-tracking">

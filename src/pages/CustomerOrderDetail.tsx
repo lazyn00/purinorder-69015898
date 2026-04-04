@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, ArrowLeft, Copy, Save, Package, MapPin, History,
   CreditCard, Truck, ExternalLink, Upload, Edit2, CheckCircle,
-  ChevronDown, ChevronUp, Facebook
+  ChevronDown, ChevronUp, Facebook, Megaphone
 } from "lucide-react";
 import { findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
 
@@ -97,6 +97,8 @@ export default function CustomerOrderDetail() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [uploadingBill, setUploadingBill] = useState(false);
   const [confirmingComplete, setConfirmingComplete] = useState(false);
+  const [masterUpdates, setMasterUpdates] = useState<any[]>([]);
+  const [masterUpdatesExpanded, setMasterUpdatesExpanded] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -123,6 +125,18 @@ export default function CustomerOrderDetail() {
         .eq("order_id", orderId)
         .order("changed_at", { ascending: false });
       if (historyData) setStatusHistory(historyData as StatusHistory[]);
+
+      // Fetch master updates for products in this order
+      const items = (data as any).items || [];
+      const masterNames = [...new Set(items.map((item: any) => item.master).filter(Boolean))] as string[];
+      if (masterNames.length > 0) {
+        const { data: updatesData } = await (supabase as any)
+          .from("master_updates")
+          .select("*")
+          .in("master_name", masterNames)
+          .order("created_at", { ascending: false });
+        if (updatesData) setMasterUpdates(updatesData);
+      }
     } catch (error) {
       console.error(error);
       toast({ title: "Lỗi", description: "Không tìm thấy đơn hàng.", variant: "destructive" });
@@ -326,6 +340,44 @@ export default function CustomerOrderDetail() {
                 </a>
               )}
             </CardContent>
+          </Card>
+        )}
+
+        {/* Master updates */}
+        {masterUpdates.length > 0 && (
+          <Card className="mb-4 border-purple-200">
+            <CardHeader className="pb-2">
+              <button onClick={() => setMasterUpdatesExpanded(!masterUpdatesExpanded)} className="flex items-center justify-between w-full">
+                <CardTitle className="text-base flex items-center gap-1.5">
+                  <Megaphone className="h-4 w-4 text-purple-600" /> Cập nhật tiến độ ({masterUpdates.length})
+                </CardTitle>
+                {masterUpdatesExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+            </CardHeader>
+            {masterUpdatesExpanded && (
+              <CardContent className="space-y-3">
+                {masterUpdates.map((u: any) => (
+                  <div key={u.id} className="border-l-2 border-purple-300 pl-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">{u.master_name}</Badge>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(u.created_at).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap">{u.message}</p>
+                    {u.images?.length > 0 && (
+                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                        {u.images.map((img: string, i: number) => (
+                          <a key={i} href={img} target="_blank" rel="noopener noreferrer">
+                            <img src={img} className="w-16 h-16 object-cover rounded border" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            )}
           </Card>
         )}
 
