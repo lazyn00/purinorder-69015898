@@ -16,6 +16,7 @@ import AffiliateManagement from "@/components/AffiliateManagement";
 
 import AdminSettings from "@/components/AdminSettings";
 import ProductTrackingFiltered from "@/components/ProductTrackingFiltered";
+import MasterManagement from "@/components/MasterManagement";
 import * as XLSX from 'xlsx';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
