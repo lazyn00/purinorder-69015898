@@ -86,7 +86,8 @@ export default function MasterManagement() {
       const uploadedUrls: string[] = [];
       for (const file of imageFiles) {
         const ext = file.name.split(".").pop();
-        const path = `master-updates/${selectedMaster}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const safeName = Date.now() + "-" + Math.random().toString(36).slice(2);
+        const path = `master-updates/${safeName}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
         if (uploadError) throw uploadError;
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
