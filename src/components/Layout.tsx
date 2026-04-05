@@ -26,7 +26,6 @@ const getMenuItems = (settings: PageVisibilitySettings) => {
   }
   
   items.push(
-    { path: "/price-check", label: "Check giá", alwaysShow: true },
     { path: "/policy", label: "Chính sách", alwaysShow: true },
     { path: "/contact", label: "Thông tin", alwaysShow: true },
     { path: "/track-order", label: "Tra đơn", alwaysShow: true }

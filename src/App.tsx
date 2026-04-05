@@ -21,7 +21,7 @@ import AdminOrderDetail from "./pages/AdminOrderDetail";
 import SellProduct from "./pages/SellProduct";
 import AffiliateRegister from "./pages/AffiliateRegister";
 import AffiliateDashboard from "./pages/AffiliateDashboard";
-import PriceCheck from "./pages/PriceCheck";
+
 import CustomerOrderDetail from "./pages/CustomerOrderDetail";
 
 const queryClient = new QueryClient();
@@ -50,7 +50,7 @@ const App = () => (
             <Route path="/admin/order/:orderId" element={<AdminOrderDetail />} />
             <Route path="/affiliate-register" element={<AffiliateRegister />} />
             <Route path="/affiliate-dashboard" element={<AffiliateDashboard />} />
-            <Route path="/price-check" element={<PriceCheck />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
