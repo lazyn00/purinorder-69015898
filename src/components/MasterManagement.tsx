@@ -19,6 +19,7 @@ interface MasterUpdate {
 interface MasterProduct {
   id: number;
   name: string;
+  master?: string;
   status: string;
   price: number;
   images: string[];
