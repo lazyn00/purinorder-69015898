@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, AlertTriangle, CheckCircle, ClipboardList, Eye, Check, X, CalendarIcon, Tag, Merge, Users, Settings, BoxIcon, Layers } from "lucide-react";
+import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, ExternalLink, Package, Search, Copy, FileDown, Bell, Mail, CheckSquare, Square, BarChart3, Save, AlertTriangle, CheckCircle, Eye, Check, X, CalendarIcon, Tag, Merge, Settings, BoxIcon, Layers } from "lucide-react";
 import ProductManagement from "@/components/ProductManagement";
 import { DiscountCodeManagement } from "@/components/DiscountCodeManagement";
 import { OrderMerging } from "@/components/OrderMerging";
