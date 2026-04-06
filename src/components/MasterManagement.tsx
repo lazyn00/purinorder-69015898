@@ -127,7 +127,13 @@ export default function MasterManagement() {
       hour: "2-digit", minute: "2-digit",
     });
 
-  const filteredMasters = masters.filter(m => m.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Search by master name OR product name
+  const filteredMasters = masters.filter(m => {
+    const term = searchTerm.toLowerCase();
+    if (m.toLowerCase().includes(term)) return true;
+    // Also match if any product under this master matches
+    return allProducts.some(p => p.master === m && p.name.toLowerCase().includes(term));
+  });
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
