@@ -39,11 +39,8 @@ const App = () => (
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/track-order" element={<TrackOrder />} />
             <Route path="/order/:orderId" element={<CustomerOrderDetail />} />
-            <Route path="/sell" element={<SellProduct />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/order/:orderId" element={<AdminOrderDetail />} />
-            <Route path="/affiliate-register" element={<AffiliateRegister />} />
-            <Route path="/affiliate-dashboard" element={<AffiliateDashboard />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
