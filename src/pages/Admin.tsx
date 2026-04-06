@@ -12,7 +12,6 @@ import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, External
 import ProductManagement from "@/components/ProductManagement";
 import { DiscountCodeManagement } from "@/components/DiscountCodeManagement";
 import { OrderMerging } from "@/components/OrderMerging";
-import AffiliateManagement from "@/components/AffiliateManagement";
 
 import AdminSettings from "@/components/AdminSettings";
 import ProductTrackingFiltered from "@/components/ProductTrackingFiltered";
