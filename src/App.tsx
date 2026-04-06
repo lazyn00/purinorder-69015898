@@ -9,7 +9,6 @@ import { CartProvider } from "./contexts/CartContext";
 import Products from "./pages/Products";
 import CategoryPage from "./pages/CategoryPage";
 import ProductDetail from "./pages/ProductDetail";
-import ListingDetail from "./pages/ListingDetail";
 import Policy from "./pages/Policy";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
@@ -18,10 +17,6 @@ import OrderSuccess from "./pages/OrderSuccess";
 import TrackOrder from "./pages/TrackOrder";
 import Admin from "./pages/Admin";
 import AdminOrderDetail from "./pages/AdminOrderDetail";
-import SellProduct from "./pages/SellProduct";
-import AffiliateRegister from "./pages/AffiliateRegister";
-import AffiliateDashboard from "./pages/AffiliateDashboard";
-
 import CustomerOrderDetail from "./pages/CustomerOrderDetail";
 
 const queryClient = new QueryClient();
