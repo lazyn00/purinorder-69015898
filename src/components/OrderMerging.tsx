@@ -169,6 +169,9 @@ export function OrderMerging({ orders, onMergeComplete }: OrderMergingProps) {
       // Calculate total price
       const totalPrice = sortedOrders.reduce((sum, o) => sum + o.total_price, 0);
 
+      // Calculate total surcharge (sum all surcharges)
+      const totalSurcharge = sortedOrders.reduce((sum, o) => sum + (o.surcharge || 0), 0);
+
       // Update main order with merged items
       const mergedOrderNumbers = sortedOrders.map(o => o.order_number).join(' + ');
       const newDeliveryNote = [
@@ -182,6 +185,7 @@ export function OrderMerging({ orders, onMergeComplete }: OrderMergingProps) {
         .update({
           items: allItems,
           total_price: totalPrice,
+          surcharge: totalSurcharge,
           delivery_note: newDeliveryNote
         })
         .eq('id', mainOrder.id);

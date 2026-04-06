@@ -142,7 +142,7 @@ export default function MasterManagement() {
     <div className="space-y-4">
       <div className="flex gap-2 items-center">
         <Input
-          placeholder="Tìm master..."
+          placeholder="Tìm master hoặc tên sản phẩm..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-xs"
