@@ -1264,20 +1264,6 @@ ${generateEmailContent(order)}
               <TabsTrigger value="discounts" className="h-10 w-10 p-0" title="Mã giảm giá">
                 <Tag className="h-5 w-5" />
               </TabsTrigger>
-              <TabsTrigger value="listings" onClick={fetchUserListings} className="h-10 w-10 p-0 relative" title="Duyệt sản phẩm đăng bán">
-                <ClipboardList className="h-5 w-5" />
-                {userListings.filter(l => l.status === 'pending').length > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 text-[10px] rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                    {userListings.filter(l => l.status === 'pending').length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="notifications" onClick={fetchNotifications} className="h-10 w-10 p-0" title="Thông báo sản phẩm">
-                <Mail className="h-5 w-5" />
-              </TabsTrigger>
-              <TabsTrigger value="affiliates" className="h-10 w-10 p-0" title="Quản lý CTV">
-                <Users className="h-5 w-5" />
-              </TabsTrigger>
               <TabsTrigger value="master-mgmt" className="h-10 w-10 p-0" title="Quản lý Master">
                 <Layers className="h-5 w-5" />
               </TabsTrigger>
