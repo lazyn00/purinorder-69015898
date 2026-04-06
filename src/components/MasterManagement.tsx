@@ -52,10 +52,11 @@ export default function MasterManagement() {
     setLoading(true);
     const { data } = await supabase
       .from("products")
-      .select("master")
+      .select("id, name, master, status, price, images")
       .not("master", "is", null)
       .neq("master", "");
     if (data) {
+      setAllProducts(data.map((p: any) => ({ ...p, images: (p.images as string[]) || [] })));
       const uniqueMasters = [...new Set(data.map((p: any) => p.master as string).filter(Boolean))].sort();
       setMasters(uniqueMasters);
     }
