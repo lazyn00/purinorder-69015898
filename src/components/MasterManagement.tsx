@@ -19,6 +19,7 @@ interface MasterUpdate {
 interface MasterProduct {
   id: number;
   name: string;
+  master?: string;
   status: string;
   price: number;
   images: string[];
@@ -26,6 +27,7 @@ interface MasterProduct {
 
 export default function MasterManagement() {
   const [masters, setMasters] = useState<string[]>([]);
+  const [allProducts, setAllProducts] = useState<MasterProduct[]>([]);
   const [selectedMaster, setSelectedMaster] = useState<string | null>(null);
   const [products, setProducts] = useState<MasterProduct[]>([]);
   const [updates, setUpdates] = useState<MasterUpdate[]>([]);
@@ -51,10 +53,11 @@ export default function MasterManagement() {
     setLoading(true);
     const { data } = await supabase
       .from("products")
-      .select("master")
+      .select("id, name, master, status, price, images")
       .not("master", "is", null)
       .neq("master", "");
     if (data) {
+      setAllProducts(data.map((p: any) => ({ ...p, images: (p.images as string[]) || [] })));
       const uniqueMasters = [...new Set(data.map((p: any) => p.master as string).filter(Boolean))].sort();
       setMasters(uniqueMasters);
     }
@@ -125,7 +128,13 @@ export default function MasterManagement() {
       hour: "2-digit", minute: "2-digit",
     });
 
-  const filteredMasters = masters.filter(m => m.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Search by master name OR product name
+  const filteredMasters = masters.filter(m => {
+    const term = searchTerm.toLowerCase();
+    if (m.toLowerCase().includes(term)) return true;
+    // Also match if any product under this master matches
+    return allProducts.some(p => p.master === m && p.name.toLowerCase().includes(term));
+  });
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
@@ -133,7 +142,7 @@ export default function MasterManagement() {
     <div className="space-y-4">
       <div className="flex gap-2 items-center">
         <Input
-          placeholder="Tìm master..."
+          placeholder="Tìm master hoặc tên sản phẩm..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-xs"

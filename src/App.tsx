@@ -9,7 +9,6 @@ import { CartProvider } from "./contexts/CartContext";
 import Products from "./pages/Products";
 import CategoryPage from "./pages/CategoryPage";
 import ProductDetail from "./pages/ProductDetail";
-import ListingDetail from "./pages/ListingDetail";
 import Policy from "./pages/Policy";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
@@ -18,10 +17,6 @@ import OrderSuccess from "./pages/OrderSuccess";
 import TrackOrder from "./pages/TrackOrder";
 import Admin from "./pages/Admin";
 import AdminOrderDetail from "./pages/AdminOrderDetail";
-import SellProduct from "./pages/SellProduct";
-import AffiliateRegister from "./pages/AffiliateRegister";
-import AffiliateDashboard from "./pages/AffiliateDashboard";
-
 import CustomerOrderDetail from "./pages/CustomerOrderDetail";
 
 const queryClient = new QueryClient();
@@ -38,18 +33,14 @@ const App = () => (
             <Route path="/products" element={<Products />} /> 
             <Route path="/category/:category" element={<CategoryPage />} />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/listing/:id" element={<ListingDetail />} />
             <Route path="/policy" element={<Policy />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/track-order" element={<TrackOrder />} />
             <Route path="/order/:orderId" element={<CustomerOrderDetail />} />
-            <Route path="/sell" element={<SellProduct />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/order/:orderId" element={<AdminOrderDetail />} />
-            <Route path="/affiliate-register" element={<AffiliateRegister />} />
-            <Route path="/affiliate-dashboard" element={<AffiliateDashboard />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
