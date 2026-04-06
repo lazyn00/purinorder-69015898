@@ -26,6 +26,7 @@ interface MasterProduct {
 
 export default function MasterManagement() {
   const [masters, setMasters] = useState<string[]>([]);
+  const [allProducts, setAllProducts] = useState<MasterProduct[]>([]);
   const [selectedMaster, setSelectedMaster] = useState<string | null>(null);
   const [products, setProducts] = useState<MasterProduct[]>([]);
   const [updates, setUpdates] = useState<MasterUpdate[]>([]);
