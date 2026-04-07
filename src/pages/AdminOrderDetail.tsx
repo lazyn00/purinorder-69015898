@@ -680,12 +680,31 @@ export default function AdminOrderDetail() {
                    <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
                    <span>{order.delivery_name}</span>
                  </div>
-                 <div className="flex items-start gap-2">
-                   <Phone className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                   <a href={`tel:${order.delivery_phone}`} className="text-primary hover:underline">
-                     {order.delivery_phone}
-                   </a>
-                 </div>
+                 {order.customer_phone === order.delivery_phone ? (
+                   <div className="flex items-start gap-2">
+                     <Phone className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                     <a href={`tel:${order.delivery_phone}`} className="text-primary hover:underline">
+                       {order.delivery_phone}
+                     </a>
+                   </div>
+                 ) : (
+                   <>
+                     <div className="flex items-start gap-2">
+                       <Phone className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                       <div>
+                         <a href={`tel:${order.customer_phone}`} className="text-primary hover:underline">{order.customer_phone}</a>
+                         <span className="text-xs text-muted-foreground ml-1">(liên lạc)</span>
+                       </div>
+                     </div>
+                     <div className="flex items-start gap-2">
+                       <Phone className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                       <div>
+                         <a href={`tel:${order.delivery_phone}`} className="text-primary hover:underline">{order.delivery_phone}</a>
+                         <span className="text-xs text-muted-foreground ml-1">(nhận hàng)</span>
+                       </div>
+                     </div>
+                   </>
+                 )}
                  {order.customer_email && (
                    <div className="flex items-start gap-2">
                      <Mail className="h-4 w-4 mt-0.5 text-muted-foreground" />
