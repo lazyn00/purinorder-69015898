@@ -1252,9 +1252,6 @@ ${generateEmailContent(order)}
               <TabsTrigger value="stats" className="h-10 w-10 p-0" title="Doanh thu">
                 <BarChart3 className="h-5 w-5" />
               </TabsTrigger>
-              <TabsTrigger value="products" className="h-10 w-10 p-0" title="Thống kê sản phẩm">
-                <Package className="h-5 w-5" />
-              </TabsTrigger>
               <TabsTrigger value="orders" className="h-10 w-10 p-0" title="Đơn hàng">
                 <ShoppingCart className="h-5 w-5" />
               </TabsTrigger>
