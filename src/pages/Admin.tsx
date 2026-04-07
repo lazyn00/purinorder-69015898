@@ -206,6 +206,7 @@ export default function Admin() {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [bulkProgress, setBulkProgress] = useState<string>("");
   
   // ========== STATE CHO QUẢN LÝ ĐĂNG BÁN ==========
   const [userListings, setUserListings] = useState<UserListing[]>([]);
@@ -686,6 +687,49 @@ export default function Admin() {
       toast({
         title: "Lỗi",
         description: "Không thể cập nhật tiến độ",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const bulkUpdateProgress = async (newProgress: string) => {
+    if (selectedOrderIds.size === 0) return;
+    try {
+      const ids = Array.from(selectedOrderIds);
+      const { error } = await supabase
+        .from('orders')
+        .update({ order_progress: newProgress })
+        .in('id', ids);
+      if (error) throw error;
+
+      const historyInserts = ids.map(id => {
+        const order = orders.find(o => o.id === id);
+        return {
+          order_id: id,
+          field_changed: 'order_progress',
+          old_value: order?.order_progress || '',
+          new_value: newProgress,
+          changed_by: 'admin'
+        };
+      }).filter(h => h.old_value !== newProgress);
+      if (historyInserts.length > 0) {
+        await supabase.from('order_status_history').insert(historyInserts);
+      }
+
+      setOrders(orders.map(order =>
+        selectedOrderIds.has(order.id) ? { ...order, order_progress: newProgress } : order
+      ));
+      setSelectedOrderIds(new Set());
+      setBulkProgress("");
+      toast({
+        title: "Cập nhật thành công",
+        description: `Đã cập nhật ${ids.length} đơn hàng → ${newProgress}`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật tiến độ hàng loạt",
         variant: "destructive"
       });
     }
@@ -1252,9 +1296,6 @@ ${generateEmailContent(order)}
               <TabsTrigger value="stats" className="h-10 w-10 p-0" title="Doanh thu">
                 <BarChart3 className="h-5 w-5" />
               </TabsTrigger>
-              <TabsTrigger value="products" className="h-10 w-10 p-0" title="Thống kê sản phẩm">
-                <Package className="h-5 w-5" />
-              </TabsTrigger>
               <TabsTrigger value="orders" className="h-10 w-10 p-0" title="Đơn hàng">
                 <ShoppingCart className="h-5 w-5" />
               </TabsTrigger>
@@ -1280,54 +1321,6 @@ ${generateEmailContent(order)}
             </TabsContent>
 
             <TabsContent value="stats" className="space-y-6">
-              {/* Tổng quan */}
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-primary">
-                      {statistics.totalRevenue.toLocaleString('vi-VN')}đ
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Không tính đơn đã huỷ
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Tổng đơn hàng</CardTitle>
-                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-primary">
-                      {statistics.totalOrders}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Tất cả đơn hàng
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Đơn hoàn thành</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-primary">
-                      {statistics.progressCounts['Đã hoàn thành'] || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {((statistics.progressCounts['Đã hoàn thành'] || 0) / statistics.totalOrders * 100).toFixed(1)}% tổng đơn
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
               {/* Biểu đồ */}
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 <Card>
@@ -1482,83 +1475,6 @@ ${generateEmailContent(order)}
 
             </TabsContent>
 
-            <TabsContent value="products" className="space-y-4">
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Tổng sản phẩm đã bán</CardTitle>
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {productStats.reduce((sum, p) => sum + p.count, 0)}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Số loại sản phẩm</CardTitle>
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{productStats.length}</div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Số danh mục</CardTitle>
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{categoryStats.length}</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Danh sách sản phẩm đã bán</CardTitle>
-                  <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Tìm sản phẩm..."
-                      value={productSearchTerm}
-                      onChange={(e) => setProductSearchTerm(e.target.value)}
-                      className="pl-10 h-9"
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                    {productStats
-                      .filter(product => 
-                        productSearchTerm === '' ||
-                        product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-                        product.productName.toLowerCase().includes(productSearchTerm.toLowerCase())
-                      )
-                      .map((product) => (
-                      <div key={product.name} className="flex items-center justify-between gap-2 p-2 border rounded hover:bg-muted/50">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{product.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{product.productName}</p>
-                        </div>
-                        <Badge variant="secondary" className="shrink-0">{product.count}</Badge>
-                      </div>
-                    ))}
-                    {productStats.filter(product => 
-                      productSearchTerm === '' ||
-                      product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-                      product.productName.toLowerCase().includes(productSearchTerm.toLowerCase())
-                    ).length === 0 && (
-                      <p className="text-center text-muted-foreground py-4">Không tìm thấy sản phẩm</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             <TabsContent value="orders" className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
@@ -1609,6 +1525,29 @@ ${generateEmailContent(order)}
                     <Mail className="h-4 w-4" />
                     <span className="hidden xs:inline">Gửi email</span> ({selectedOrderIds.size})
                   </Button>
+                  <div className="flex items-center gap-2">
+                    <Select value={bulkProgress} onValueChange={setBulkProgress}>
+                      <SelectTrigger className="w-[160px] h-9">
+                        <SelectValue placeholder="Đổi tiến độ..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ORDER_PROGRESS.map((progress) => (
+                          <SelectItem key={progress} value={progress}>{progress}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      disabled={!bulkProgress}
+                      onClick={() => {
+                        if (bulkProgress && confirm(`Cập nhật ${selectedOrderIds.size} đơn → "${bulkProgress}"?`)) {
+                          bulkUpdateProgress(bulkProgress);
+                        }
+                      }}
+                    >
+                      Áp dụng
+                    </Button>
+                  </div>
                 </div>
               )}
               
