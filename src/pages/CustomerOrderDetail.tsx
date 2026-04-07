@@ -99,6 +99,7 @@ export default function CustomerOrderDetail() {
   const [confirmingComplete, setConfirmingComplete] = useState(false);
   const [masterUpdates, setMasterUpdates] = useState<any[]>([]);
   const [masterUpdatesExpanded, setMasterUpdatesExpanded] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
