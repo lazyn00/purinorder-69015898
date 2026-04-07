@@ -1525,6 +1525,29 @@ ${generateEmailContent(order)}
                     <Mail className="h-4 w-4" />
                     <span className="hidden xs:inline">Gửi email</span> ({selectedOrderIds.size})
                   </Button>
+                  <div className="flex items-center gap-2">
+                    <Select value={bulkProgress} onValueChange={setBulkProgress}>
+                      <SelectTrigger className="w-[160px] h-9">
+                        <SelectValue placeholder="Đổi tiến độ..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ORDER_PROGRESS.map((progress) => (
+                          <SelectItem key={progress} value={progress}>{progress}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      disabled={!bulkProgress}
+                      onClick={() => {
+                        if (bulkProgress && confirm(`Cập nhật ${selectedOrderIds.size} đơn → "${bulkProgress}"?`)) {
+                          bulkUpdateProgress(bulkProgress);
+                        }
+                      }}
+                    >
+                      Áp dụng
+                    </Button>
+                  </div>
                 </div>
               )}
               
