@@ -581,6 +581,20 @@ export default function CustomerOrderDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightboxImg(null)}
+        >
+          <img
+            src={lightboxImg}
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </Layout>
   );
 }
