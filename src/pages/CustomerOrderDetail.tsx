@@ -490,7 +490,14 @@ export default function CustomerOrderDetail() {
             {!editing ? (
               <div className="space-y-1 text-sm">
                 <p className="font-medium">{order.delivery_name}</p>
-                <p className="text-muted-foreground">{order.delivery_phone}</p>
+                {order.customer_phone === order.delivery_phone ? (
+                  <p className="text-muted-foreground">📞 {order.delivery_phone}</p>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground">📞 Liên lạc: {order.customer_phone}</p>
+                    <p className="text-muted-foreground">📦 Nhận hàng: {order.delivery_phone}</p>
+                  </>
+                )}
                 <p className="text-muted-foreground">{order.delivery_address}</p>
                 {order.delivery_note && <p className="italic text-orange-600 mt-2">📝 {order.delivery_note}</p>}
               </div>
