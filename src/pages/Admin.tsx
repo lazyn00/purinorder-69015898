@@ -206,6 +206,7 @@ export default function Admin() {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [bulkProgress, setBulkProgress] = useState<string>("");
   
   // ========== STATE CHO QUẢN LÝ ĐĂNG BÁN ==========
   const [userListings, setUserListings] = useState<UserListing[]>([]);
