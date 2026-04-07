@@ -99,6 +99,7 @@ export default function CustomerOrderDetail() {
   const [confirmingComplete, setConfirmingComplete] = useState(false);
   const [masterUpdates, setMasterUpdates] = useState<any[]>([]);
   const [masterUpdatesExpanded, setMasterUpdatesExpanded] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -368,9 +369,12 @@ export default function CustomerOrderDetail() {
                     {u.images?.length > 0 && (
                       <div className="flex gap-1.5 mt-2 flex-wrap">
                         {u.images.map((img: string, i: number) => (
-                          <a key={i} href={img} target="_blank" rel="noopener noreferrer">
-                            <img src={img} className="w-16 h-16 object-cover rounded border" />
-                          </a>
+                          <img
+                            key={i}
+                            src={img}
+                            className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setLightboxImg(img)}
+                          />
                         ))}
                       </div>
                     )}
@@ -577,6 +581,20 @@ export default function CustomerOrderDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightboxImg(null)}
+        >
+          <img
+            src={lightboxImg}
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </Layout>
   );
 }
