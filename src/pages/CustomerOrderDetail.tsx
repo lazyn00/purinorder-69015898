@@ -369,9 +369,12 @@ export default function CustomerOrderDetail() {
                     {u.images?.length > 0 && (
                       <div className="flex gap-1.5 mt-2 flex-wrap">
                         {u.images.map((img: string, i: number) => (
-                          <a key={i} href={img} target="_blank" rel="noopener noreferrer">
-                            <img src={img} className="w-16 h-16 object-cover rounded border" />
-                          </a>
+                          <img
+                            key={i}
+                            src={img}
+                            className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setLightboxImg(img)}
+                          />
                         ))}
                       </div>
                     )}
