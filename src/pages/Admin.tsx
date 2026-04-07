@@ -692,6 +692,49 @@ export default function Admin() {
     }
   };
 
+  const bulkUpdateProgress = async (newProgress: string) => {
+    if (selectedOrderIds.size === 0) return;
+    try {
+      const ids = Array.from(selectedOrderIds);
+      const { error } = await supabase
+        .from('orders')
+        .update({ order_progress: newProgress })
+        .in('id', ids);
+      if (error) throw error;
+
+      const historyInserts = ids.map(id => {
+        const order = orders.find(o => o.id === id);
+        return {
+          order_id: id,
+          field_changed: 'order_progress',
+          old_value: order?.order_progress || '',
+          new_value: newProgress,
+          changed_by: 'admin'
+        };
+      }).filter(h => h.old_value !== newProgress);
+      if (historyInserts.length > 0) {
+        await supabase.from('order_status_history').insert(historyInserts);
+      }
+
+      setOrders(orders.map(order =>
+        selectedOrderIds.has(order.id) ? { ...order, order_progress: newProgress } : order
+      ));
+      setSelectedOrderIds(new Set());
+      setBulkProgress("");
+      toast({
+        title: "Cập nhật thành công",
+        description: `Đã cập nhật ${ids.length} đơn hàng → ${newProgress}`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật tiến độ hàng loạt",
+        variant: "destructive"
+      });
+    }
+  };
+
   const updateSurcharge = async (orderId: string, surcharge: number) => {
     try {
       const { error } = await supabase
