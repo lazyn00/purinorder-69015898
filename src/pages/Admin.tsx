@@ -104,6 +104,7 @@ interface Order {
   customer_phone: string;
   customer_email: string;
   customer_fb: string;
+  customer_ig: string;
   delivery_name: string;
   delivery_phone: string;
   delivery_address: string;
