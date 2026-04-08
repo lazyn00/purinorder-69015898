@@ -64,6 +64,7 @@ export default function Checkout() {
   
   const [contactInfo, setContactInfo] = useState({
     fb: "",
+    ig: "",
     email: "",
     phone: ""
   });
