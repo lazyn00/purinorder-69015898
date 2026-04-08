@@ -10,7 +10,7 @@
  import { Separator } from "@/components/ui/separator";
  import { useToast } from "@/hooks/use-toast";
  import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, ExternalLink, Copy, Save, Package, Phone, Mail, MapPin, Clock, History, FileText, CreditCard, Truck, User, Plus, Trash2, Edit3 } from "lucide-react";
+import { Loader2, ArrowLeft, ExternalLink, Copy, Save, Package, Phone, Mail, MapPin, Clock, History, FileText, CreditCard, Truck, User, Plus, Trash2, Edit3, Facebook, Instagram } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
  import { SHIPPING_PROVIDERS, findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
@@ -69,6 +69,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
    customer_phone: string;
    customer_email: string;
    customer_fb: string;
+   customer_ig: string;
    delivery_name: string;
    delivery_phone: string;
    delivery_address: string;
@@ -711,6 +712,18 @@ export default function AdminOrderDetail() {
                      <a href={`mailto:${order.customer_email}`} className="text-primary hover:underline truncate">
                        {order.customer_email}
                      </a>
+                   </div>
+                 )}
+                 {order.customer_fb && (
+                   <div className="flex items-start gap-2">
+                     <Facebook className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                     <a href={order.customer_fb} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">Facebook</a>
+                   </div>
+                 )}
+                 {order.customer_ig && (
+                   <div className="flex items-start gap-2">
+                     <Instagram className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                     <a href={order.customer_ig} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">Instagram</a>
                    </div>
                  )}
                  <div className="flex items-start gap-2">

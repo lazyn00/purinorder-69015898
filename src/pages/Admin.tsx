@@ -104,6 +104,7 @@ interface Order {
   customer_phone: string;
   customer_email: string;
   customer_fb: string;
+  customer_ig: string;
   delivery_name: string;
   delivery_phone: string;
   delivery_address: string;
@@ -1321,6 +1322,34 @@ ${generateEmailContent(order)}
             </TabsContent>
 
             <TabsContent value="stats" className="space-y-6">
+              {/* Tổng hợp */}
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <p className="text-xs text-muted-foreground">Tổng doanh thu</p>
+                    <p className="text-lg font-bold">{statistics.totalRevenue.toLocaleString('vi-VN')}đ</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <p className="text-xs text-muted-foreground">Tổng đơn hàng</p>
+                    <p className="text-lg font-bold">{statistics.totalOrders}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <p className="text-xs text-muted-foreground">DT kỳ chọn</p>
+                    <p className="text-lg font-bold">{statistics.periodRevenue.toLocaleString('vi-VN')}đ</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <p className="text-xs text-muted-foreground">Đơn kỳ chọn</p>
+                    <p className="text-lg font-bold">{statistics.periodOrders}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Biểu đồ */}
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 <Card>

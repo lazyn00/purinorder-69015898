@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN customer_ig text DEFAULT NULL;
