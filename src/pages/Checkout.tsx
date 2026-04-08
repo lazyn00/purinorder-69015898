@@ -359,6 +359,7 @@ export default function Checkout() {
           .insert({
             order_number: orderNumber,
             customer_fb: contactInfo.fb,
+            customer_ig: contactInfo.ig || null,
             customer_email: contactInfo.email,
             customer_phone: contactInfo.phone,
             delivery_name: deliveryInfo.name,
