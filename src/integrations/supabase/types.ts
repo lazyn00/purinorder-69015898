@@ -274,6 +274,7 @@ export type Database = {
           created_at: string
           customer_email: string | null
           customer_fb: string | null
+          customer_ig: string | null
           customer_phone: string
           deleted_at: string | null
           delivery_address: string
@@ -305,6 +306,7 @@ export type Database = {
           created_at?: string
           customer_email?: string | null
           customer_fb?: string | null
+          customer_ig?: string | null
           customer_phone: string
           deleted_at?: string | null
           delivery_address: string
@@ -336,6 +338,7 @@ export type Database = {
           created_at?: string
           customer_email?: string | null
           customer_fb?: string | null
+          customer_ig?: string | null
           customer_phone?: string
           deleted_at?: string | null
           delivery_address?: string
