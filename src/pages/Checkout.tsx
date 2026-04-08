@@ -629,8 +629,12 @@ export default function Checkout() {
             <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="contact-fb">Link Facebook / Instagram *</Label>
-                <Input id="contact-fb" value={contactInfo.fb} onChange={(e) => setContactInfo({...contactInfo, fb: e.target.value})} placeholder="https://..." required />
+                <Label htmlFor="contact-fb">Link Facebook *</Label>
+                <Input id="contact-fb" value={contactInfo.fb} onChange={(e) => setContactInfo({...contactInfo, fb: e.target.value})} placeholder="https://facebook.com/..." required />
+              </div>
+              <div>
+                <Label htmlFor="contact-ig">Link Instagram (không bắt buộc)</Label>
+                <Input id="contact-ig" value={contactInfo.ig} onChange={(e) => setContactInfo({...contactInfo, ig: e.target.value})} placeholder="https://instagram.com/..." />
               </div>
               <div>
                 <Label htmlFor="contact-phone">Số điện thoại *</Label>
