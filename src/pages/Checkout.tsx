@@ -533,6 +533,7 @@ export default function Checkout() {
                 order_number: orderNumber,
                 created_at: new Date().toISOString(),
                 customer_fb: contactInfo.fb,
+                customer_ig: contactInfo.ig || null,
                 customer_email: contactInfo.email,
                 customer_phone: contactInfo.phone,
                 delivery_name: deliveryInfo.name,
