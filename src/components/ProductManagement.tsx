@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link } from "lucide-react";
 
-// --- THÊM IMPORT R2 ---
+// --- IMPORT AWS SDK CHO CLOUDFLARE R2 ---
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 interface SupabaseProduct {
@@ -524,7 +524,7 @@ export default function ProductManagement() {
     }
   };
 
-  // --- HÀM UPLOAD MỚI DÙNG CLOUDFLARE R2 ---
+  // --- HÀM UPLOAD MỚI (FIX LỖI getReader BẰNG Uint8Array) ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -533,7 +533,7 @@ export default function ProductManagement() {
     try {
       const newUrls: string[] = [];
 
-      // Khởi tạo R2 Client
+      // Khởi tạo R2 Client từ biến môi trường
       const r2Client = new S3Client({
         region: "auto",
         endpoint: import.meta.env.VITE_R2_ENDPOINT,
@@ -548,15 +548,19 @@ export default function ProductManagement() {
         const ext = file.name.split('.').pop() || 'jpg';
         const fileName = `upload-${timestamp}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         
+        // CHỖ QUAN TRỌNG: Chuyển file sang Uint8Array để tránh lỗi getReader
+        const arrayBuffer = await file.arrayBuffer();
+        const fileContent = new Uint8Array(arrayBuffer);
+
         // Upload lên Cloudflare R2
         await r2Client.send(new PutObjectCommand({
-          Bucket: "product-images", // Đảm bảo tên Bucket đúng
+          Bucket: "product-images", 
           Key: fileName,
-          Body: file,
+          Body: fileContent,
           ContentType: file.type,
         }));
 
-        // Trả về Public URL của R2
+        // Tạo Public URL
         const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
         newUrls.push(publicUrl);
       }
