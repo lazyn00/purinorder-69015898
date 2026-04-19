@@ -15,6 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link } from "lucide-react";
 
+// --- THÊM IMPORT R2 ---
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
 interface SupabaseProduct {
   id: number;
   name: string;
@@ -95,7 +98,6 @@ const emptyForm: ProductFormData = {
   chenh: null,
 };
 
-// Helper: get deadline status
 const getDeadlineStatus = (product: SupabaseProduct) => {
   if (!product.order_deadline) return { label: "Không có hạn", color: "bg-gray-100 text-gray-700", priority: 2 };
   const deadline = new Date(product.order_deadline);
@@ -107,7 +109,6 @@ const getDeadlineStatus = (product: SupabaseProduct) => {
   return { label: "Còn hạn", color: "bg-green-100 text-green-700", priority: 1 };
 };
 
-// Helper: tính tồn khả dụng (ưu tiên tồn theo variant nếu có)
 const getAvailableStock = (product: SupabaseProduct): number => {
   const variants = Array.isArray(product.variants) ? product.variants : [];
   const hasVariantStock = variants.some((v: any) => v?.stock !== undefined && v?.stock !== null);
@@ -122,7 +123,6 @@ const getAvailableStock = (product: SupabaseProduct): number => {
   return Number(product.stock || 0);
 };
 
-// Helper: check stock status
 const getStockStatus = (product: SupabaseProduct) => {
   const availableStock = getAvailableStock(product);
   if (availableStock <= 0) return { label: "Hết hàng", color: "bg-red-100 text-red-700" };
@@ -145,19 +145,13 @@ export default function ProductManagement() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ProductFormData>({ ...emptyForm });
   
-  // Variant editing
   const [variantInputs, setVariantInputs] = useState<{ name: string; price: number; stock?: number }[]>([]);
-  // Option groups editing
   const [optionGroupInputs, setOptionGroupInputs] = useState<{ name: string; options: string }[]>([]);
-  // Images editing
   const [imageInputs, setImageInputs] = useState<string[]>([]);
   
-  // Sync from sheet
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
-  // Image upload
   const [uploadingImage, setUploadingImage] = useState(false);
-  // Sync images to storage
   const [syncingImages, setSyncingImages] = useState(false);
 
   const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
@@ -201,7 +195,6 @@ export default function ProductManagement() {
         const p = sheetProducts[i];
         setSyncProgress(Math.round(((i + 1) / sheetProducts.length) * 100));
         
-        // Parse fields
         let variants = p.variants || [];
         if (typeof variants === 'string') try { variants = JSON.parse(variants); } catch { variants = []; }
         let images = p.images || [];
@@ -264,7 +257,6 @@ export default function ProductManagement() {
 
   useEffect(() => { fetchDbProducts(); }, []);
 
-  // Auto-calculate r_v and total
   useEffect(() => {
     const te = form.te || 0;
     const rate = form.rate || 0;
@@ -282,7 +274,6 @@ export default function ProductManagement() {
     }));
   }, [form.te, form.rate, form.can_weight, form.pack, form.cong]);
 
-  // Auto-calculate chênh
   useEffect(() => {
     const te = form.te || 0;
     const actualRate = form.actual_rate || form.rate || 0;
@@ -308,7 +299,6 @@ export default function ProductManagement() {
     });
 
     return filtered.sort((a, b) => {
-      // Admin: đẩy xuống cuối nếu HẾT HÀNG / HẾT HẠN / bị ẨN
       const aOutOfStock = getAvailableStock(a) <= 0;
       const bOutOfStock = getAvailableStock(b) <= 0;
       const aHidden = a.status === "Ẩn";
@@ -474,7 +464,6 @@ export default function ProductManagement() {
     setVariantInputs(prev => prev.map(v => ({ ...v, price })));
   };
 
-  // Copy / Duplicate product
   const duplicateProduct = (product: SupabaseProduct) => {
     setEditingId(null);
     setForm({
@@ -522,7 +511,6 @@ export default function ProductManagement() {
     toast({ title: "Đã sao chép", description: `Đang tạo bản sao của "${product.name}"` });
   };
 
-  // Toggle hide/show product
   const toggleHideProduct = async (product: SupabaseProduct) => {
     const newStatus = product.status === "Ẩn" ? "Sẵn" : "Ẩn";
     try {
@@ -536,38 +524,58 @@ export default function ProductManagement() {
     }
   };
 
-  // Upload image file to storage
+  // --- HÀM UPLOAD MỚI DÙNG CLOUDFLARE R2 ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploadingImage(true);
+    
     try {
       const newUrls: string[] = [];
+
+      // Khởi tạo R2 Client
+      const r2Client = new S3Client({
+        region: "auto",
+        endpoint: import.meta.env.VITE_R2_ENDPOINT,
+        credentials: {
+          accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY,
+          secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
+        },
+      });
+
       for (const file of Array.from(files)) {
         const timestamp = Date.now();
         const ext = file.name.split('.').pop() || 'jpg';
         const fileName = `upload-${timestamp}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { data, error } = await supabase.storage
-          .from('product-images')
-          .upload(fileName, file, { contentType: file.type, upsert: true });
-        if (error) throw error;
-        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
-        newUrls.push(urlData.publicUrl);
+        
+        // Upload lên Cloudflare R2
+        await r2Client.send(new PutObjectCommand({
+          Bucket: "product-images", // Đảm bảo tên Bucket đúng
+          Key: fileName,
+          Body: file,
+          ContentType: file.type,
+        }));
+
+        // Trả về Public URL của R2
+        const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
+        newUrls.push(publicUrl);
       }
+
       setImageInputs(prev => {
         const cleaned = prev.filter(u => u.trim() !== "");
         return [...cleaned, ...newUrls, ""];
       });
-      toast({ title: "Đã tải lên", description: `${newUrls.length} ảnh đã được upload` });
+
+      toast({ title: "Đã tải lên R2", description: `${newUrls.length} ảnh đã được upload thành công` });
     } catch (error: any) {
-      toast({ title: "Lỗi upload", description: error.message, variant: "destructive" });
+      console.error("R2 Upload Error:", error);
+      toast({ title: "Lỗi upload R2", description: error.message, variant: "destructive" });
     } finally {
       setUploadingImage(false);
       e.target.value = "";
     }
   };
 
-  // Sync all external images to storage
   const syncAllImagesToStorage = async () => {
     setSyncingImages(true);
     try {
@@ -776,7 +784,6 @@ export default function ProductManagement() {
           </DialogHeader>
           
           <div className="space-y-6">
-            {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <Label>Tên sản phẩm *</Label>
@@ -822,7 +829,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Cost Calculation */}
             <div>
               <h3 className="font-medium mb-2">Chi phí</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
@@ -857,7 +863,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Price & Stock */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <Label className="text-xs">Giá bán *</Label>
@@ -883,8 +888,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-
-            {/* Description & Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Mô tả (mỗi dòng = 1 bullet point)</Label>
@@ -906,7 +909,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Links */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs">Link order</Label>
@@ -918,7 +920,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Images - Drag & Drop */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Hình ảnh (kéo thả để sắp xếp)</Label>
@@ -928,7 +929,7 @@ export default function ProductManagement() {
                     <Button variant="outline" size="sm" asChild disabled={uploadingImage}>
                       <span>
                         {uploadingImage ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
-                        Tải ảnh lên
+                        Tải ảnh lên R2
                       </span>
                     </Button>
                   </label>
@@ -993,7 +994,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Variants */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Phân loại (Variants)</Label>
@@ -1051,7 +1051,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Option Groups */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Nhóm tùy chọn (Option Groups)</Label>
@@ -1090,7 +1089,6 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Variant Image Map - Visual Selector */}
             {variantInputs.length > 0 && imageInputs.filter(u => u.trim()).length > 0 && (
               <div>
                 <Label>Gán ảnh cho phân loại</Label>
@@ -1147,7 +1145,6 @@ export default function ProductManagement() {
               </div>
             )}
 
-            {/* Save Button */}
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
               <Button onClick={handleSave} disabled={saving} className="gap-1">
