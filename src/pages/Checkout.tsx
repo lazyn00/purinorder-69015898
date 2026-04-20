@@ -135,7 +135,6 @@ export default function Checkout() {
         toast({ title: "Mã giảm giá không hợp lệ", variant: "destructive" });
         return;
       }
-      // (Logic validation giữ nguyên như code cũ của bạn...)
       setAppliedDiscount(data as DiscountCode);
       setDiscountAmount(data.discount_type === 'percentage' ? Math.min(totalPrice * (data.discount_value / 100), data.max_discount || Infinity) : data.discount_value);
     } catch (error) {
@@ -177,7 +176,7 @@ export default function Checkout() {
     try {
       let paymentProofUrl = null;
       
-      // --- LOGIC UPLOAD BILL LÊN R2 ---
+      // --- LOGIC UPLOAD BILL LÊN R2 (DÙNG CHUNG BUCKET VỚI PRODUCT ĐỂ KHÔNG SAI LINK) ---
       if (paymentProof) {
         const r2Client = new S3Client({
           region: "auto",
@@ -195,7 +194,7 @@ export default function Checkout() {
         const fileContent = new Uint8Array(arrayBuffer);
 
         await r2Client.send(new PutObjectCommand({
-          Bucket: "payment-proofs", // Tên bucket R2 cho bill
+          Bucket: "product-images", // CHỖ NÀY: Dùng chung bucket để mượt mà nhất
           Key: fileName,
           Body: fileContent,
           ContentType: paymentProof.type,
@@ -204,7 +203,6 @@ export default function Checkout() {
         paymentProofUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
       }
 
-      // Tách đơn theo Master
       const masterGroups: { [key: string]: typeof cartItems } = {};
       cartItems.forEach(item => {
         const master = item.master || "no_master";
@@ -244,7 +242,6 @@ export default function Checkout() {
 
         if (insertError) throw insertError;
 
-        // Trừ kho (Atomic)
         for (const item of groupItems) {
           if (item.selectedVariant) {
             await supabase.rpc('decrement_variant_stock', { p_product_id: item.id, p_variant_name: item.selectedVariant, p_quantity: item.quantity });
@@ -344,7 +341,7 @@ export default function Checkout() {
               <div>
                 <Label htmlFor="paymentMethod" className="font-semibold">Chọn phương thức</Label>
                 <Select value={selectedMethod} onValueChange={setSelectedMethod}>
-                  <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-2"><SelectValue placeholder="Chọn ngân hàng/ví điện tử" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Ngân hàng">Ngân hàng</SelectItem>
                     <SelectItem value="Momo">Momo</SelectItem>
@@ -360,7 +357,7 @@ export default function Checkout() {
                 </div>
                 <p>Chủ TK: <span className="font-bold">{PAYMENT_INFO.accountName}</span></p>
                 <p>Số TK: <span className="font-bold">{paymentDetails.number}</span> ({paymentDetails.label})</p>
-                {QR_IMAGES[selectedMethod] && <div className="flex justify-center pt-2"><img src={QR_IMAGES[selectedMethod]} alt="QR" className="max-w-[200px] rounded-lg" /></div>}
+                {QR_IMAGES[selectedMethod] && <div className="flex justify-center pt-2"><img src={QR_IMAGES[selectedMethod]} alt="QR" className="max-w-[250px] rounded-lg shadow-sm" /></div>}
               </div>
               
               <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
