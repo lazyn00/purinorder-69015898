@@ -220,10 +220,17 @@ export default function SellProduct() {
         for (const file of uploadedImages) {
           const fileExt = file.name.split('.').pop();
           const fileName = `listings/${Date.now()}_${Math.random()}.${fileExt}`;
-          const { error: uploadError } = await supabase.storage.from('payment-proofs').upload(fileName, file);
-          if (uploadError) continue;
-          const { data: { publicUrl } } = supabase.storage.from('payment-proofs').getPublicUrl(fileName);
-          finalImages.push(publicUrl);
+          const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+const r2 = new S3Client({
+  region: "auto",
+  endpoint: import.meta.env.VITE_R2_ENDPOINT,
+  credentials: {
+    accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY,
+    secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
+  },
+});
+await r2.send(new PutObjectCommand({ Bucket: "product-images", Key: fileName, Body: file, ContentType: file.type }));
+finalImages.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`);
         }
       }
 
