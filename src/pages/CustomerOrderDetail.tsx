@@ -194,9 +194,17 @@ export default function CustomerOrderDetail() {
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(fileName, file);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("payment-proofs").getPublicUrl(fileName);
+      const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+const r2 = new S3Client({
+  region: "auto",
+  endpoint: import.meta.env.VITE_R2_ENDPOINT,
+  credentials: {
+    accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY,
+    secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
+  },
+});
+await r2.send(new PutObjectCommand({ Bucket: "payment-proofs", Key: fileName, Body: file, ContentType: file.type }));
+const publicUrl = `${import.meta.env.VITE_R2_PAYMENT_URL}/${fileName}`;
       const currentBills = order.additional_bills || [];
       const newBills = [...currentBills, publicUrl];
       const { error } = await (supabase as any).from("orders").update({ additional_bills: newBills }).eq("id", order.id);
