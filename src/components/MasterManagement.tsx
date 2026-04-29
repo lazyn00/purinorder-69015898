@@ -91,10 +91,22 @@ export default function MasterManagement() {
         const ext = file.name.split(".").pop();
         const safeName = Date.now() + "-" + Math.random().toString(36).slice(2);
         const path = `master-updates/${safeName}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-        uploadedUrls.push(urlData.publicUrl);
+        const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+const r2 = new S3Client({
+  region: "auto",
+  endpoint: import.meta.env.VITE_R2_ENDPOINT,
+  credentials: {
+    accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY,
+    secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
+  },
+});
+await r2.send(new PutObjectCommand({
+  Bucket: "product-images",
+  Key: path,
+  Body: file,
+  ContentType: file.type,
+}));
+uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
       }
 
       const { error } = await (supabase as any).from("master_updates").insert({
