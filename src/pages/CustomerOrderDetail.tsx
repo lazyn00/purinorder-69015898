@@ -203,7 +203,9 @@ const r2 = new S3Client({
     secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
   },
 });
-await r2.send(new PutObjectCommand({ Bucket: "payment-proofs", Key: fileName, Body: file, ContentType: file.type }));
+const arrayBuffer = await file.arrayBuffer();
+const uint8Array = new Uint8Array(arrayBuffer);
+await r2.send(new PutObjectCommand({ Bucket: "product-images", Key: fileName, Body: uint8Array, ContentType: file.type }));
 const publicUrl = `${import.meta.env.VITE_R2_PAYMENT_URL}/${fileName}`;
       const currentBills = order.additional_bills || [];
       const newBills = [...currentBills, publicUrl];
