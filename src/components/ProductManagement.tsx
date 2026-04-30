@@ -825,11 +825,19 @@ export default function ProductManagement() {
               </div>
               <div>
                 <Label>Hạn order</Label>
-                <Input 
-                  type="datetime-local" 
-                  value={form.order_deadline ? new Date(form.order_deadline).toISOString().slice(0, 16) : ""} 
-                  onChange={e => setForm(prev => ({ ...prev, order_deadline: e.target.value ? new Date(e.target.value).toISOString() : null }))} 
-                />
+                <div className="flex gap-2 items-center">
+  <Input 
+    type="datetime-local" 
+    value={form.order_deadline ? new Date(form.order_deadline).toISOString().slice(0, 16) : ""} 
+    onChange={e => setForm(prev => ({ ...prev, order_deadline: e.target.value ? new Date(e.target.value).toISOString() : null }))} 
+    className="h-8 text-sm"
+  />
+  {form.order_deadline && (
+    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setForm(prev => ({ ...prev, order_deadline: null }))}>
+      <X className="h-3.5 w-3.5" />
+    </Button>
+  )}
+</div>
               </div>
             </div>
 
