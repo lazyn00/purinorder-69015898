@@ -193,8 +193,8 @@ export default function CustomerOrderDetail() {
     setUploadingBill(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+const fileName = `${Math.random()}.${fileExt}`;
+const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
 const r2 = new S3Client({
   region: "auto",
   endpoint: import.meta.env.VITE_R2_ENDPOINT,
@@ -206,7 +206,7 @@ const r2 = new S3Client({
 const arrayBuffer = await file.arrayBuffer();
 const uint8Array = new Uint8Array(arrayBuffer);
 await r2.send(new PutObjectCommand({ Bucket: "product-images", Key: fileName, Body: uint8Array, ContentType: file.type }));
-const publicUrl = `${import.meta.env.VITE_R2_PAYMENT_URL}/${fileName}`;
+const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
       const currentBills = order.additional_bills || [];
       const newBills = [...currentBills, publicUrl];
       const { error } = await (supabase as any).from("orders").update({ additional_bills: newBills }).eq("id", order.id);
