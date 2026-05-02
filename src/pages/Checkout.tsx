@@ -475,6 +475,30 @@ export default function Checkout() {
           </div>
         </form>
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => !o && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá sản phẩm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có muốn xoá sản phẩm này khỏi giỏ hàng không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirm) {
+                  removeFromCart(deleteConfirm.id, deleteConfirm.variant);
+                  setDeleteConfirm(null);
+                }
+              }}
+            >
+              Xoá
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
