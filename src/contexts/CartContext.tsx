@@ -43,6 +43,7 @@ interface CartContextType {
   products: Product[];
   isLoading: boolean;
   refetchProducts: () => void;
+  syncCartWithProducts: () => { changes: { name: string; oldPrice: number; newPrice: number }[] };
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
