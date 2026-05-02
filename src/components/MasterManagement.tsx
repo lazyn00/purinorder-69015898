@@ -102,7 +102,7 @@ const r2 = new S3Client({
 });
 const arrayBuffer = await file.arrayBuffer();
 const uint8Array = new Uint8Array(arrayBuffer);
-await r2.send(new PutObjectCommand({ Bucket: "product-images", Key: fileName, Body: uint8Array, ContentType: file.type }));
+await r2.send(new PutObjectCommand({ Bucket: "product-images", Key: path, Body: uint8Array, ContentType: file.type }));
 uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
       }
 
