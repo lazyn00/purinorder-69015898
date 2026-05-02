@@ -43,7 +43,6 @@ interface CartContextType {
   products: Product[];
   isLoading: boolean;
   refetchProducts: () => void;
-  syncCartWithProducts: () => { changes: { name: string; oldPrice: number; newPrice: number }[] };
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -196,33 +195,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setCartItems([]);
 
-  const syncCartWithProducts = () => {
-    const changes: { name: string; oldPrice: number; newPrice: number }[] = [];
-    setCartItems(prev =>
-      prev.map(item => {
-        const fresh = products.find(p => p.id === item.id);
-        if (!fresh) return item;
-        let newPrice = fresh.price;
-        if (item.selectedVariant && Array.isArray(fresh.variants)) {
-          const v = fresh.variants.find((x: any) => x.name === item.selectedVariant);
-          if (v && typeof v.price === 'number') newPrice = v.price;
-        }
-        if (newPrice !== item.price) {
-          changes.push({ name: item.name, oldPrice: item.price, newPrice });
-        }
-        return {
-          ...item,
-          price: newPrice,
-          name: fresh.name,
-          images: fresh.images,
-          variantImageMap: fresh.variantImageMap,
-          priceDisplay: fresh.priceDisplay,
-        };
-      })
-    );
-    return { changes };
-  };
-
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -237,8 +209,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalPrice,
       products, 
       isLoading,
-      refetchProducts: fetchProducts,
-      syncCartWithProducts,
+      refetchProducts: fetchProducts
     }}>
       {children}
     </CartContext.Provider>

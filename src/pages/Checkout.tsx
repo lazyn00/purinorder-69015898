@@ -8,22 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, SquareCheck, Plus, Minus, Trash2 } from "lucide-react";
+import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, SquareCheck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import qrMomo from "@/assets/qr-momo.jpg";
 import qrZalopay from "@/assets/qr-zalopay.jpg";
 import qrVpbank from "@/assets/qr-vpbank.jpg";
@@ -66,37 +56,11 @@ interface DiscountCode {
 }
 
 export default function Checkout() {
-  const { cartItems, totalPrice, clearCart, updateQuantity, removeFromCart, products, refetchProducts, syncCartWithProducts } = useCart();
+  const { cartItems, totalPrice, clearCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [hasSynced, setHasSynced] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; variant: string } | null>(null);
-
+  
   useEffect(() => { window.scrollTo({ top: 0 }); }, []);
-
-  // Đồng bộ lại giá & ảnh sản phẩm mới nhất từ server khi mở Checkout
-  useEffect(() => {
-    refetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Khi products đã tải xong, đồng bộ giỏ hàng 1 lần
-  useEffect(() => {
-    if (hasSynced) return;
-    if (!products || products.length === 0) return;
-    if (cartItems.length === 0) { setHasSynced(true); return; }
-    const { changes } = syncCartWithProducts();
-    setHasSynced(true);
-    if (changes.length > 0) {
-      toast({
-        title: "Giá sản phẩm đã được cập nhật",
-        description: changes.map(c => `${c.name}: ${c.oldPrice.toLocaleString("vi-VN")}đ → ${c.newPrice.toLocaleString("vi-VN")}đ`).join("; "),
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products]);
-
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [contactInfo, setContactInfo] = useState({
@@ -412,51 +376,14 @@ export default function Checkout() {
             <h2 className="text-lg font-semibold">Sản phẩm đã chọn ({cartItems.length})</h2>
             <div className="space-y-3">
               {cartItems.map((item) => (
-                <div key={`${item.id}-${item.selectedVariant}`} className="flex gap-3 border-b pb-3 last:border-b-0 last:pb-0">
+                <div key={`${item.id}-${item.selectedVariant}`} className="flex gap-3">
                   <img src={getVariantImage(item)} alt={item.name} className="h-16 w-16 rounded object-cover border" />
-                  <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium line-clamp-2">{item.name}</p>
                     {item.selectedVariant && <p className="text-xs text-muted-foreground">Phân loại: {item.selectedVariant}</p>}
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            if (item.quantity <= 1) {
-                              setDeleteConfirm({ id: item.id, variant: item.selectedVariant });
-                            } else {
-                              updateQuantity(item.id, item.selectedVariant, item.quantity - 1);
-                            }
-                          }}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 ml-1"
-                          onClick={() => setDeleteConfirm({ id: item.id, variant: item.selectedVariant })}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
-                      </div>
-                      <div className="text-sm font-semibold text-primary whitespace-nowrap">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</div>
-                    </div>
+                    <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                   </div>
+                  <div className="text-sm font-semibold text-primary whitespace-nowrap">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</div>
                 </div>
               ))}
             </div>
@@ -475,30 +402,6 @@ export default function Checkout() {
           </div>
         </form>
       </div>
-
-      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => !o && setDeleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xoá sản phẩm?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn có muốn xoá sản phẩm này khỏi giỏ hàng không?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Huỷ</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (deleteConfirm) {
-                  removeFromCart(deleteConfirm.id, deleteConfirm.variant);
-                  setDeleteConfirm(null);
-                }
-              }}
-            >
-              Xoá
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Layout>
   );
 }
