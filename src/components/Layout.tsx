@@ -143,6 +143,23 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           {/* Mobile Menu */}
           {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 space-y-2">
+              <div className="py-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Sản phẩm</p>
+                <div className="pl-2 space-y-1">
+                  {productCategories.map((cat) => (
+                    <Link
+                      key={cat.path}
+                      to={cat.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`block py-1.5 text-sm transition-colors hover:text-primary ${
+                        location.pathname === cat.path ? "text-primary font-medium" : "text-muted-foreground"
+                      }`}
+                    >
+                      {cat.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
               {menuItems.map((item) => (
                 <Link
                   key={item.path}
