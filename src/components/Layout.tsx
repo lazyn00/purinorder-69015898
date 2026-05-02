@@ -1,12 +1,20 @@
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Moon, Sun } from "lucide-react";
+import { Menu, X, Moon, Sun, ChevronDown } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
 
+const productCategories = [
+  { path: "/products", label: "Tất cả sản phẩm" },
+  { path: "/category/outfit-doll", label: "Outfit & Doll" },
+  { path: "/category/merch", label: "Merch" },
+  { path: "/category/tiem-in-purin", label: "Tiệm in Purin" },
+  { path: "/category/thoi-trang", label: "Thời trang" },
+  { path: "/category/khac", label: "Khác" },
+];
+
 const menuItems = [
-  { path: "/products", label: "Sản phẩm" },
   { path: "/policy", label: "Chính sách" },
   { path: "/contact", label: "Thông tin" },
   { path: "/track-order", label: "Tra đơn" },
