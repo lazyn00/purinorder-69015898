@@ -56,11 +56,71 @@ interface DiscountCode {
 }
 
 export default function Checkout() {
-  const { cartItems, totalPrice, clearCart } = useCart();
+  const { cartItems, totalPrice, clearCart, updateQuantity, removeFromCart, products, refetchProducts } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
   
   useEffect(() => { window.scrollTo({ top: 0 }); }, []);
+
+  // Đồng bộ lại giá & ảnh sản phẩm mới nhất từ server khi mở Checkout
+  useEffect(() => {
+    refetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Khi products được tải về, cập nhật lại price/images/name/variantImageMap cho từng item trong giỏ
+  useEffect(() => {
+    if (!products || products.length === 0 || cartItems.length === 0) return;
+    let hasChange = false;
+    const changedItems: { name: string; oldPrice: number; newPrice: number }[] = [];
+    cartItems.forEach((item) => {
+      const fresh = products.find((p) => p.id === item.id);
+      if (!fresh) return;
+      let newPrice = fresh.price;
+      if (item.selectedVariant && Array.isArray(fresh.variants)) {
+        const v = fresh.variants.find((x: any) => x.name === item.selectedVariant);
+        if (v && typeof v.price === "number") newPrice = v.price;
+      }
+      if (newPrice !== item.price) {
+        hasChange = true;
+        changedItems.push({ name: item.name, oldPrice: item.price, newPrice });
+        // Cập nhật trực tiếp qua updateQuantity không đủ — cần thay item; tận dụng remove + add lại sẽ phức tạp.
+        // Vì CartContext không expose updateItem, ta mutate qua localStorage rồi refetch.
+      }
+    });
+    if (hasChange) {
+      try {
+        const updated = cartItems.map((item) => {
+          const fresh = products.find((p) => p.id === item.id);
+          if (!fresh) return item;
+          let newPrice = fresh.price;
+          if (item.selectedVariant && Array.isArray(fresh.variants)) {
+            const v = fresh.variants.find((x: any) => x.name === item.selectedVariant);
+            if (v && typeof v.price === "number") newPrice = v.price;
+          }
+          return {
+            ...item,
+            price: newPrice,
+            name: fresh.name,
+            images: fresh.images,
+            variantImageMap: fresh.variantImageMap,
+            priceDisplay: fresh.priceDisplay,
+          };
+        });
+        localStorage.setItem("pu_cart_items_v1", JSON.stringify(updated));
+        toast({
+          title: "Giá sản phẩm đã được cập nhật",
+          description: changedItems.map((c) => `${c.name}: ${c.oldPrice.toLocaleString("vi-VN")}đ → ${c.newPrice.toLocaleString("vi-VN")}đ`).join("; "),
+        });
+        // Reload để CartContext lấy giá mới từ localStorage
+        setTimeout(() => window.location.reload(), 600);
+      } catch (e) {
+        console.warn("Sync cart prices failed", e);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [contactInfo, setContactInfo] = useState({
