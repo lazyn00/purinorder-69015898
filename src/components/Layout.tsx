@@ -1,12 +1,20 @@
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Moon, Sun } from "lucide-react";
+import { Menu, X, Moon, Sun, ChevronDown } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
 
+const productCategories = [
+  { path: "/products", label: "Tất cả sản phẩm" },
+  { path: "/category/outfit-doll", label: "Outfit & Doll" },
+  { path: "/category/merch", label: "Merch" },
+  { path: "/category/tiem-in-purin", label: "Tiệm in Purin" },
+  { path: "/category/thoi-trang", label: "Thời trang" },
+  { path: "/category/khac", label: "Khác" },
+];
+
 const menuItems = [
-  { path: "/products", label: "Sản phẩm" },
   { path: "/policy", label: "Chính sách" },
   { path: "/contact", label: "Thông tin" },
   { path: "/track-order", label: "Tra đơn" },
@@ -59,6 +67,34 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-6">
+              {/* Products dropdown */}
+              <div className="relative group">
+                <button
+                  className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary ${
+                    location.pathname === "/products" || location.pathname.startsWith("/category/")
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Sản phẩm <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+                <div className="absolute left-0 top-full pt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+                  <div className="bg-card border rounded-md shadow-lg py-2">
+                    {productCategories.map((cat) => (
+                      <Link
+                        key={cat.path}
+                        to={cat.path}
+                        className={`block px-4 py-2 text-sm transition-colors hover:bg-muted ${
+                          location.pathname === cat.path ? "text-primary font-medium" : "text-foreground"
+                        }`}
+                      >
+                        {cat.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {menuItems.map((item) => (
                 <Link
                   key={item.path}
@@ -107,6 +143,23 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           {/* Mobile Menu */}
           {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 space-y-2">
+              <div className="py-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Sản phẩm</p>
+                <div className="pl-2 space-y-1">
+                  {productCategories.map((cat) => (
+                    <Link
+                      key={cat.path}
+                      to={cat.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`block py-1.5 text-sm transition-colors hover:text-primary ${
+                        location.pathname === cat.path ? "text-primary font-medium" : "text-muted-foreground"
+                      }`}
+                    >
+                      {cat.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
               {menuItems.map((item) => (
                 <Link
                   key={item.path}
