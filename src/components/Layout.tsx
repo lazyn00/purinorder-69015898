@@ -67,6 +67,34 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-6">
+              {/* Products dropdown */}
+              <div className="relative group">
+                <button
+                  className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary ${
+                    location.pathname === "/products" || location.pathname.startsWith("/category/")
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Sản phẩm <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+                <div className="absolute left-0 top-full pt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+                  <div className="bg-card border rounded-md shadow-lg py-2">
+                    {productCategories.map((cat) => (
+                      <Link
+                        key={cat.path}
+                        to={cat.path}
+                        className={`block px-4 py-2 text-sm transition-colors hover:bg-muted ${
+                          location.pathname === cat.path ? "text-primary font-medium" : "text-foreground"
+                        }`}
+                      >
+                        {cat.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {menuItems.map((item) => (
                 <Link
                   key={item.path}
