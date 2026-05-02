@@ -92,9 +92,26 @@ const mapSupabaseProduct = (p: any): Product => {
 };
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const CART_STORAGE_KEY = 'pu_cart_items_v1';
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(CART_STORAGE_KEY);
+      if (raw) return JSON.parse(raw) as CartItem[];
+    } catch (e) {
+      console.warn('Cart restore failed', e);
+    }
+    return [];
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } catch (e) {
+      console.warn('Cart persist failed', e);
+    }
+  }, [cartItems]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
