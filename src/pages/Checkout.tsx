@@ -334,7 +334,10 @@ export default function Checkout() {
                 </label>
                 <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50">
                   <input type="radio" name="paymentType" value="deposit" checked={paymentType === 'deposit'} onChange={() => setPaymentType("deposit")} className="mt-1" />
-                  <div className="font-medium">Đặt cọc 50% ({(totalPrice * 0.5).toLocaleString('vi-VN')}đ)</div>
+                  <div>
+                    <div className="font-medium">Đặt cọc 50% ({(totalPrice * 0.5).toLocaleString('vi-VN')}đ)</div>
+                    <div className="text-xs text-muted-foreground mt-1 italic">(hoàn cọc trong 1 tháng)</div>
+                  </div>
                 </label>
               </div>
 
