@@ -373,6 +373,21 @@ export default function Checkout() {
           </div>
 
           <div className="rounded-lg border p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Sản phẩm đã chọn ({cartItems.length})</h2>
+            <div className="space-y-3">
+              {cartItems.map((item) => (
+                <div key={`${item.id}-${item.selectedVariant}`} className="flex gap-3">
+                  <img src={getVariantImage(item)} alt={item.name} className="h-16 w-16 rounded object-cover border" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium line-clamp-2">{item.name}</p>
+                    {item.selectedVariant && <p className="text-xs text-muted-foreground">Phân loại: {item.selectedVariant}</p>}
+                    <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+                  </div>
+                  <div className="text-sm font-semibold text-primary whitespace-nowrap">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</div>
+                </div>
+              ))}
+            </div>
+            <Separator />
             <div className="flex justify-between"><span>Tạm tính:</span><span>{totalPrice.toLocaleString('vi-VN')}đ</span></div>
             {discountAmount > 0 && <div className="flex justify-between text-green-600"><span>Giảm giá:</span><span>-{discountAmount.toLocaleString('vi-VN')}đ</span></div>}
             <Separator />
