@@ -56,7 +56,7 @@ interface DiscountCode {
 }
 
 export default function Checkout() {
-  const { cartItems, totalPrice, clearCart, updateQuantity, removeFromCart } = useCart();
+  const { cartItems, totalPrice, clearCart, updateQuantity, removeFromCart, syncCartWithServer } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -64,7 +64,28 @@ export default function Checkout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("syncing");
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);
-  const [priceChangeNotice, setPriceChangeNotice] = useState<string[]>([]);
+
+  const runSync = async () => {
+    setSyncStatus("syncing");
+    try {
+      const { updated, removed } = await syncCartWithServer();
+      setSyncedAt(new Date());
+      setSyncStatus("synced");
+      if (updated.length > 0) {
+        toast({ title: "Đã cập nhật giá/ảnh mới nhất", description: updated.join(", ") });
+      }
+      if (removed.length > 0) {
+        toast({ title: "Sản phẩm không còn", description: removed.join(", "), variant: "destructive" });
+      }
+    } catch {
+      setSyncStatus("error");
+    }
+  };
+
+  useEffect(() => {
+    runSync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   const [contactInfo, setContactInfo] = useState({
     fb: "",
