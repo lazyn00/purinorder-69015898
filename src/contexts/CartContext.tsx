@@ -43,6 +43,7 @@ interface CartContextType {
   products: Product[];
   isLoading: boolean;
   refetchProducts: () => void;
+  syncCartWithServer: () => Promise<{ updated: string[]; removed: string[] }>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
