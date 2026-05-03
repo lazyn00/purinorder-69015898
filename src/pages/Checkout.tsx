@@ -305,7 +305,34 @@ export default function Checkout() {
         <Button variant="ghost" onClick={() => navigate("/products")} className="mb-6 gap-2">
           <ArrowLeft className="h-4 w-4" /> Tiếp tục mua sắm
         </Button>
-      
+
+        {/* Sync status */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+          <div className="flex items-center gap-2">
+            {syncStatus === "syncing" && (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-muted-foreground">Đang cập nhật giá & ảnh từ server…</span>
+              </>
+            )}
+            {syncStatus === "synced" && (
+              <>
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-muted-foreground">
+                  Đã cập nhật{syncedAt && ` lúc ${syncedAt.toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}`}
+                </span>
+              </>
+            )}
+            {syncStatus === "error" && (
+              <span className="text-destructive">Không cập nhật được, dùng dữ liệu đã lưu</span>
+            )}
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={runSync} disabled={syncStatus === "syncing"} className="h-7 gap-1 px-2">
+            <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""}`} />
+            Làm mới
+          </Button>
+        </div>
+
         <form onSubmit={handleSubmitOrder} className="space-y-8">
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
