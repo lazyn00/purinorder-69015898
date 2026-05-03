@@ -56,12 +56,15 @@ interface DiscountCode {
 }
 
 export default function Checkout() {
-  const { cartItems, totalPrice, clearCart } = useCart();
+  const { cartItems, totalPrice, clearCart, updateQuantity, removeFromCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
   
   useEffect(() => { window.scrollTo({ top: 0 }); }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("syncing");
+  const [syncedAt, setSyncedAt] = useState<Date | null>(null);
+  const [priceChangeNotice, setPriceChangeNotice] = useState<string[]>([]);
   
   const [contactInfo, setContactInfo] = useState({
     fb: "",
