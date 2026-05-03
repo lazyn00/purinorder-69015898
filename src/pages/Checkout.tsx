@@ -174,7 +174,16 @@ export default function Checkout() {
     setDiscountCode("");
   };
 
-  const finalPrice = totalPrice - discountAmount;
+  // Recalculate discount when totalPrice changes (e.g. after sync or qty edit)
+  useEffect(() => {
+    if (!appliedDiscount) return;
+    const amount = appliedDiscount.discount_type === 'percentage'
+      ? Math.min(totalPrice * (appliedDiscount.discount_value / 100), appliedDiscount.max_discount || Infinity)
+      : appliedDiscount.discount_value;
+    setDiscountAmount(Math.min(amount, totalPrice));
+  }, [totalPrice, appliedDiscount]);
+
+  const finalPrice = Math.max(0, totalPrice - discountAmount);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
