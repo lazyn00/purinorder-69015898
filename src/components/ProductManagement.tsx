@@ -782,7 +782,10 @@ export default function ProductManagement() {
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{editingId ? `Chỉnh sửa sản phẩm #${editingId}` : "Thêm sản phẩm mới"}</DialogTitle>
           </DialogHeader>

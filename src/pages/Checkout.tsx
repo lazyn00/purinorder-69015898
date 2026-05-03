@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, SquareCheck } from "lucide-react";
+import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, SquareCheck, Minus, Plus, Trash2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,12 +56,36 @@ interface DiscountCode {
 }
 
 export default function Checkout() {
-  const { cartItems, totalPrice, clearCart } = useCart();
+  const { cartItems, totalPrice, clearCart, updateQuantity, removeFromCart, syncCartWithServer } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
   
   useEffect(() => { window.scrollTo({ top: 0 }); }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("syncing");
+  const [syncedAt, setSyncedAt] = useState<Date | null>(null);
+
+  const runSync = async () => {
+    setSyncStatus("syncing");
+    try {
+      const { updated, removed } = await syncCartWithServer();
+      setSyncedAt(new Date());
+      setSyncStatus("synced");
+      if (updated.length > 0) {
+        toast({ title: "Đã cập nhật giá/ảnh mới nhất", description: updated.join(", ") });
+      }
+      if (removed.length > 0) {
+        toast({ title: "Sản phẩm không còn", description: removed.join(", "), variant: "destructive" });
+      }
+    } catch {
+      setSyncStatus("error");
+    }
+  };
+
+  useEffect(() => {
+    runSync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   const [contactInfo, setContactInfo] = useState({
     fb: "",
@@ -150,7 +174,16 @@ export default function Checkout() {
     setDiscountCode("");
   };
 
-  const finalPrice = totalPrice - discountAmount;
+  // Recalculate discount when totalPrice changes (e.g. after sync or qty edit)
+  useEffect(() => {
+    if (!appliedDiscount) return;
+    const amount = appliedDiscount.discount_type === 'percentage'
+      ? Math.min(totalPrice * (appliedDiscount.discount_value / 100), appliedDiscount.max_discount || Infinity)
+      : appliedDiscount.discount_value;
+    setDiscountAmount(Math.min(amount, totalPrice));
+  }, [totalPrice, appliedDiscount]);
+
+  const finalPrice = Math.max(0, totalPrice - discountAmount);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -281,7 +314,34 @@ export default function Checkout() {
         <Button variant="ghost" onClick={() => navigate("/products")} className="mb-6 gap-2">
           <ArrowLeft className="h-4 w-4" /> Tiếp tục mua sắm
         </Button>
-      
+
+        {/* Sync status */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+          <div className="flex items-center gap-2">
+            {syncStatus === "syncing" && (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-muted-foreground">Đang cập nhật giá & ảnh từ server…</span>
+              </>
+            )}
+            {syncStatus === "synced" && (
+              <>
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-muted-foreground">
+                  Đã cập nhật{syncedAt && ` lúc ${syncedAt.toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}`}
+                </span>
+              </>
+            )}
+            {syncStatus === "error" && (
+              <span className="text-destructive">Không cập nhật được, dùng dữ liệu đã lưu</span>
+            )}
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={runSync} disabled={syncStatus === "syncing"} className="h-7 gap-1 px-2">
+            <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""}`} />
+            Làm mới
+          </Button>
+        </div>
+
         <form onSubmit={handleSubmitOrder} className="space-y-8">
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
@@ -377,11 +437,40 @@ export default function Checkout() {
             <div className="space-y-3">
               {cartItems.map((item) => (
                 <div key={`${item.id}-${item.selectedVariant}`} className="flex gap-3">
-                  <img src={getVariantImage(item)} alt={item.name} className="h-16 w-16 rounded object-cover border" />
-                  <div className="flex-1 min-w-0">
+                  <img src={getVariantImage(item)} alt={item.name} className="h-16 w-16 shrink-0 rounded object-cover border" />
+                  <div className="flex-1 min-w-0 space-y-1">
                     <p className="text-sm font-medium line-clamp-2">{item.name}</p>
                     {item.selectedVariant && <p className="text-xs text-muted-foreground">Phân loại: {item.selectedVariant}</p>}
-                    <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <div className="flex items-center gap-1 rounded-md border">
+                        <Button
+                          type="button" variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity - 1)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          type="number" min="1" value={item.quantity}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value);
+                            if (!isNaN(v) && v >= 1) updateQuantity(item.id, item.selectedVariant, v);
+                          }}
+                          className="h-7 w-12 border-0 p-0 text-center text-sm shadow-none focus-visible:ring-0"
+                        />
+                        <Button
+                          type="button" variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Button
+                        type="button" variant="ghost" size="icon" className="h-7 w-7"
+                        onClick={() => removeFromCart(item.id, item.selectedVariant)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="text-sm font-semibold text-primary whitespace-nowrap">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</div>
                 </div>

@@ -43,6 +43,7 @@ interface CartContextType {
   products: Product[];
   isLoading: boolean;
   refetchProducts: () => void;
+  syncCartWithServer: () => Promise<{ updated: string[]; removed: string[] }>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -195,6 +196,52 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setCartItems([]);
 
+  const syncCartWithServer = async (): Promise<{ updated: string[]; removed: string[] }> => {
+    const updated: string[] = [];
+    const removed: string[] = [];
+    if (cartItems.length === 0) return { updated, removed };
+    try {
+      const ids = Array.from(new Set(cartItems.map(i => i.id)));
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', ids);
+      if (error || !data) return { updated, removed };
+      const fresh = data.map(mapSupabaseProduct);
+      const freshById = new Map(fresh.map(p => [p.id, p]));
+      setCartItems(prev => {
+        const next: CartItem[] = [];
+        for (const item of prev) {
+          const p = freshById.get(item.id);
+          if (!p) {
+            removed.push(item.name);
+            continue;
+          }
+          let newPrice = p.price;
+          if (item.selectedVariant && p.variants && p.variants.length > 0) {
+            const v = p.variants.find(v => v.name === item.selectedVariant);
+            if (v && typeof v.price === 'number') newPrice = v.price;
+          }
+          if (newPrice !== item.price || JSON.stringify(p.images) !== JSON.stringify(item.images)) {
+            updated.push(item.name);
+          }
+          next.push({
+            ...item,
+            price: newPrice,
+            images: p.images,
+            variantImageMap: p.variantImageMap,
+            priceDisplay: p.priceDisplay,
+            name: p.name,
+          });
+        }
+        return next;
+      });
+    } catch (e) {
+      console.warn('syncCartWithServer failed', e);
+    }
+    return { updated, removed };
+  };
+
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -209,7 +256,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalPrice,
       products, 
       isLoading,
-      refetchProducts: fetchProducts
+      refetchProducts: fetchProducts,
+      syncCartWithServer,
     }}>
       {children}
     </CartContext.Provider>
