@@ -428,11 +428,40 @@ export default function Checkout() {
             <div className="space-y-3">
               {cartItems.map((item) => (
                 <div key={`${item.id}-${item.selectedVariant}`} className="flex gap-3">
-                  <img src={getVariantImage(item)} alt={item.name} className="h-16 w-16 rounded object-cover border" />
-                  <div className="flex-1 min-w-0">
+                  <img src={getVariantImage(item)} alt={item.name} className="h-16 w-16 shrink-0 rounded object-cover border" />
+                  <div className="flex-1 min-w-0 space-y-1">
                     <p className="text-sm font-medium line-clamp-2">{item.name}</p>
                     {item.selectedVariant && <p className="text-xs text-muted-foreground">Phân loại: {item.selectedVariant}</p>}
-                    <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <div className="flex items-center gap-1 rounded-md border">
+                        <Button
+                          type="button" variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity - 1)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          type="number" min="1" value={item.quantity}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value);
+                            if (!isNaN(v) && v >= 1) updateQuantity(item.id, item.selectedVariant, v);
+                          }}
+                          className="h-7 w-12 border-0 p-0 text-center text-sm shadow-none focus-visible:ring-0"
+                        />
+                        <Button
+                          type="button" variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Button
+                        type="button" variant="ghost" size="icon" className="h-7 w-7"
+                        onClick={() => removeFromCart(item.id, item.selectedVariant)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="text-sm font-semibold text-primary whitespace-nowrap">{(item.price * item.quantity).toLocaleString('vi-VN')}đ</div>
                 </div>
