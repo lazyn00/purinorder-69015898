@@ -101,12 +101,15 @@ export default function Shops() {
   const countAvailable = (masterName: string) =>
     products.filter((p) => p.master === masterName && isAvailable(p)).length;
 
-  const filtered = merged.filter(
-    (s) =>
-      !search ||
-      s.display_name.toLowerCase().includes(search.toLowerCase()) ||
-      s.master_name.toLowerCase().includes(search.toLowerCase())
-  );
+  // LỌC: Chỉ giữ lại những shop có sản phẩm thỏa mãn điều kiện isAvailable
+  const filtered = merged.filter((s) => {
+    const availableCount = countAvailable(s.master_name);
+    const matchesSearch = !search || 
+      s.display_name.toLowerCase().includes(search.toLowerCase()) || 
+      s.master_name.toLowerCase().includes(search.toLowerCase());
+    
+    return availableCount > 0 && matchesSearch;
+  });
 
   if (loading) {
     return (
@@ -160,7 +163,7 @@ export default function Shops() {
         </div>
 
         {filtered.length === 0 && (
-          <p className="text-center text-muted-foreground py-12">Không tìm thấy shop nào.</p>
+          <p className="text-center text-muted-foreground py-12">Không tìm thấy shop nào có sản phẩm đang mở.</p>
         )}
       </div>
     </Layout>
