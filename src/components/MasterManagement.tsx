@@ -111,7 +111,81 @@ export default function MasterManagement() {
     if (data) setUpdates(data.map((u: any) => ({ ...u, images: (u.images as string[]) || [] })));
   };
 
-  const handleSendUpdate = async () => {
+  const fetchShopInfo = async (master: string) => {
+    setShopLoading(true);
+    setAvatarFile(null);
+    const { data } = await (supabase as any)
+      .from("master_shops")
+      .select("*")
+      .eq("master_name", master)
+      .maybeSingle();
+    if (data) {
+      setShopInfo(data as MasterShop);
+    } else {
+      setShopInfo({
+        master_name: master,
+        display_name: master,
+        slug: slugify(master),
+        avatar_url: null,
+        shop_link: null,
+        description: null,
+        is_visible: true,
+        sort_order: 0,
+      });
+    }
+    setShopLoading(false);
+  };
+
+  const uploadToR2 = async (file: File, prefix: string): Promise<string> => {
+    const ext = file.name.split(".").pop();
+    const safeName = Date.now() + "-" + Math.random().toString(36).slice(2);
+    const path = `${prefix}/${safeName}.${ext}`;
+    const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+    const r2 = new S3Client({
+      region: "auto",
+      endpoint: import.meta.env.VITE_R2_ENDPOINT,
+      credentials: {
+        accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY,
+        secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
+      },
+    });
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    await r2.send(new PutObjectCommand({ Bucket: "product-images", Key: path, Body: uint8Array, ContentType: file.type }));
+    return `${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`;
+  };
+
+  const handleSaveShop = async () => {
+    if (!shopInfo || !selectedMaster) return;
+    setShopSaving(true);
+    try {
+      let avatarUrl = shopInfo.avatar_url;
+      if (avatarFile) {
+        avatarUrl = await uploadToR2(avatarFile, "master-avatars");
+      }
+      const payload = {
+        master_name: selectedMaster,
+        display_name: shopInfo.display_name.trim() || selectedMaster,
+        slug: (shopInfo.slug || slugify(shopInfo.display_name || selectedMaster)).trim(),
+        avatar_url: avatarUrl,
+        shop_link: shopInfo.shop_link?.trim() || null,
+        description: shopInfo.description?.trim() || null,
+        is_visible: shopInfo.is_visible,
+        sort_order: shopInfo.sort_order || 0,
+      };
+      const { error } = await (supabase as any)
+        .from("master_shops")
+        .upsert(payload, { onConflict: "master_name" });
+      if (error) throw error;
+      toast({ title: "Đã lưu", description: "Thông tin shop được cập nhật." });
+      setAvatarFile(null);
+      fetchShopInfo(selectedMaster);
+    } catch (err: any) {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    } finally {
+      setShopSaving(false);
+    }
+  };
     if (!selectedMaster || !message.trim()) return;
     setSending(true);
     try {
