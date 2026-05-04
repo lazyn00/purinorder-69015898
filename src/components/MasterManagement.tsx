@@ -24,6 +24,7 @@ interface MasterShop {
 
 const slugify = (s: string) => {
   if (!s) return "shop";
+  
   return s
     .toLowerCase()
     .trim()
@@ -273,16 +274,9 @@ export default function MasterManagement() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Package className="h-4 w-4" /> Sản phẩm ({products.length})
-                  </div>
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <Package className="h-4 w-4" /> Sản phẩm ({products.length})
                 </CardTitle>
-                
-                {/* 2. ĐÃ DÁN VÀO ĐÚNG CHỖ CHO Ý RỒI NÈ */}
-                <div className="mt-2">
-                   <MasterExport masterName={selectedMaster} products={products} />
-                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
