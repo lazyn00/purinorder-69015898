@@ -311,7 +311,110 @@ uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
               </CardContent>
             </Card>
 
-            {/* Post new update */}
+            {/* Shop info */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <Store className="h-4 w-4" /> Thông tin shop
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {shopLoading || !shopInfo ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                        {avatarFile ? (
+                          <img src={URL.createObjectURL(avatarFile)} className="w-full h-full object-cover" />
+                        ) : shopInfo.avatar_url ? (
+                          <img src={shopInfo.avatar_url} className="w-full h-full object-cover" />
+                        ) : (
+                          <Store className="h-6 w-6 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs">Ảnh đại diện</Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Tên hiển thị</Label>
+                        <Input
+                          value={shopInfo.display_name}
+                          onChange={(e) => setShopInfo({ ...shopInfo, display_name: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Slug (URL)</Label>
+                        <Input
+                          value={shopInfo.slug}
+                          onChange={(e) => setShopInfo({ ...shopInfo, slug: slugify(e.target.value) })}
+                          placeholder="ten-shop"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs">Link shop (tuỳ chọn)</Label>
+                      <Input
+                        value={shopInfo.shop_link || ""}
+                        onChange={(e) => setShopInfo({ ...shopInfo, shop_link: e.target.value })}
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-xs">Mô tả</Label>
+                      <Textarea
+                        rows={2}
+                        value={shopInfo.description || ""}
+                        onChange={(e) => setShopInfo({ ...shopInfo, description: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={shopInfo.is_visible}
+                          onCheckedChange={(v) => setShopInfo({ ...shopInfo, is_visible: v })}
+                        />
+                        <Label className="text-xs">Hiển thị</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs">Thứ tự</Label>
+                        <Input
+                          type="number"
+                          value={shopInfo.sort_order}
+                          onChange={(e) => setShopInfo({ ...shopInfo, sort_order: parseInt(e.target.value) || 0 })}
+                          className="w-20"
+                        />
+                      </div>
+                      <Button onClick={handleSaveShop} disabled={shopSaving} size="sm" className="ml-auto">
+                        {shopSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu shop"}
+                      </Button>
+                      {shopInfo.slug && (
+                        <a
+                          href={`/shop/${shopInfo.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" /> Xem shop
+                        </a>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">📢 Đăng cập nhật tiến độ</CardTitle>
