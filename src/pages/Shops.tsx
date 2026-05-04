@@ -27,15 +27,21 @@ interface ProductLite {
   order_deadline: string | null;
 }
 
-const slugify = (s: string) =>
-  s
+// ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung
+const slugify = (s: string) => {
+  if (!s) return "shop";
+  
+  return s
     .toLowerCase()
+    .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
+    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số
+    .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
-    .slice(0, 60) || "shop";
+    .slice(0, 100);
+};
 
 const isAvailable = (p: ProductLite) => {
   if (p.status === "Ẩn") return false;
@@ -76,7 +82,6 @@ export default function Shops() {
     })();
   }, []);
 
-  // Merge: shops with explicit row + masters without one (auto-fallback)
   const merged = useMemo(() => {
     const map = new Map<string, MasterShop>();
     shops.forEach((s) => map.set(s.master_name, s));
@@ -101,7 +106,6 @@ export default function Shops() {
   const countAvailable = (masterName: string) =>
     products.filter((p) => p.master === masterName && isAvailable(p)).length;
 
-  // LỌC: Chỉ giữ lại những shop có sản phẩm thỏa mãn điều kiện isAvailable
   const filtered = merged.filter((s) => {
     const availableCount = countAvailable(s.master_name);
     const matchesSearch = !search || 
