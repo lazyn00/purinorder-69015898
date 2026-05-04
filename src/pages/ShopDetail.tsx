@@ -18,6 +18,7 @@ interface MasterShop {
   description: string | null;
 }
 
+// ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung và đa ngôn ngữ
 const slugify = (s: string) => {
   if (!s) return "shop";
   
@@ -27,8 +28,7 @@ const slugify = (s: string) => {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
-    // Thay vì xóa hết, chúng ta chỉ thay khoảng trắng và ký tự đặc biệt thành dấu gạch ngang
-    // Giữ lại các ký tự chữ cái (bao gồm cả tiếng Trung/Nhật/Hàn) và số
+    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung/Nhật/Hàn) và số
     .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
     .slice(0, 100);
@@ -60,7 +60,7 @@ export default function ShopDetail() {
   useEffect(() => {
     (async () => {
       setShopLoading(true);
-      // try lookup by slug
+      // Ưu tiên tìm shop khớp chính xác với slug trong database (bao gồm slug Ý tự đặt)
       const { data } = await (supabase as any)
         .from("master_shops")
         .select("*")
@@ -73,7 +73,7 @@ export default function ShopDetail() {
     })();
   }, [slug]);
 
-  // If no DB row, try to find a master that slugifies to this slug
+  // Nếu không tìm thấy hàng trong DB, thử tìm Master có tên khi chạy qua slugify khớp với URL
   const resolvedMaster = useMemo(() => {
     if (shop) return shop.master_name;
     if (!slug || isLoading) return null;
