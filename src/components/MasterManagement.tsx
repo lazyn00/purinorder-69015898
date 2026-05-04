@@ -22,6 +22,7 @@ interface MasterShop {
   sort_order: number;
 }
 
+// ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung, Nhật, Hàn và đa ngôn ngữ
 const slugify = (s: string) => {
   if (!s) return "shop";
   
@@ -29,8 +30,9 @@ const slugify = (s: string) => {
     .toLowerCase()
     .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
+    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số
     .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
     .slice(0, 100);
