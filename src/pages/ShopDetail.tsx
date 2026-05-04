@@ -18,14 +18,21 @@ interface MasterShop {
   description: string | null;
 }
 
-const slugify = (s: string) =>
-  s
+const slugify = (s: string) => {
+  if (!s) return "shop";
+  
+  return s
     .toLowerCase()
+    .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "") || "shop";
+    // Thay vì xóa hết, chúng ta chỉ thay khoảng trắng và ký tự đặc biệt thành dấu gạch ngang
+    // Giữ lại các ký tự chữ cái (bao gồm cả tiếng Trung/Nhật/Hàn) và số
+    .replace(/[^\p{L}\p{N}]+/gu, "-") 
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 100);
+};
 
 const isAvailable = (p: any) => {
   if (p.status === "Ẩn") return false;
