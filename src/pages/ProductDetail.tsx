@@ -25,16 +25,21 @@ import {
 } from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 
-// Hàm slugify để tạo link đồng bộ với trang Shops
-const slugify = (s: string) =>
-  s
+// ĐỒNG BỘ: Hàm slugify mới nhất hỗ trợ đa ngôn ngữ và khớp với ShopDetail
+const slugify = (s: string) => {
+  if (!s) return "shop";
+  
+  return s
     .toLowerCase()
+    .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
+    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số
+    .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
-    .slice(0, 60) || "shop";
+    .slice(0, 100);
+};
 
 const getVariantStock = (product: Product, variantName: string): number | undefined => {
     if (!product.variants || product.variants.length === 0) return product.stock;
@@ -258,6 +263,7 @@ export default function ProductDetail() {
                       <span>{viewCount.toLocaleString('vi-VN')} lượt xem</span>
                     </div>
 
+                    {/* NÚT DẪN LINK MASTER (ĐÃ THÊM DẤU / Ở ĐẦU) */}
                     {product.master && (
                       <Link 
                         to={`/shop/${slugify(product.master)}`} 
