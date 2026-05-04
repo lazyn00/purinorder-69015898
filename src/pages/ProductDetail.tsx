@@ -1,208 +1,382 @@
-import { useEffect, useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import React from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Store, ArrowLeft } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import type { CarouselApi } from "@/components/ui/carousel";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useReferralCapture } from "@/hooks/useReferralCapture";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { ShoppingCart, Minus, Plus, ArrowLeft, Share2, Eye, Store } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
+import { OrderCountdown } from "@/components/OrderCountdown";
+import { useCart, Product } from "@/contexts/CartContext";
+import { useToast } from "@/hooks/use-toast";
 import { ProductCard } from "@/components/ProductCard";
-import { useCart } from "@/contexts/CartContext";
+import { ProductNotificationForm } from "@/components/ProductNotificationForm";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { supabase } from "@/integrations/supabase/client";
 
-interface MasterShop {
-  master_name: string;
-  display_name: string;
-  slug: string;
-  avatar_url: string | null;
-  shop_link: string | null;
-  description: string | null;
-}
-
-// HÀM SLUGIFY CHUẨN NHẤT
+// ĐỒNG BỘ: Hàm slugify mới nhất hỗ trợ đa ngôn ngữ và khớp với ShopDetail
 const slugify = (s: string) => {
   if (!s) return "shop";
+  
   return s
     .toLowerCase()
     .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
+    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số
     .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
     .slice(0, 100);
 };
 
-const isAvailable = (p: any) => {
-  if (p.status === "Ẩn") return false;
-  const notExpired = !p.order_deadline || new Date(p.order_deadline) > new Date();
-  const hasVariantStock = p.variants?.some((v: any) => v.stock !== undefined);
-  let hasStock = false;
-  if (hasVariantStock) {
-    const total = p.variants
-      .filter((v: any) => v.stock !== undefined)
-      .reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
-    hasStock = total > 0;
-  } else if (p.stock !== undefined && p.stock !== null) {
-    hasStock = p.stock > 0;
-  }
-  return hasStock && notExpired;
+const getVariantStock = (product: Product, variantName: string): number | undefined => {
+    if (!product.variants || product.variants.length === 0) return product.stock;
+    const variant = product.variants.find(v => v.name === variantName);
+    if (variant && variant.stock !== undefined) return variant.stock;
+    return product.stock;
 };
 
-export default function ShopDetail() {
-  const { slug: rawSlug } = useParams<{ slug: string }>();
-  const { products, isLoading } = useCart();
+export default function ProductDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart, products, isLoading } = useCart();
+  const { toast } = useToast();
   
-  const [shopFromDB, setShopFromDB] = useState<MasterShop | null>(null);
-  const [shopLoading, setShopLoading] = useState(true);
-  const [showHidden, setShowHidden] = useState(false);
+  useReferralCapture();
+  
+  const [quantity, setQuantity] = useState(1);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
 
-  // 1. Làm sạch Slug từ URL (SỬA LẠI Ở ĐÂY)
-  const currentSlug = useMemo(() => {
-    if (!rawSlug) return "";
-    try {
-      // Thử decode, nếu không được (do đã là tiếng Trung) thì giữ nguyên
-      const decoded = decodeURIComponent(rawSlug);
-      return decoded.split('/').filter(Boolean).pop() || "";
-    } catch (e) {
-      return rawSlug.split('/').filter(Boolean).pop() || "";
-    }
-  }, [rawSlug]);
+  const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [currentPrice, setCurrentPrice] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState<string>(""); 
+  const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
+  const [isExpired, setIsExpired] = useState(false);
+  const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
+  const [viewCount, setViewCount] = useState(0);
+  const [highlightVariant, setHighlightVariant] = useState(false);
+  const variantRef = React.useRef<HTMLDivElement>(null);
 
-  // 2. Tìm Master Name từ danh sách sản phẩm
-  const resolvedMasterName = useMemo(() => {
-    if (!currentSlug || isLoading) return null;
-    
-    // Tìm sản phẩm khớp với slug hiện tại
-    const found = products.find((p: any) => {
-      if (!p.master) return false;
-      const masterSlug = slugify(p.master);
-      return masterSlug === currentSlug;
-    });
-
-    return found ? (found as any).master : null;
-  }, [currentSlug, products, isLoading]);
-
-  // 3. Lấy thông tin Shop từ Database
   useEffect(() => {
-    const fetchShop = async () => {
-      if (!currentSlug) return;
-      setShopLoading(true);
-      
-      // Thử tìm theo slug trước (Ưu tiên slug Ý đặt trong DB)
-      let { data, error } = await (supabase as any)
-        .from("master_shops")
-        .select("*")
-        .eq("slug", currentSlug)
-        .maybeSingle();
+    setQuantity(1);
+    setSelectedVariant("");
+    setSelectedOptions({});
+    setCurrentPrice(0);
+    setAvailableStock(undefined);
+    setCurrent(0);
+    if (carouselApi) carouselApi.scrollTo(0);
+    setIsExpired(false);
+    setHighlightVariant(false);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [id]);
 
-      // Nếu không thấy theo slug, thử tìm theo master_name đã tìm được từ sản phẩm
-      if (!data && resolvedMasterName) {
-        const { data: dataByName } = await (supabase as any)
-          .from("master_shops")
-          .select("*")
-          .eq("master_name", resolvedMasterName)
-          .maybeSingle();
-        data = dataByName;
-      }
+  useEffect(() => {
+    if (!isLoading && products.length > 0) {
+      const foundProduct = products.find(p => p.id == Number(id)); 
+      setProduct(foundProduct);
+    }
+  }, [isLoading, products, id]);
 
-      setShopFromDB(data as MasterShop);
-      setShopLoading(false);
+  useEffect(() => {
+    if (!id) return;
+    const productId = Number(id);
+    const recordView = async () => {
+      await supabase.from('product_views').insert({ product_id: productId });
     };
+    const fetchViewCount = async () => {
+      const { count: total } = await supabase
+        .from('product_views')
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', productId);
+      setViewCount(total || 0);
+    };
+    recordView();
+    fetchViewCount();
+  }, [id]);
 
-    if (!isLoading) {
-      fetchShop();
+  useEffect(() => {
+    if (product) {
+      setCurrentPrice(product.price);
+      if (product.orderDeadline) {
+        const deadline = new Date(product.orderDeadline);
+        if (deadline < new Date()) setIsExpired(true);
+      } else if (product.status === "Sẵn") setIsExpired(false);
+      
+      if (product.optionGroups && product.optionGroups.length > 0) {
+        const initialOptions = product.optionGroups.reduce((acc, group) => {
+            acc[group.name] = "";
+            return acc;
+        }, {} as { [key: string]: string });
+        setSelectedOptions(initialOptions);
+        setAvailableStock(undefined);
+      } else if (product.variants && product.variants.length === 1) {
+          const firstVariant = product.variants[0];
+          setSelectedVariant(firstVariant.name);
+          setCurrentPrice(firstVariant.price);
+          setAvailableStock(getVariantStock(product, firstVariant.name));
+      } else {
+        setAvailableStock(product.stock);
+      }
     }
-  }, [currentSlug, resolvedMasterName, isLoading]);
+  }, [product]);
 
-  // 4. Tổng hợp thông tin để hiển thị
-  const finalShop = useMemo(() => {
-    if (shopFromDB) return shopFromDB;
-    if (resolvedMasterName) {
-      return {
-        master_name: resolvedMasterName,
-        display_name: resolvedMasterName,
-        slug: currentSlug,
-        avatar_url: null,
-        shop_link: null,
-        description: null,
-      };
+  useEffect(() => {
+    if (!product || !product.optionGroups || product.optionGroups.length === 0) return;
+    const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
+    if (allOptionsSelected) {
+        const constructedName = product.optionGroups.map(group => selectedOptions[group.name]).join("-");
+        const variant = product.variants.find(v => v.name === constructedName);
+        if (variant) {
+          setCurrentPrice(variant.price);
+          setSelectedVariant(variant.name);
+          setAvailableStock(getVariantStock(product, variant.name));
+          if (carouselApi && product.variantImageMap) {
+            const imageIndex = product.variantImageMap[variant.name];
+            if (imageIndex !== undefined) carouselApi.scrollTo(imageIndex);
+          }
+        } else {
+          setSelectedVariant("");
+          setCurrentPrice(product.price);
+          setAvailableStock(undefined);
+        }
+    } else {
+        setSelectedVariant("");
+        setAvailableStock(undefined);
     }
-    return null;
-  }, [shopFromDB, resolvedMasterName, currentSlug]);
+  }, [selectedOptions, product, carouselApi]);
 
-  const masterProducts = useMemo(() => {
-    if (!resolvedMasterName) return [];
-    return products.filter((p: any) => p.master === resolvedMasterName);
-  }, [resolvedMasterName, products]);
+  useEffect(() => {
+    if (!carouselApi) return;
+    setCount(carouselApi.scrollSnapList().length);
+    setCurrent(carouselApi.selectedScrollSnap() + 1);
+    carouselApi.on("select", () => setCurrent(carouselApi.selectedScrollSnap() + 1));
+  }, [carouselApi]);
+  
+  const handleVariantChange = (variantName: string) => {
+    setSelectedVariant(variantName);
+    const variant = product?.variants.find(v => v.name === variantName);
+    if (variant) setCurrentPrice(variant.price);
+    if (product) setAvailableStock(getVariantStock(product, variantName));
+  };
 
-  const available = masterProducts.filter(isAvailable);
-  const hidden = masterProducts.filter((p: any) => !isAvailable(p));
+  const handleOptionChange = (groupName: string, value: string) => {
+    setSelectedOptions(prev => ({ ...prev, [groupName]: value }));
+  };
+  
+  const handleAddToCart = () => {
+    if (!product) return; 
+    const hasVariants = product.variants && product.variants.length > 0;
+    const isReadyToAdd = !hasVariants || (hasVariants && selectedVariant);
 
-  // Loading state
-  if (isLoading) {
-    return <Layout><div className="flex justify-center items-center h-[50vh]"><LoadingPudding /></div></Layout>;
-  }
+    if (!isReadyToAdd) {
+      toast({ title: "Vui lòng chọn phân loại", variant: "destructive" });
+      setHighlightVariant(true);
+      variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => setHighlightVariant(false), 2000);
+      return;
+    }
+    if (availableStock !== undefined && quantity > availableStock) {
+      toast({ title: "Không đủ hàng", description: `Chỉ còn ${availableStock} sản phẩm`, variant: "destructive" });
+      return;
+    }
 
-  // Nếu đã load xong mà không tìm thấy gì
-  if (!finalShop && !shopLoading) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 text-center">
-          <p className="text-muted-foreground mb-4">Không tìm thấy shop: {currentSlug}</p>
-          <Link to="/shops"><Button variant="outline">Về danh sách shop</Button></Link>
-        </div>
-      </Layout>
-    );
-  }
+    const productToAdd = { ...product, price: currentPrice, priceDisplay: `${currentPrice.toLocaleString('vi-VN')}đ` };
+    addToCart(productToAdd, quantity, selectedVariant || product.name);
+    toast({ title: "Đã thêm vào giỏ hàng!", description: `${product.name} x${quantity}` });
+  };
+
+  const incrementQuantity = () => setQuantity(prev => (availableStock !== undefined && prev + 1 > availableStock) ? prev : prev + 1);
+  const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: product?.name, url: shareUrl }); } catch (error) {}
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      toast({ title: "Đã copy link" });
+    }
+  };
+
+  if (isLoading) return <Layout><div className="container mx-auto py-12 flex justify-center h-[50vh]"><LoadingPudding /></div></Layout>;
+  if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <Link to="/shops" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4">
-          <ArrowLeft className="h-4 w-4" /> Tất cả shop
-        </Link>
+      <div className="container mx-auto px-4 py-6 md:py-10">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> <span className="text-sm">Quay lại</span>
+        </Button>
 
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-6 rounded-lg bg-card border mb-8">
-          <div className="w-24 h-24 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
-            {finalShop?.avatar_url ? (
-              <img src={finalShop.avatar_url} alt={finalShop.display_name} className="w-full h-full object-cover" />
-            ) : (
-              <Store className="h-10 w-10 text-muted-foreground" />
-            )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+          {/* CỘT ẢNH */}
+          <div className="space-y-4">
+            <div className="relative">
+                <Carousel className="w-full" setApi={setCarouselApi}>
+                <CarouselContent>
+                    {product.images.map((image, index) => (
+                    <CarouselItem key={index}>
+                        <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
+                            <img src={image} alt={`${product.name}`} className="w-auto h-auto max-w-full max-h-[350px] md:max-h-[400px] object-contain" />
+                        </div>
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                {product.images.length > 1 && (
+                    <>
+                    <CarouselPrevious className="left-2 opacity-70 h-8 w-8" />
+                    <CarouselNext className="right-2 opacity-70 h-8 w-8" />
+                    </>
+                )}
+                </Carousel>
+                {count > 0 && (
+                    <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
+                        {current}/{count}
+                    </div>
+                )}
+            </div>
           </div>
-          <div className="flex-1 text-center sm:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold">{finalShop?.display_name}</h1>
-            {finalShop?.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{finalShop.description}</p>}
-            <p className="text-sm text-muted-foreground mt-3">{available.length} đang order · {hidden.length} đã ẩn</p>
+
+          {/* CỘT THÔNG TIN */}
+          <div className="space-y-5">
+            <div>
+              <div className="flex justify-between items-start gap-2">
+                 <div className="space-y-1">
+                    {product.status && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 mb-1">{product.status}</Badge>}
+                    <h1 className="text-lg md:text-2xl font-bold leading-tight text-foreground">{product.name}</h1>
+                    <div className="flex items-center gap-1 text-muted-foreground text-sm pt-1">
+                      <Eye className="h-4 w-4" />
+                      <span>{viewCount.toLocaleString('vi-VN')} lượt xem</span>
+                    </div>
+
+                    {/* NÚT DẪN LINK MASTER (ĐÃ THÊM DẤU / Ở ĐẦU) */}
+                    {product.master && (
+                      <Link 
+                        to={`/shop/${slugify(product.master)}`} 
+                        className="inline-flex items-center gap-1.5 text-primary hover:underline text-xs font-medium pt-1 group"
+                      >
+                        <Store className="h-3.5 w-3.5" />
+                        <span>Master: {product.master}</span>
+                      </Link>
+                    )}
+                 </div>
+                 <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 text-muted-foreground flex-shrink-0">
+                    <Share2 className="h-4 w-4" />
+                 </Button>
+              </div>
+            </div>
+
+            <div className="bg-muted/30 p-3 rounded-lg border border-muted/50">
+              <div className="flex items-baseline gap-2">
+                  <p className={`text-2xl md:text-3xl font-extrabold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
+                    {currentPrice.toLocaleString('vi-VN')}<span className="text-base font-bold underline ml-0.5">đ</span>
+                  </p>
+                  {isExpired 
+                    ? <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded">HẾT HẠN</span>
+                    : <span className="text-[11px] text-muted-foreground">*{product.feesIncluded ? 'Full phí' : 'Chưa full phí'}</span>
+                  }
+              </div>
+              {product.orderDeadline && <div className="mt-2"><OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} /></div>}
+            </div>
+            
+            <div className="border rounded-lg divide-y divide-border/60">
+              <div className="p-3 md:p-4 flex items-baseline">
+                <span className="font-medium text-sm text-muted-foreground w-28 flex-shrink-0">Mô tả</span>
+                <span className="text-sm text-foreground/90">{product.description || "Không"}</span>
+              </div>
+              <div className="p-3 md:p-4 flex items-baseline">
+                <span className="font-medium text-sm text-muted-foreground w-28 flex-shrink-0">Kích thước</span>
+                <span className="text-sm text-foreground/90">{product.size || "Không"}</span>
+              </div>
+              <div className="p-3 md:p-4 flex items-baseline">
+                <span className="font-medium text-sm text-muted-foreground w-28 flex-shrink-0">Bao gồm</span>
+                <span className="text-sm text-foreground/90">{product.includes || "Không"}</span>
+              </div>
+              <div className="p-3 md:p-4 flex items-baseline">
+                <span className="font-medium text-sm text-muted-foreground w-28 flex-shrink-0">Thời gian SX</span>
+                <span className="text-sm text-foreground/90">{product.productionTime || "Không"}</span>
+              </div>
+            </div>
+
+            <div ref={variantRef} className={`space-y-3 pt-2 ${highlightVariant ? 'ring-2 ring-primary rounded-lg p-2 animate-pulse' : ''}`}>
+              {product.optionGroups?.map((group) => (
+                <div key={group.name}>
+                  <Label className="text-sm font-medium mb-1.5 block text-muted-foreground">{group.name}</Label>
+                  <Select value={selectedOptions[group.name]} onValueChange={(value) => handleOptionChange(group.name, value)}>
+                    <SelectTrigger className="w-full h-10"><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
+                    <SelectContent>{group.options.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              ))}
+              {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
+                <div>
+                  <Label className="text-sm font-medium mb-1.5 block text-muted-foreground">Phân loại</Label>
+                  <Select value={selectedVariant} onValueChange={handleVariantChange}>
+                    <SelectTrigger className="w-full h-11"><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
+                    <SelectContent>
+                        {product.variants.map((variant) => (
+                          <SelectItem key={variant.name} value={variant.name} disabled={variant.stock !== undefined && variant.stock <= 0}>
+                              <div className="flex items-center gap-2">
+                                  {product.variantImageMap?.[variant.name] !== undefined && <img src={product.images[product.variantImageMap[variant.name]]} className="w-8 h-8 rounded object-cover" />}
+                                  <span className="text-sm font-medium">{variant.name}</span>
+                              </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between border-t pt-4">
+              <Label className="text-sm font-medium text-muted-foreground">Số lượng</Label>
+              <div className="flex items-center gap-3">
+                {availableStock !== undefined && <span className="text-xs text-muted-foreground">{availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500">Hết hàng</span>}</span>}
+                <div className="flex items-center border rounded-md h-9">
+                    <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1}><Minus className="h-3 w-3" /></Button>
+                    <Input type="number" value={quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0" />
+                    <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={availableStock !== undefined && quantity >= availableStock}><Plus className="h-3 w-3" /></Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Button onClick={handleAddToCart} className="w-full shadow-lg h-11 text-base font-semibold" size="lg" disabled={isExpired || availableStock === 0}>
+                <ShoppingCart className="h-5 w-5 mr-2" /> 
+                {isExpired ? "Đã hết hạn order" : availableStock === 0 ? "Hết hàng" : "Thêm vào giỏ"}
+              </Button>
+              {(isExpired || availableStock === 0) && <ProductNotificationForm productId={product.id} productName={product.name} />}
+            </div>
           </div>
         </div>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Đang order ({available.length})</h2>
-          {available.length === 0 ? <p className="text-sm text-muted-foreground">Hiện chưa có sản phẩm nào.</p> : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {available.map((p: any) => <ProductCard key={p.id} product={p} />)}
+        {/* Sản phẩm cùng Master */}
+        {product.master && (() => {
+          const related = products.filter(p => p.id !== product.id && p.master === product.master && ['Sẵn', 'Đặt hàng', 'Order', 'Pre-order', 'Deal'].includes(p.status || ''));
+          if (related.length === 0) return null;
+          return (
+            <div className="mt-10 border-t pt-8">
+              <h2 className="text-lg font-bold mb-4">Sản phẩm cùng Master</h2>
+              <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide snap-x">
+                {related.map(p => <div key={p.id} className="flex-shrink-0 w-40 md:w-48 snap-start"><ProductCard product={p} /></div>)}
+              </div>
             </div>
-          )}
-        </section>
-
-        {hidden.length > 0 && (
-          <Collapsible open={showHidden} onOpenChange={setShowHidden}>
-            <div className="border-t pt-6">
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between">
-                  <span className="font-medium">Sản phẩm đã ẩn ({hidden.length})</span>
-                  {showHidden ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {hidden.map((p: any) => <ProductCard key={p.id} product={p} />)}
-                </div>
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
-        )}
+          );
+        })()}
       </div>
     </Layout>
   );
