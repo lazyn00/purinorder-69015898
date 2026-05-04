@@ -217,32 +217,26 @@ export default function ProductDetail() {
   if (isLoading) return <Layout><div className="container mx-auto py-12 flex justify-center h-[50vh]"><LoadingPudding /></div></Layout>;
   if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
 
-  // LOGIC HIỂN THỊ GIÁ: TỪ GIÁ THẤP NHẤT ĐẾN CAO NHẤT
   const renderPrice = () => {
-    if (selectedVariant && currentPrice > 0) {
-      return `${currentPrice.toLocaleString('vi-VN')}đ`;
-    }
-    
+    if (selectedVariant && currentPrice > 0) return `${currentPrice.toLocaleString('vi-VN')}đ`;
     if (product.variants && product.variants.length > 0) {
       const prices = product.variants.map(v => v.price);
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
-      
       if (minPrice === maxPrice) return `${minPrice.toLocaleString('vi-VN')}đ`;
       return `Từ ${minPrice.toLocaleString('vi-VN')}đ`;
     }
-    
     return `${product.price.toLocaleString('vi-VN')}đ`;
   };
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 md:py-10">
+      <div className="container mx-auto px-5 py-6 md:py-10"> {/* Đã tăng px lên 5 cho mobile */}
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> <span className="text-sm">Quay lại</span>
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* CỘT ẢNH */}
           <div className="space-y-4">
             <div className="relative group">
@@ -257,15 +251,10 @@ export default function ProductDetail() {
                         <CarouselItem key={index}>
                           <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
                               <img src={image} alt={`${product.name}`} className="w-auto h-auto max-w-full max-h-[350px] md:max-h-[400px] object-contain" />
-                              
                               {variantName && (
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                  <p className="text-white text-xs font-medium opacity-80 uppercase tracking-wider">
-                                    Phân loại: {variantName}
-                                  </p>
-                                  <p className="text-white text-lg font-bold">
-                                    {currentPrice > 0 ? currentPrice.toLocaleString('vi-VN') : product.price.toLocaleString('vi-VN')}đ
-                                  </p>
+                                  <p className="text-white text-xs font-medium opacity-80 uppercase tracking-wider line-clamp-1">{variantName}</p>
+                                  <p className="text-white text-lg font-bold">{currentPrice > 0 ? currentPrice.toLocaleString('vi-VN') : product.price.toLocaleString('vi-VN')}đ</p>
                                 </div>
                               )}
                           </div>
@@ -289,86 +278,70 @@ export default function ProductDetail() {
           </div>
 
           {/* CỘT THÔNG TIN */}
-          <div className="space-y-5">
-            <div>
-              <div className="flex justify-between items-start gap-2">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-start gap-4">
                  <div className="space-y-1">
                     {product.status && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 mb-1">{product.status}</Badge>}
-                    <h1 className="text-lg md:text-2xl font-bold leading-tight text-foreground">{product.name}</h1>
-                    <div className="flex items-center gap-1 text-muted-foreground text-sm pt-1">
-                      <Eye className="h-4 w-4" />
-                      <span>{viewCount.toLocaleString('vi-VN')} lượt xem</span>
+                    <h1 className="text-xl md:text-2xl font-bold leading-tight text-foreground">{product.name}</h1>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm pt-1">
+                      <div className="flex items-center gap-1"><Eye className="h-4 w-4" /> <span>{viewCount}</span></div>
+                      {product.master && (
+                        <Link to={`/shop/${slugify(product.master)}`} className="inline-flex items-center gap-1 text-primary hover:underline font-medium">
+                          <Store className="h-4 w-4" /> <span>{product.master}</span>
+                        </Link>
+                      )}
                     </div>
-
-                    {product.master && (
-                      <Link 
-                        to={`/shop/${slugify(product.master)}`} 
-                        className="inline-flex items-center gap-1.5 text-primary hover:underline text-xs font-medium pt-1 group"
-                      >
-                        <Store className="h-3.5 w-3.5" />
-                        <span>Master: {product.master}</span>
-                      </Link>
-                    )}
                  </div>
-                 <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 text-muted-foreground flex-shrink-0">
+                 <Button variant="ghost" size="icon" onClick={handleShare} className="h-9 w-9 text-muted-foreground flex-shrink-0 border">
                     <Share2 className="h-4 w-4" />
                  </Button>
               </div>
             </div>
 
-            <div className="bg-muted/30 p-3 rounded-lg border border-muted/50">
+            <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
               <div className="flex items-baseline gap-2">
                   <p className={`text-2xl md:text-3xl font-extrabold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
                     {renderPrice()}<span className="text-base font-bold underline ml-0.5">đ</span>
                   </p>
-                  {isExpired 
-                    ? <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">Hết hạn</span>
-                    : <span className="text-[11px] text-muted-foreground">*{product.feesIncluded ? 'Full phí' : 'Chưa full phí'}</span>
-                  }
+                  {isExpired && <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">Hết hạn</span>}
               </div>
               {product.orderDeadline && <div className="mt-2"><OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} /></div>}
             </div>
             
             <div className="border rounded-lg divide-y divide-border/60">
-              <div className="p-3 md:p-4 flex items-baseline">
-                <span className="font-medium text-sm text-muted-foreground w-28 flex-shrink-0">Mô tả</span>
-                <span className="text-sm text-foreground/90">{product.description || "Không"}</span>
-              </div>
-              <div className="p-3 md:p-4 flex items-baseline">
-                <span className="font-medium text-sm text-muted-foreground w-28 flex-shrink-0">Kích thước</span>
-                <span className="text-sm text-foreground/90">{product.size || "Không"}</span>
-              </div>
-              <div className="p-3 md:p-4 flex items-baseline">
-                <span className="font-medium text-sm text-muted-foreground w-28 flex-shrink-0">Bao gồm</span>
-                <span className="text-sm text-foreground/90">{product.includes || "Không"}</span>
-              </div>
-              <div className="p-3 md:p-4 flex items-baseline">
-                <span className="font-medium text-sm text-muted-foreground w-28 flex-shrink-0">Thời gian SX</span>
-                <span className="text-sm text-foreground/90">{product.productionTime || "Không"}</span>
-              </div>
+              <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Mô tả</span><span className="text-sm text-foreground/90">{product.description || "—"}</span></div>
+              <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Kích thước</span><span className="text-sm text-foreground/90">{product.size || "—"}</span></div>
+              <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
             </div>
 
-            <div ref={variantRef} className={`space-y-3 pt-2 ${highlightVariant ? 'ring-2 ring-primary rounded-lg p-2 animate-pulse' : ''}`}>
+            <div ref={variantRef} className={`space-y-4 ${highlightVariant ? 'ring-2 ring-primary rounded-lg p-2 animate-pulse' : ''}`}>
               {product.optionGroups?.map((group) => (
-                <div key={group.name}>
-                  <Label className="text-sm font-medium mb-1.5 block text-muted-foreground">{group.name}</Label>
+                <div key={group.name} className="space-y-2">
+                  <Label className="text-sm font-semibold text-muted-foreground">{group.name}</Label>
                   <Select value={selectedOptions[group.name]} onValueChange={(value) => handleOptionChange(group.name, value)}>
-                    <SelectTrigger className="w-full h-10"><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
-                    <SelectContent>{group.options.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className="w-full h-11"><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {group.options.map((option) => (
+                        <SelectItem key={option} value={option} className="py-3 whitespace-normal">
+                          <span className="leading-snug block">{option}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
               ))}
               {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
-                <div>
-                  <Label className="text-sm font-medium mb-1.5 block text-muted-foreground">Phân loại</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-muted-foreground">Phân loại</Label>
                   <Select value={selectedVariant} onValueChange={handleVariantChange}>
                     <SelectTrigger className="w-full h-11"><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[300px]">
                         {product.variants.map((variant) => (
-                          <SelectItem key={variant.name} value={variant.name} disabled={variant.stock !== undefined && variant.stock <= 0}>
-                              <div className="flex items-center gap-2">
-                                  {product.variantImageMap?.[variant.name] !== undefined && <img src={product.images[product.variantImageMap[variant.name]]} className="w-8 h-8 rounded object-cover" />}
-                                  <span className="text-sm font-medium">{variant.name}</span>
+                          <SelectItem key={variant.name} value={variant.name} disabled={variant.stock !== undefined && variant.stock <= 0} className="py-3 whitespace-normal">
+                              <div className="flex items-center gap-3">
+                                  {product.variantImageMap?.[variant.name] !== undefined && <img src={product.images[product.variantImageMap[variant.name]]} className="w-10 h-10 rounded object-cover flex-shrink-0" />}
+                                  <span className="leading-snug block flex-1">{variant.name}</span>
                               </div>
                           </SelectItem>
                         ))}
@@ -378,57 +351,43 @@ export default function ProductDetail() {
               )}
             </div>
 
-            <div className="flex items-center justify-between border-t pt-4">
-              <Label className="text-sm font-medium text-muted-foreground">Số lượng</Label>
-              <div className="flex items-center gap-3">
-                {availableStock !== undefined && <span className="text-xs text-muted-foreground">{availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500">Hết hàng</span>}</span>}
-                <div className="flex items-center border rounded-md h-9">
-                    <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1}><Minus className="h-3 w-3" /></Button>
-                    <Input type="number" value={quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0" />
-                    <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={availableStock !== undefined && quantity >= availableStock}><Plus className="h-3 w-3" /></Button>
+            <div className="flex items-center justify-between border-t pt-5">
+              <Label className="text-sm font-semibold text-muted-foreground">Số lượng mua</Label>
+              <div className="flex items-center gap-4">
+                {availableStock !== undefined && <span className="text-xs font-medium text-muted-foreground">{availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500">Hết hàng</span>}</span>}
+                <div className="flex items-center border rounded-md h-10 bg-background">
+                    <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1} className="h-full"><Minus className="h-3 w-3" /></Button>
+                    <Input type="number" value={quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0 font-bold" />
+                    <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={availableStock !== undefined && quantity >= availableStock} className="h-full"><Plus className="h-3 w-3" /></Button>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Button onClick={handleAddToCart} className="w-full shadow-lg h-11 text-base font-bold text-white" size="lg" disabled={isExpired || availableStock === 0}>
+            <div className="space-y-3 pt-2">
+              <Button onClick={handleAddToCart} className="w-full shadow-lg h-12 text-base font-bold text-white uppercase tracking-wide" size="lg" disabled={isExpired || availableStock === 0}>
                 <ShoppingCart className="h-5 w-5 mr-2" /> 
                 {isExpired ? "Đã hết hạn order" : availableStock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
               </Button>
-
-              <Button
-                variant="outline"
-                className="w-full h-11 text-sm font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
-                onClick={() => navigate("/products")}
-              >
+              <Button variant="outline" className="w-full h-12 text-sm font-bold border-dashed border-primary/40 text-primary hover:bg-primary/5 uppercase tracking-wide" onClick={() => navigate("/products")}>
                 Tiếp tục mua hàng
               </Button>
-
               {(isExpired || availableStock === 0) && <ProductNotificationForm productId={product.id} productName={product.name} />}
             </div>
           </div>
         </div>
 
-        {/* Sản phẩm cùng Master (Kéo ngang) */}
         {product.master && (() => {
           const related = products.filter(p => p.id !== product.id && p.master === product.master && ['Sẵn', 'Đặt hàng', 'Order', 'Pre-order', 'Deal'].includes(p.status || ''));
           if (related.length === 0) return null;
           return (
             <div className="mt-16 pt-8 border-t">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-foreground">Sản phẩm cùng Master</h2>
-                <Link to={`/shop/${slugify(product.master)}`} className="text-sm font-medium text-primary hover:underline">
-                  Xem tất cả
-                </Link>
+                <h2 className="text-lg md:text-xl font-bold text-foreground">Sản phẩm liên quan</h2>
+                <Link to={`/shop/${slugify(product.master)}`} className="text-sm font-bold text-primary hover:underline">Xem tất cả</Link>
               </div>
-
-              <div className="relative group/scroll">
-                <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide snap-x scroll-smooth -mx-4 px-4 md:mx-0 md:px-0">
-                  {related.map(p => (
-                    <div key={p.id} className="flex-shrink-0 w-[160px] md:w-[220px] snap-start">
-                      <ProductCard product={p} />
-                    </div>
-                  ))}
+              <div className="relative">
+                <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide snap-x scroll-smooth -mx-5 px-5 md:mx-0 md:px-0">
+                  {related.map(p => <div key={p.id} className="flex-shrink-0 w-[160px] md:w-[220px] snap-start"><ProductCard product={p} /></div>)}
                 </div>
                 <div className="absolute right-0 top-0 bottom-6 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
               </div>
