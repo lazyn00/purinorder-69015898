@@ -18,7 +18,7 @@ interface MasterShop {
   description: string | null;
 }
 
-// ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung và đa ngôn ngữ
+// ĐỒNG BỘ: Hàm slugify giữ tiếng Trung giống ProductDetail
 const slugify = (s: string) => {
   if (!s) return "shop";
   
@@ -28,7 +28,7 @@ const slugify = (s: string) => {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
-    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung/Nhật/Hàn) và số
+    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số
     .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
     .slice(0, 100);
@@ -60,7 +60,7 @@ export default function ShopDetail() {
   useEffect(() => {
     (async () => {
       setShopLoading(true);
-      // Ưu tiên tìm shop khớp chính xác với slug trong database (bao gồm slug Ý tự đặt)
+      // Ưu tiên tìm shop khớp chính xác với slug trong database
       const { data } = await (supabase as any)
         .from("master_shops")
         .select("*")
@@ -73,10 +73,12 @@ export default function ShopDetail() {
     })();
   }, [slug]);
 
-  // Nếu không tìm thấy hàng trong DB, thử tìm Master có tên khi chạy qua slugify khớp với URL
+  // ĐỒNG BỘ LOGIC: Tìm Master dựa trên slug tiếng Trung từ URL
   const resolvedMaster = useMemo(() => {
     if (shop) return shop.master_name;
     if (!slug || isLoading) return null;
+    
+    // Tìm sản phẩm có master mà khi slugify (kiểu giữ tiếng Trung) thì khớp với URL
     const found = products.find((p: any) => p.master && slugify(p.master) === slug);
     return found ? (found as any).master : null;
   }, [shop, slug, products, isLoading]);
@@ -147,16 +149,6 @@ export default function ShopDetail() {
             )}
             <div className="flex flex-wrap gap-3 items-center justify-center sm:justify-start mt-3">
               <span className="text-sm text-muted-foreground">{available.length} đang order · {hidden.length} đã ẩn</span>
-              {finalShop.shop_link && (
-                <a
-                  href={finalShop.shop_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" /> Link shop
-                </a>
-              )}
             </div>
           </div>
         </div>
