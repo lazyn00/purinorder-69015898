@@ -10,6 +10,9 @@ import { Loader2, Send, Trash2, Image, ChevronDown, ChevronUp, Package, Store, E
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
+// 1. NHỚ TẠO FILE MasterExport.tsx TRƯỚC RỒI MỚI DÁN CODE NÀY NHÉ
+import MasterExport from "./MasterExport"; 
+
 interface MasterShop {
   id?: string;
   master_name: string;
@@ -22,17 +25,14 @@ interface MasterShop {
   sort_order: number;
 }
 
-// ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung, Nhật, Hàn và đa ngôn ngữ
 const slugify = (s: string) => {
   if (!s) return "shop";
-  
   return s
     .toLowerCase()
     .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
-    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số
     .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
     .slice(0, 100);
@@ -276,9 +276,16 @@ export default function MasterManagement() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-1.5">
-                  <Package className="h-4 w-4" /> Sản phẩm ({products.length})
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Package className="h-4 w-4" /> Sản phẩm ({products.length})
+                  </div>
                 </CardTitle>
+                
+                {/* 2. ĐÃ DÁN VÀO ĐÚNG CHỖ CHO Ý RỒI NÈ */}
+                <div className="mt-2">
+                   <MasterExport masterName={selectedMaster} products={products} />
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
