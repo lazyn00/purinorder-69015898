@@ -186,6 +186,8 @@ export default function MasterManagement() {
       setShopSaving(false);
     }
   };
+
+  const handleSendUpdate = async () => {
     if (!selectedMaster || !message.trim()) return;
     setSending(true);
     try {
