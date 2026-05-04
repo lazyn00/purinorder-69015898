@@ -212,6 +212,48 @@ export type Database = {
         }
         Relationships: []
       }
+      master_shops: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          is_visible: boolean
+          master_name: string
+          shop_link: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          is_visible?: boolean
+          master_name: string
+          shop_link?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_visible?: boolean
+          master_name?: string
+          shop_link?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       master_updates: {
         Row: {
           created_at: string
