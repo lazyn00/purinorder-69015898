@@ -18,7 +18,7 @@ interface MasterShop {
   description: string | null;
 }
 
-// HÀM SLUGIFY CHUẨN NHẤT (Copy đúng bản này cho các file khác luôn Ý nhé)
+// HÀM SLUGIFY CHUẨN NHẤT
 const slugify = (s: string) => {
   if (!s) return "shop";
   return s
@@ -56,34 +56,46 @@ export default function ShopDetail() {
   const [shopLoading, setShopLoading] = useState(true);
   const [showHidden, setShowHidden] = useState(false);
 
-  // 1. Làm sạch Slug từ URL (Quan trọng nhất)
+  // 1. Làm sạch Slug từ URL (SỬA LẠI Ở ĐÂY)
   const currentSlug = useMemo(() => {
     if (!rawSlug) return "";
-    // Xử lý decode và xóa sạch các dấu / bị thừa
-    return decodeURIComponent(rawSlug).split('/').filter(Boolean).pop() || "";
+    try {
+      // Thử decode, nếu không được (do đã là tiếng Trung) thì giữ nguyên
+      const decoded = decodeURIComponent(rawSlug);
+      return decoded.split('/').filter(Boolean).pop() || "";
+    } catch (e) {
+      return rawSlug.split('/').filter(Boolean).pop() || "";
+    }
   }, [rawSlug]);
 
-  // 2. Tìm Master Name từ danh sách sản phẩm trước
+  // 2. Tìm Master Name từ danh sách sản phẩm
   const resolvedMasterName = useMemo(() => {
     if (!currentSlug || isLoading) return null;
-    const found = products.find((p: any) => p.master && slugify(p.master) === currentSlug);
+    
+    // Tìm sản phẩm khớp với slug hiện tại
+    const found = products.find((p: any) => {
+      if (!p.master) return false;
+      const masterSlug = slugify(p.master);
+      return masterSlug === currentSlug;
+    });
+
     return found ? (found as any).master : null;
   }, [currentSlug, products, isLoading]);
 
-  // 3. Lấy thông tin Shop từ Database dựa trên Master Name hoặc Slug
+  // 3. Lấy thông tin Shop từ Database
   useEffect(() => {
     const fetchShop = async () => {
       if (!currentSlug) return;
       setShopLoading(true);
       
-      // Thử tìm theo slug trước
-      let { data } = await (supabase as any)
+      // Thử tìm theo slug trước (Ưu tiên slug Ý đặt trong DB)
+      let { data, error } = await (supabase as any)
         .from("master_shops")
         .select("*")
         .eq("slug", currentSlug)
         .maybeSingle();
 
-      // Nếu không thấy theo slug, thử tìm theo master_name đã resolved
+      // Nếu không thấy theo slug, thử tìm theo master_name đã tìm được từ sản phẩm
       if (!data && resolvedMasterName) {
         const { data: dataByName } = await (supabase as any)
           .from("master_shops")
@@ -98,11 +110,11 @@ export default function ShopDetail() {
     };
 
     if (!isLoading) {
-        fetchShop();
+      fetchShop();
     }
   }, [currentSlug, resolvedMasterName, isLoading]);
 
-  // 4. Tạo Object Shop cuối cùng để hiển thị
+  // 4. Tổng hợp thông tin để hiển thị
   const finalShop = useMemo(() => {
     if (shopFromDB) return shopFromDB;
     if (resolvedMasterName) {
@@ -126,11 +138,13 @@ export default function ShopDetail() {
   const available = masterProducts.filter(isAvailable);
   const hidden = masterProducts.filter((p: any) => !isAvailable(p));
 
-  if (isLoading || (shopLoading && !resolvedMasterName)) {
+  // Loading state
+  if (isLoading) {
     return <Layout><div className="flex justify-center items-center h-[50vh]"><LoadingPudding /></div></Layout>;
   }
 
-  if (!finalShop) {
+  // Nếu đã load xong mà không tìm thấy gì
+  if (!finalShop && !shopLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 text-center">
@@ -150,15 +164,15 @@ export default function ShopDetail() {
 
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-6 rounded-lg bg-card border mb-8">
           <div className="w-24 h-24 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
-            {finalShop.avatar_url ? (
+            {finalShop?.avatar_url ? (
               <img src={finalShop.avatar_url} alt={finalShop.display_name} className="w-full h-full object-cover" />
             ) : (
               <Store className="h-10 w-10 text-muted-foreground" />
             )}
           </div>
           <div className="flex-1 text-center sm:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold">{finalShop.display_name}</h1>
-            {finalShop.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{finalShop.description}</p>}
+            <h1 className="text-2xl sm:text-3xl font-bold">{finalShop?.display_name}</h1>
+            {finalShop?.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{finalShop.description}</p>}
             <p className="text-sm text-muted-foreground mt-3">{available.length} đang order · {hidden.length} đã ẩn</p>
           </div>
         </div>
