@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 // 1. NHỚ TẠO FILE MasterExport.tsx TRƯỚC RỒI MỚI DÁN CODE NÀY NHÉ
-import MasterExport from "./MasterExport"; 
+import MasterExport from "../pages/MasterExport";
 
 interface MasterShop {
   id?: string;
