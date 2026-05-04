@@ -22,15 +22,21 @@ interface MasterShop {
   sort_order: number;
 }
 
-const slugify = (s: string) =>
-  s
+// ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung, Nhật, Hàn và đa ngôn ngữ
+const slugify = (s: string) => {
+  if (!s) return "shop";
+  
+  return s
     .toLowerCase()
+    .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
+    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số
+    .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
-    .slice(0, 60) || "shop";
+    .slice(0, 100);
+};
 
 interface MasterUpdate {
   id: string;
@@ -193,22 +199,8 @@ export default function MasterManagement() {
     try {
       const uploadedUrls: string[] = [];
       for (const file of imageFiles) {
-        const ext = file.name.split(".").pop();
-        const safeName = Date.now() + "-" + Math.random().toString(36).slice(2);
-        const path = `master-updates/${safeName}.${ext}`;
-        const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: import.meta.env.VITE_R2_ENDPOINT,
-  credentials: {
-    accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY,
-    secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
-  },
-});
-const arrayBuffer = await file.arrayBuffer();
-const uint8Array = new Uint8Array(arrayBuffer);
-await r2.send(new PutObjectCommand({ Bucket: "product-images", Key: path, Body: uint8Array, ContentType: file.type }));
-uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
+        const url = await uploadToR2(file, "master-updates");
+        uploadedUrls.push(url);
       }
 
       const { error } = await (supabase as any).from("master_updates").insert({
@@ -242,11 +234,9 @@ uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
       hour: "2-digit", minute: "2-digit",
     });
 
-  // Search by master name OR product name
   const filteredMasters = masters.filter(m => {
     const term = searchTerm.toLowerCase();
     if (m.toLowerCase().includes(term)) return true;
-    // Also match if any product under this master matches
     return allProducts.some(p => p.master === m && p.name.toLowerCase().includes(term));
   });
 
@@ -265,7 +255,6 @@ uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
       </div>
 
       <div className="grid md:grid-cols-[280px_1fr] gap-4">
-        {/* Master list */}
         <div className="space-y-1 max-h-[70vh] overflow-y-auto border rounded-lg p-2">
           {filteredMasters.map((m) => (
             <button
@@ -281,12 +270,10 @@ uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
           {filteredMasters.length === 0 && <p className="text-sm text-muted-foreground p-3">Không có master nào.</p>}
         </div>
 
-        {/* Master detail */}
         {selectedMaster ? (
           <div className="space-y-4">
             <h3 className="text-lg font-bold">{selectedMaster}</h3>
 
-            {/* Products of this master */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-1.5">
@@ -311,7 +298,6 @@ uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
               </CardContent>
             </Card>
 
-            {/* Shop info */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-1.5">
@@ -356,8 +342,8 @@ uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
                         <Label className="text-xs">Slug (URL)</Label>
                         <Input
                           value={shopInfo.slug}
-                          onChange={(e) => setShopInfo({ ...shopInfo, slug: slugify(e.target.value) })}
-                          placeholder="ten-shop"
+                          onChange={(e) => setShopInfo({ ...shopInfo, slug: e.target.value })}
+                          placeholder="ten-shop-tieng-trung"
                         />
                       </div>
                     </div>
@@ -400,21 +386,12 @@ uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
                       <Button onClick={handleSaveShop} disabled={shopSaving} size="sm" className="ml-auto">
                         {shopSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu shop"}
                       </Button>
-                      {shopInfo.slug && (
-                        <a
-                          href={`/shop/${shopInfo.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
-                        >
-                          <ExternalLink className="h-3 w-3" /> Xem shop
-                        </a>
-                      )}
                     </div>
                   </>
                 )}
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">📢 Đăng cập nhật tiến độ</CardTitle>
@@ -438,16 +415,11 @@ uploadedUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${path}`);
                     {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
-                {imageFiles.length > 0 && (
-                  <p className="text-xs text-muted-foreground">{imageFiles.length} ảnh đã chọn</p>
-                )}
               </CardContent>
             </Card>
 
-            {/* Updates feed */}
             <div className="space-y-3">
               <h4 className="text-sm font-medium">Lịch sử cập nhật ({updates.length})</h4>
-              {updates.length === 0 && <p className="text-sm text-muted-foreground">Chưa có cập nhật nào.</p>}
               {updates.map((u) => (
                 <Card key={u.id}>
                   <CardContent className="pt-3 pb-3">
