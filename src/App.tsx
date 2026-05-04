@@ -18,6 +18,8 @@ import TrackOrder from "./pages/TrackOrder";
 import Admin from "./pages/Admin";
 import AdminOrderDetail from "./pages/AdminOrderDetail";
 import CustomerOrderDetail from "./pages/CustomerOrderDetail";
+import Shops from "./pages/Shops";
+import ShopDetail from "./pages/ShopDetail";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +43,8 @@ const App = () => (
             <Route path="/order/:orderId" element={<CustomerOrderDetail />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/order/:orderId" element={<AdminOrderDetail />} />
+            <Route path="/shops" element={<Shops />} />
+            <Route path="/shop/:slug" element={<ShopDetail />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
