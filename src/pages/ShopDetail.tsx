@@ -29,7 +29,7 @@ const slugify = (s: string) =>
 
 const isAvailable = (p: any) => {
   if (p.status === "Ẩn") return false;
-  const notExpired = !p.orderDeadline || new Date(p.orderDeadline) > new Date();
+  const notExpired = !p.order_deadline || new Date(p.order_deadline) > new Date();
   const hasVariantStock = p.variants?.some((v: any) => v.stock !== undefined);
   let hasStock = false;
   if (hasVariantStock) {
