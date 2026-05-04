@@ -18,16 +18,15 @@ interface MasterShop {
   description: string | null;
 }
 
-// ĐỒNG BỘ: Hàm slugify giữ tiếng Trung, Nhật, Hàn
+// HÀM SLUGIFY CHUẨN NHẤT (Copy đúng bản này cho các file khác luôn Ý nhé)
 const slugify = (s: string) => {
   if (!s) return "shop";
   return s
     .toLowerCase()
     .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
-    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số, thay ký tự đặc biệt bằng "-"
     .replace(/[^\p{L}\p{N}]+/gu, "-") 
     .replace(/(^-|-$)/g, "")
     .slice(0, 100);
@@ -50,85 +49,92 @@ const isAvailable = (p: any) => {
 };
 
 export default function ShopDetail() {
-  // Lấy slug từ URL
   const { slug: rawSlug } = useParams<{ slug: string }>();
-  
-  // LÀM SẠCH SLUG: Xóa bỏ các dấu "/" dư thừa (lỗi //) và trim khoảng trắng
-  const slug = useMemo(() => {
-    if (!rawSlug) return "";
-    return decodeURIComponent(rawSlug).replace(/^\/+|\/+$/g, "").trim();
-  }, [rawSlug]);
-
   const { products, isLoading } = useCart();
-  const [shop, setShop] = useState<MasterShop | null>(null);
+  
+  const [shopFromDB, setShopFromDB] = useState<MasterShop | null>(null);
   const [shopLoading, setShopLoading] = useState(true);
   const [showHidden, setShowHidden] = useState(false);
 
+  // 1. Làm sạch Slug từ URL (Quan trọng nhất)
+  const currentSlug = useMemo(() => {
+    if (!rawSlug) return "";
+    // Xử lý decode và xóa sạch các dấu / bị thừa
+    return decodeURIComponent(rawSlug).split('/').filter(Boolean).pop() || "";
+  }, [rawSlug]);
+
+  // 2. Tìm Master Name từ danh sách sản phẩm trước
+  const resolvedMasterName = useMemo(() => {
+    if (!currentSlug || isLoading) return null;
+    const found = products.find((p: any) => p.master && slugify(p.master) === currentSlug);
+    return found ? (found as any).master : null;
+  }, [currentSlug, products, isLoading]);
+
+  // 3. Lấy thông tin Shop từ Database dựa trên Master Name hoặc Slug
   useEffect(() => {
-    if (!slug) return;
-    (async () => {
+    const fetchShop = async () => {
+      if (!currentSlug) return;
       setShopLoading(true);
-      // Tìm shop khớp chính xác với slug trong Database
-      const { data } = await (supabase as any)
+      
+      // Thử tìm theo slug trước
+      let { data } = await (supabase as any)
         .from("master_shops")
         .select("*")
-        .eq("slug", slug)
+        .eq("slug", currentSlug)
         .maybeSingle();
-      if (data) {
-        setShop(data as MasterShop);
-      } else {
-        setShop(null); // Reset nếu đổi sang slug không tồn tại trong DB
+
+      // Nếu không thấy theo slug, thử tìm theo master_name đã resolved
+      if (!data && resolvedMasterName) {
+        const { data: dataByName } = await (supabase as any)
+          .from("master_shops")
+          .select("*")
+          .eq("master_name", resolvedMasterName)
+          .maybeSingle();
+        data = dataByName;
       }
+
+      setShopFromDB(data as MasterShop);
       setShopLoading(false);
-    })();
-  }, [slug]);
-
-  // LOGIC TÌM MASTER: Nếu không có profile shop, tìm Master có tên slugify khớp với URL
-  const resolvedMaster = useMemo(() => {
-    if (shop) return shop.master_name;
-    if (!slug || isLoading) return null;
-    
-    const found = products.find((p: any) => p.master && slugify(p.master) === slug);
-    return found ? (found as any).master : null;
-  }, [shop, slug, products, isLoading]);
-
-  const fallbackShop: MasterShop | null = useMemo(() => {
-    if (shop || !resolvedMaster) return null;
-    return {
-      master_name: resolvedMaster,
-      display_name: resolvedMaster,
-      slug: slug,
-      avatar_url: null,
-      shop_link: null,
-      description: null,
     };
-  }, [shop, resolvedMaster, slug]);
 
-  const finalShop = shop || fallbackShop;
+    if (!isLoading) {
+        fetchShop();
+    }
+  }, [currentSlug, resolvedMasterName, isLoading]);
+
+  // 4. Tạo Object Shop cuối cùng để hiển thị
+  const finalShop = useMemo(() => {
+    if (shopFromDB) return shopFromDB;
+    if (resolvedMasterName) {
+      return {
+        master_name: resolvedMasterName,
+        display_name: resolvedMasterName,
+        slug: currentSlug,
+        avatar_url: null,
+        shop_link: null,
+        description: null,
+      };
+    }
+    return null;
+  }, [shopFromDB, resolvedMasterName, currentSlug]);
 
   const masterProducts = useMemo(() => {
-    if (!resolvedMaster) return [];
-    return products.filter((p: any) => p.master === resolvedMaster);
-  }, [resolvedMaster, products]);
+    if (!resolvedMasterName) return [];
+    return products.filter((p: any) => p.master === resolvedMasterName);
+  }, [resolvedMasterName, products]);
 
   const available = masterProducts.filter(isAvailable);
   const hidden = masterProducts.filter((p: any) => !isAvailable(p));
 
-  if (shopLoading || isLoading) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 flex justify-center items-center h-[50vh]">
-          <LoadingPudding />
-        </div>
-      </Layout>
-    );
+  if (isLoading || (shopLoading && !resolvedMasterName)) {
+    return <Layout><div className="flex justify-center items-center h-[50vh]"><LoadingPudding /></div></Layout>;
   }
 
   if (!finalShop) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 text-center">
-          <p className="text-muted-foreground mb-4">Không tìm thấy shop này.</p>
+          <p className="text-muted-foreground mb-4">Không tìm thấy shop: {currentSlug}</p>
           <Link to="/shops"><Button variant="outline">Về danh sách shop</Button></Link>
         </div>
       </Layout>
@@ -142,7 +148,6 @@ export default function ShopDetail() {
           <ArrowLeft className="h-4 w-4" /> Tất cả shop
         </Link>
 
-        {/* Shop header */}
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-6 rounded-lg bg-card border mb-8">
           <div className="w-24 h-24 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
             {finalShop.avatar_url ? (
@@ -152,40 +157,32 @@ export default function ShopDetail() {
             )}
           </div>
           <div className="flex-1 text-center sm:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold break-words">{finalShop.display_name}</h1>
-            {finalShop.description && (
-              <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{finalShop.description}</p>
-            )}
-            <div className="flex flex-wrap gap-3 items-center justify-center sm:justify-start mt-3">
-              <span className="text-sm text-muted-foreground">{available.length} đang order · {hidden.length} đã ẩn</span>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold">{finalShop.display_name}</h1>
+            {finalShop.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{finalShop.description}</p>}
+            <p className="text-sm text-muted-foreground mt-3">{available.length} đang order · {hidden.length} đã ẩn</p>
           </div>
         </div>
 
-        {/* Available products */}
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Đang order ({available.length})</h2>
-          {available.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Hiện chưa có sản phẩm nào.</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+          {available.length === 0 ? <p className="text-sm text-muted-foreground">Hiện chưa có sản phẩm nào.</p> : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {available.map((p: any) => <ProductCard key={p.id} product={p} />)}
             </div>
           )}
         </section>
 
-        {/* Hidden / out of stock - collapsible */}
         {hidden.length > 0 && (
           <Collapsible open={showHidden} onOpenChange={setShowHidden}>
             <div className="border-t pt-6">
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="w-full justify-between">
-                  <span className="font-medium">Hết hàng / Hết hạn ({hidden.length})</span>
+                  <span className="font-medium">Sản phẩm đã ẩn ({hidden.length})</span>
                   {showHidden ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {hidden.map((p: any) => <ProductCard key={p.id} product={p} />)}
                 </div>
               </CollapsibleContent>
