@@ -6,7 +6,31 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Trash2, Image, ChevronDown, ChevronUp, Package } from "lucide-react";
+import { Loader2, Send, Trash2, Image, ChevronDown, ChevronUp, Package, Store, ExternalLink } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+interface MasterShop {
+  id?: string;
+  master_name: string;
+  display_name: string;
+  slug: string;
+  avatar_url: string | null;
+  shop_link: string | null;
+  description: string | null;
+  is_visible: boolean;
+  sort_order: number;
+}
+
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 60) || "shop";
 
 interface MasterUpdate {
   id: string;
@@ -36,6 +60,10 @@ export default function MasterManagement() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [shopInfo, setShopInfo] = useState<MasterShop | null>(null);
+  const [shopLoading, setShopLoading] = useState(false);
+  const [shopSaving, setShopSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -46,6 +74,7 @@ export default function MasterManagement() {
     if (selectedMaster) {
       fetchMasterProducts(selectedMaster);
       fetchMasterUpdates(selectedMaster);
+      fetchShopInfo(selectedMaster);
     }
   }, [selectedMaster]);
 
