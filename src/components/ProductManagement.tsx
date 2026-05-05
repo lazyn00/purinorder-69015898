@@ -959,7 +959,7 @@ export default function ProductManagement() {
                     key={idx}
                     draggable
                     onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", String(idx));
+                      e.dataTransfer.setData("text/plain", `img-${idx}`);
                       e.currentTarget.classList.add("opacity-50");
                     }}
                     onDragEnd={(e) => {
@@ -975,7 +975,9 @@ export default function ProductManagement() {
                     onDrop={(e) => {
                       e.preventDefault();
                       e.currentTarget.classList.remove("bg-accent/50");
-                      const fromIdx = Number(e.dataTransfer.getData("text/plain"));
+                      const data = e.dataTransfer.getData("text/plain");
+                      if (!data.startsWith("img-")) return;
+                      const fromIdx = Number(data.slice(4));
                       if (fromIdx === idx) return;
                       setImageInputs(prev => {
                         const newArr = [...prev];
