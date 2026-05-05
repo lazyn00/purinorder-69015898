@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link } from "lucide-react";
+import { ProductExportButtons } from "./ProductExportButtons";
+import { InAppUploadNotice } from "./InAppBrowserBanner";
 
 // --- IMPORT AWS SDK CHO CLOUDFLARE R2 ---
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -751,7 +753,8 @@ export default function ProductManagement() {
                     <Badge variant="secondary" className="text-[10px]">{product.status || "—"}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
+                    <div className="flex gap-1 justify-end items-center flex-wrap">
+                      <ProductExportButtons product={product as any} />
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateProduct(product)} title="Sao chép">
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
