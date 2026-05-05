@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, SquareCheck, Minus, Plus, Trash2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { InAppUploadNotice } from "@/components/InAppBrowserBanner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -425,7 +426,8 @@ export default function Checkout() {
               
               <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
                 <Label className="font-semibold text-lg mb-3 block">Đăng bill chuyển khoản *</Label>
-                <Input type="file" accept="image/*" onChange={handleFileChange} required className="cursor-pointer" />
+                <InAppUploadNotice />
+                <Input type="file" accept="image/*" onChange={handleFileChange} required className="cursor-pointer mt-2" />
                 {paymentProof && <p className="mt-2 text-sm text-green-600 font-medium">✓ {paymentProof.name}</p>}
                 <p className="text-xs text-muted-foreground mt-2 italic">* Vui lòng upload bill trước khi bấm đặt hàng.</p>
               </div>
