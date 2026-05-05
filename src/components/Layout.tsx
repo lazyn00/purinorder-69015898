@@ -15,10 +15,6 @@ const allMenuItems = [
   { path: "/track-order", label: "Tra đơn" },
 ];
 
-const menuItems = isPurin
-  ? allMenuItems
-  : allMenuItems.filter(item => item.path !== "/contact");
-
 const hostname = window.location.hostname;
 const isPurin = hostname === 'purinorder.vercel.app' || hostname === 'localhost' || hostname === '127.0.0.1';
 
