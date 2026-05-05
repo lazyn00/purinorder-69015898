@@ -74,9 +74,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center justify-between">
             {/* ← SỬA: dùng tenant.shopName và tenant.logo */}
             <Link to="/" className="flex items-center gap-2 text-2xl font-bold text-primary">
-              <img src={tenant.logo} alt={tenant.shopName} className="h-8 w-8 object-contain" />
-              {tenant.shopName}
-            </Link>
+  {tenant.emoji} {tenant.shopName}
+</Link>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-6">
