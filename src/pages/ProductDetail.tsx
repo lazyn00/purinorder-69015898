@@ -231,12 +231,12 @@ export default function ProductDetail() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-5 py-6 md:py-10"> {/* Đã tăng px lên 5 cho mobile */}
+      <div className="container mx-auto px-3 sm:px-5 py-4 md:py-10 max-w-6xl">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> <span className="text-sm">Quay lại</span>
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8 lg:gap-12">
           {/* CỘT ẢNH */}
           <div className="space-y-4">
             <div className="relative group">
@@ -278,7 +278,7 @@ export default function ProductDetail() {
           </div>
 
           {/* CỘT THÔNG TIN */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <div className="space-y-2">
               <div className="flex justify-between items-start gap-4">
                  <div className="space-y-1">
