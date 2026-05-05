@@ -11,7 +11,7 @@ const tenants: Record<string, TenantConfig> = {
   // ── Shop của bạn (giữ nguyên màu hiện tại) ──
   'purinorder.vercel.app': {
     shopName: 'Purin Order',
-    logo: '/logo-purin.png',
+    emoji: '🍮', 
     favicon: '/favicon-purin.ico',
     description: 'Người ta có khách iu của Purin cũng phải có!!!',
     cssVars: {
@@ -50,7 +50,7 @@ const tenants: Record<string, TenantConfig> = {
   // ── Shop em gái (lavender pastel) ──
   'tiemnhaca.vercel.app': {  // ← đổi thành domain thật của em gái
     shopName: '˙⋆✮ tiệm nhà cá ✮⋆˙', // ← đổi tên thật
-    logo: '/logo-tiemnhaca.png',
+    emoji: '🐡',
     favicon: '/favicon-tiemnhaca.ico',
     description: 'order mấy thứ đáng iuuu',
     cssVars: {
