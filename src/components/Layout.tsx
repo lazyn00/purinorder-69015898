@@ -7,13 +7,17 @@ import { ScrollToTop } from "./ScrollToTop";
 import { InAppBrowserBanner } from "./InAppBrowserBanner";
 import { tenant } from "@/config/tenant";
 
-const menuItems = [
+const allMenuItems = [
   { path: "/products", label: "Sản phẩm" },
   { path: "/shops", label: "Shops" },
   { path: "/policy", label: "Chính sách" },
   { path: "/contact", label: "Thông tin" },
   { path: "/track-order", label: "Tra đơn" },
 ];
+
+const menuItems = isPurin
+  ? allMenuItems
+  : allMenuItems.filter(item => item.path !== "/contact");
 
 const hostname = window.location.hostname;
 const isPurin = hostname === 'purinorder.vercel.app' || hostname === 'localhost' || hostname === '127.0.0.1';
