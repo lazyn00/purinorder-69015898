@@ -7,6 +7,9 @@ import { ScrollToTop } from "./ScrollToTop";
 import { InAppBrowserBanner } from "./InAppBrowserBanner";
 import { tenant } from "@/config/tenant";
 
+const hostname = window.location.hostname;
+const isPurin = hostname === 'purinorder.vercel.app' || hostname === 'localhost' || hostname === '127.0.0.1';
+
 const menuItems = [
   { path: "/products", label: "Sản phẩm" },
   { path: "/shops", label: "Shops" },
@@ -14,9 +17,6 @@ const menuItems = [
   { path: "/contact", label: "Thông tin" },
   { path: "/track-order", label: "Tra đơn" },
 ].filter(item => isPurin || item.path !== "/contact");
-
-const hostname = window.location.hostname;
-const isPurin = hostname === 'purinorder.vercel.app' || hostname === 'localhost' || hostname === '127.0.0.1';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
