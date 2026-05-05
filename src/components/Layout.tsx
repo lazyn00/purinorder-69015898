@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
 import { InAppBrowserBanner } from "./InAppBrowserBanner";
+import { tenant } from "@/config/tenant"; // ← THÊM
 
 const menuItems = [
   { path: "/products", label: "Sản phẩm" },
@@ -25,6 +26,16 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+      // Apply dark vars khi load từ localStorage
+      if (savedTheme === 'dark') {
+        Object.entries(tenant.cssVarsDark).forEach(([key, val]) => {
+          document.documentElement.style.setProperty(key, val);
+        });
+      } else {
+        Object.entries(tenant.cssVars).forEach(([key, val]) => {
+          document.documentElement.style.setProperty(key, val);
+        });
+      }
     }
   }, []);
 
@@ -33,6 +44,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    // Apply đúng màu tenant khi toggle
+    const vars = newTheme === 'dark' ? tenant.cssVarsDark : tenant.cssVars;
+    Object.entries(vars).forEach(([key, val]) => {
+      document.documentElement.style.setProperty(key, val);
+    });
   };
 
   const openMessengerChat = useCallback(() => {
@@ -56,8 +72,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <header className="border-b bg-card">
         <nav className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="text-2xl font-bold text-primary">
-              🍮 Purin Order
+            {/* ← SỬA: dùng tenant.shopName và tenant.logo */}
+            <Link to="/" className="flex items-center gap-2 text-2xl font-bold text-primary">
+              <img src={tenant.logo} alt={tenant.shopName} className="h-8 w-8 object-contain" />
+              {tenant.shopName}
             </Link>
 
             {/* Desktop Menu */}
@@ -142,10 +160,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
       <main className="flex-1">{children}</main>
 
+      {/* ← SỬA: footer dùng tenant.shopName */}
       <footer className="border-t bg-card mt-auto">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-sm text-muted-foreground">
-            © 2024 Purin Order. All rights reserved.
+            © 2024 {tenant.shopName}. All rights reserved.
           </div>
         </div>
       </footer>
