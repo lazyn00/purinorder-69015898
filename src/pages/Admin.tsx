@@ -32,8 +32,10 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-const ADMIN_USERNAME = "Admin";
-const ADMIN_PASSWORD = "Nhuy7890";
+const ADMIN_CREDENTIALS = [
+  { username: "Admin", password: "Nhuy7890" },
+  { username: "tiemnhaca", password: "1" },
+];
 
 const PAYMENT_STATUSES = [
   "Chưa thanh toán",
@@ -552,7 +554,7 @@ export default function Admin() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    if (ADMIN_CREDENTIALS.some(c => c.username === username && c.password === password)) {
       setIsLoggedIn(true);
       sessionStorage.setItem('admin_logged_in', 'true');
       fetchOrders();
