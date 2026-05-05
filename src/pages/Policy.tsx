@@ -1,5 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { tenant } from "@/config/tenant"; // ← THÊM
 
 export default function Policy() {
   return (
@@ -7,7 +8,7 @@ export default function Policy() {
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-2xl md:text-3xl font-bold mb-3">Chính sách</h1>
-          <p className="text-muted-foreground text-sm">Các chính sách quan trọng khi mua hàng tại Purin Order</p>
+          <p className="text-muted-foreground text-sm">Các chính sách quan trọng khi mua hàng tại {tenant.shopName}</p>
         </div>
 
         <div className="max-w-4xl mx-auto space-y-4">
