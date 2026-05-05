@@ -199,6 +199,7 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [orderProgressFilter, setOrderProgressFilter] = useState<string>("all");
+  const [progressMulti, setProgressMulti] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
@@ -246,11 +247,14 @@ export default function Admin() {
         );
       
       const matchesPaymentStatus = paymentStatusFilter === "all" || order.payment_status === paymentStatusFilter;
-      const matchesOrderProgress = orderProgressFilter === "all" || order.order_progress === orderProgressFilter;
+      const matchesOrderProgress =
+        progressMulti.length > 0
+          ? progressMulti.includes(order.order_progress)
+          : (orderProgressFilter === "all" || order.order_progress === orderProgressFilter);
       
       return matchesSearch && matchesPaymentStatus && matchesOrderProgress;
     });
-  }, [orders, searchTerm, paymentStatusFilter, orderProgressFilter]);
+  }, [orders, searchTerm, paymentStatusFilter, orderProgressFilter, progressMulti]);
 
   // Pagination
   const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
@@ -274,7 +278,7 @@ export default function Admin() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, paymentStatusFilter, orderProgressFilter]);
+  }, [searchTerm, paymentStatusFilter, orderProgressFilter, progressMulti]);
 
   // Product statistics by variant
   const productStats = useMemo(() => {
@@ -1526,17 +1530,45 @@ ${generateEmailContent(order)}
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={orderProgressFilter} onValueChange={setOrderProgressFilter}>
-                  <SelectTrigger className="w-full sm:w-[200px]">
-                    <SelectValue placeholder="Lọc tiến độ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả tiến độ</SelectItem>
-                    {ORDER_PROGRESS.map(progress => (
-                      <SelectItem key={progress} value={progress}>{progress}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-[220px] justify-between font-normal">
+                      <span className="truncate">
+                        {progressMulti.length === 0
+                          ? (orderProgressFilter === "all" ? "Tất cả tiến độ" : orderProgressFilter)
+                          : `${progressMulti.length} tiến độ`}
+                      </span>
+                      <Layers className="h-4 w-4 opacity-50 ml-2" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[260px] p-2" align="end">
+                    <div className="flex items-center justify-between mb-2 pb-2 border-b">
+                      <span className="text-xs font-medium">Lọc nhiều tiến độ</span>
+                      {progressMulti.length > 0 && (
+                        <button onClick={() => setProgressMulti([])} className="text-xs text-primary hover:underline">Bỏ chọn</button>
+                      )}
+                    </div>
+                    <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                      {ORDER_PROGRESS.map(progress => {
+                        const checked = progressMulti.includes(progress);
+                        return (
+                          <label key={progress} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                setOrderProgressFilter("all");
+                                setProgressMulti(prev =>
+                                  v ? [...prev, progress] : prev.filter(p => p !== progress)
+                                );
+                              }}
+                            />
+                            <span className="flex-1">{progress}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <p className="text-sm text-muted-foreground">

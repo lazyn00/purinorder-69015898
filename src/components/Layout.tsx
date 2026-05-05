@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
+import { InAppBrowserBanner } from "./InAppBrowserBanner";
 
 const menuItems = [
   { path: "/products", label: "Sản phẩm" },
@@ -50,6 +51,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <InAppBrowserBanner />
       <div className="sticky top-0 z-50">
         <header className="border-b bg-card">
         <nav className="container mx-auto px-4 py-4">

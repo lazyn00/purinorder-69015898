@@ -214,7 +214,7 @@ export default function TrackOrder() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-6 md:py-12 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
           <Package className="h-12 w-12 mx-auto mb-4 text-primary" />

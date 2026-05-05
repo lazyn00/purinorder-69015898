@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link } from "lucide-react";
+import { ProductExportButtons } from "./ProductExportButtons";
+import { InAppUploadNotice } from "./InAppBrowserBanner";
 
 // --- IMPORT AWS SDK CHO CLOUDFLARE R2 ---
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -751,7 +753,8 @@ export default function ProductManagement() {
                     <Badge variant="secondary" className="text-[10px]">{product.status || "—"}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
+                    <div className="flex gap-1 justify-end items-center flex-wrap">
+                      <ProductExportButtons product={product as any} />
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateProduct(product)} title="Sao chép">
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
@@ -953,13 +956,14 @@ export default function ProductManagement() {
                   </Button>
                 </div>
               </div>
+              <InAppUploadNotice />
               <div className="space-y-2">
                 {imageInputs.map((url, idx) => (
                   <div
                     key={idx}
                     draggable
                     onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", String(idx));
+                      e.dataTransfer.setData("text/plain", `img-${idx}`);
                       e.currentTarget.classList.add("opacity-50");
                     }}
                     onDragEnd={(e) => {
@@ -975,7 +979,9 @@ export default function ProductManagement() {
                     onDrop={(e) => {
                       e.preventDefault();
                       e.currentTarget.classList.remove("bg-accent/50");
-                      const fromIdx = Number(e.dataTransfer.getData("text/plain"));
+                      const data = e.dataTransfer.getData("text/plain");
+                      if (!data.startsWith("img-")) return;
+                      const fromIdx = Number(data.slice(4));
                       if (fromIdx === idx) return;
                       setImageInputs(prev => {
                         const newArr = [...prev];
@@ -1025,7 +1031,33 @@ export default function ProductManagement() {
               </div>
               <div className="space-y-2">
                 {variantInputs.map((v, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
+                  <div
+                    key={idx}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", `v-${idx}`);
+                      e.currentTarget.classList.add("opacity-50");
+                    }}
+                    onDragEnd={(e) => e.currentTarget.classList.remove("opacity-50")}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-accent/50"); }}
+                    onDragLeave={(e) => e.currentTarget.classList.remove("bg-accent/50")}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("bg-accent/50");
+                      const data = e.dataTransfer.getData("text/plain");
+                      if (!data.startsWith("v-")) return;
+                      const fromIdx = Number(data.slice(2));
+                      if (fromIdx === idx) return;
+                      setVariantInputs(prev => {
+                        const arr = [...prev];
+                        const [m] = arr.splice(fromIdx, 1);
+                        arr.splice(idx, 0, m);
+                        return arr;
+                      });
+                    }}
+                    className="flex gap-2 items-center rounded-md p-1 transition-colors cursor-grab active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
                     <Input
                       placeholder="Tên phân loại"
                       value={v.name}
@@ -1034,7 +1066,7 @@ export default function ProductManagement() {
                         n[idx] = { ...n[idx], name: e.target.value };
                         setVariantInputs(n);
                       }}
-                      className="h-8 text-sm flex-1"
+                      className="h-8 text-sm flex-1 min-w-0"
                     />
                     <Input
                       type="number"
@@ -1045,18 +1077,18 @@ export default function ProductManagement() {
                         n[idx] = { ...n[idx], price: Number(e.target.value) || 0 };
                         setVariantInputs(n);
                       }}
-                      className="h-8 text-sm w-28"
+                      className="h-8 text-sm w-24"
                     />
                     <Input
                       type="number"
-                      placeholder="Tồn kho"
+                      placeholder="Kho"
                       value={v.stock ?? ""}
                       onChange={e => {
                         const n = [...variantInputs];
                         n[idx] = { ...n[idx], stock: e.target.value === "" ? undefined : Number(e.target.value) };
                         setVariantInputs(n);
                       }}
-                      className="h-8 text-sm w-20"
+                      className="h-8 text-sm w-16"
                     />
                     <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setVariantInputs(prev => prev.filter((_, i) => i !== idx))}>
                       <X className="h-3 w-3" />
