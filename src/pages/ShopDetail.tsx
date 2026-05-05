@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/contexts/CartContext";
+import { MasterShopPosterExport } from "@/components/MasterShopPosterExport";
 
 interface MasterShop {
   master_name: string;
@@ -170,10 +171,15 @@ export default function ShopDetail() {
               <Store className="h-10 w-10 text-muted-foreground" />
             )}
           </div>
-          <div className="flex-1 text-center sm:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold">{finalShop?.display_name}</h1>
+          <div className="flex-1 text-center sm:text-left min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold break-words">{finalShop?.display_name}</h1>
             {finalShop?.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{finalShop.description}</p>}
             <p className="text-sm text-muted-foreground mt-3">{available.length} đang order · {hidden.length} đã ẩn</p>
+            <div className="mt-3 flex gap-2 flex-wrap justify-center sm:justify-start">
+              {finalShop && available.length > 0 && (
+                <MasterShopPosterExport shop={finalShop as any} products={available as any} />
+              )}
+            </div>
           </div>
         </div>
 
