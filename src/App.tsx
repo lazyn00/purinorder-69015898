@@ -1,11 +1,10 @@
-// App.jsx (hoặc tên file chứa component App)
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./contexts/CartContext";
+import { tenant } from "./config/tenant";
 import Products from "./pages/Products";
 import CategoryPage from "./pages/CategoryPage";
 import ProductDetail from "./pages/ProductDetail";
@@ -21,6 +20,17 @@ import CustomerOrderDetail from "./pages/CustomerOrderDetail";
 import Shops from "./pages/Shops";
 import ShopDetail from "./pages/ShopDetail";
 
+const root = document.documentElement;
+Object.entries(tenant.cssVars).forEach(([key, val]) => {
+  root.style.setProperty(key, val);
+});
+document.title = tenant.shopName;
+if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+  Object.entries(tenant.cssVarsDark).forEach(([key, val]) => {
+    root.style.setProperty(key, val);
+  });
+}
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -31,8 +41,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Products />} /> 
-            <Route path="/products" element={<Products />} /> 
+            <Route path="/" element={<Products />} />
+            <Route path="/products" element={<Products />} />
             <Route path="/category/:category" element={<CategoryPage />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/policy" element={<Policy />} />
@@ -45,7 +55,6 @@ const App = () => (
             <Route path="/admin/order/:orderId" element={<AdminOrderDetail />} />
             <Route path="/shops" element={<Shops />} />
             <Route path="/shop/:slug" element={<ShopDetail />} />
-            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
