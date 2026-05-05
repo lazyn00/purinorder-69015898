@@ -54,36 +54,36 @@ const tenants: Record<string, TenantConfig> = {
     favicon: '/favicon-tiemnhaca.ico',
     description: 'order mấy thứ đáng iuuu',
     cssVars: {
-      '--background':         '270 60% 98%',
-      '--foreground':         '270 20% 20%',
-      '--card':               '270 60% 99%',
-      '--card-foreground':    '270 20% 20%',
-      '--primary':            '270 60% 82%',   // lavender chính
-      '--primary-foreground': '270 20% 20%',
-      '--secondary':          '285 50% 88%',   // tím nhạt hơn
-      '--secondary-foreground':'270 20% 20%',
-      '--muted':              '270 30% 93%',
-      '--muted-foreground':   '270 15% 45%',
-      '--accent':             '255 45% 75%',   // tím xanh accent
-      '--accent-foreground':  '270 20% 20%',
-      '--border':             '270 30% 87%',
-      '--input':              '270 30% 87%',
-      '--ring':               '270 60% 82%',
-      '--gradient-primary':   'linear-gradient(135deg, hsl(270 60% 82%), hsl(270 55% 88%))',
-      '--gradient-soft':      'linear-gradient(180deg, hsl(270 60% 98%), hsl(285 70% 95%))',
-      '--sidebar-background': '270 60% 97%',
-      '--sidebar-primary':    '270 55% 70%',
-      '--sidebar-ring':       '270 55% 70%',
-    },
-    cssVarsDark: {
-      '--background':         '270 15% 12%',
-      '--foreground':         '270 90% 95%',
-      '--primary':            '270 55% 72%',
-      '--secondary':          '285 45% 68%',
-      '--accent':             '255 40% 55%',
-      '--gradient-primary':   'linear-gradient(135deg, hsl(270 55% 72%), hsl(270 50% 78%))',
-      '--gradient-soft':      'linear-gradient(180deg, hsl(270 15% 12%), hsl(285 60% 20%))',
-    },
+  '--background':          '45 30% 97%',      // trắng kem
+  '--foreground':          '340 20% 15%',      // nâu đậm
+  '--card':                '0 0% 100%',
+  '--card-foreground':     '340 20% 15%',
+  '--primary':             '340 70% 58%',      // hồng đậm
+  '--primary-foreground':  '0 0% 100%',
+  '--secondary':           '130 25% 62%',      // xanh sage
+  '--secondary-foreground':'0 0% 100%',
+  '--muted':               '45 40% 93%',       // vàng kem nhạt
+  '--muted-foreground':    '340 15% 45%',
+  '--accent':              '160 30% 75%',      // mint nhạt
+  '--accent-foreground':   '340 20% 15%',
+  '--border':              '340 30% 88%',
+  '--input':               '340 30% 88%',
+  '--ring':                '340 70% 58%',
+  '--gradient-primary':    'linear-gradient(135deg, hsl(340 70% 58%), hsl(340 60% 70%))',
+  '--gradient-soft':       'linear-gradient(180deg, hsl(45 30% 97%), hsl(270 40% 95%))',
+  '--sidebar-background':  '45 30% 97%',
+  '--sidebar-primary':     '340 70% 58%',
+  '--sidebar-ring':        '340 70% 58%',
+},
+cssVarsDark: {
+  '--background':          '340 15% 12%',
+  '--foreground':          '45 80% 92%',
+  '--primary':             '340 65% 65%',
+  '--secondary':           '130 25% 55%',
+  '--accent':              '160 25% 45%',
+  '--gradient-primary':    'linear-gradient(135deg, hsl(340 65% 65%), hsl(340 55% 72%))',
+  '--gradient-soft':       'linear-gradient(180deg, hsl(340 15% 12%), hsl(270 30% 18%))',
+},
   },
 };
 
