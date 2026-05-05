@@ -956,6 +956,7 @@ export default function ProductManagement() {
                   </Button>
                 </div>
               </div>
+              <InAppUploadNotice />
               <div className="space-y-2">
                 {imageInputs.map((url, idx) => (
                   <div
