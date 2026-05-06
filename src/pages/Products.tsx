@@ -146,6 +146,8 @@ export default function Products() {
   // 1. THÊM LOGIC LỌC TIỆM IN PURIN
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll" && !(p as any).isUserListing);
   const merch = filteredProducts.filter(p => p.category === "Merch" && !(p as any).isUserListing);
+  const linhtinhxinhxinh = filteredProducts.filter(p => p.category === "Linh tinh xinh xinh" && !(p as any).isUserListing);
+  const packageitems = filteredProducts.filter(p => p.category === "Đồ gói" && !(p as any).isUserListing);
   const tiemInPurin = filteredProducts.filter(p => p.category === "Tiệm in Purin" && !(p as any).isUserListing);
   const fashion = filteredProducts.filter(p => p.category === "Thời trang" && !(p as any).isUserListing);
   const other = filteredProducts.filter(p => p.category === "Khác" && !(p as any).isUserListing);
@@ -208,6 +210,20 @@ export default function Products() {
               title="Merch"
               categorySlug="merch"
               products={merch}
+            />
+          )}
+          {linhtinhxinhxinh.length > 0 && (
+            <CategoryPreview
+              title="Linh tinh xinh xinh"
+              categorySlug="linh-tinh-xinh-xinh"
+              products={linhtinhxinhxinh}
+            />
+          )}
+          {packageitems.length > 0 && (
+            <CategoryPreview
+              title="Đồ gói"
+              categorySlug="package-items"
+              products={packageitems}
             />
           )}
           {fashion.length > 0 && (
