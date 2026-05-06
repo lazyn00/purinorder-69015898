@@ -555,15 +555,18 @@ export default function Admin() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (ADMIN_CREDENTIALS.some(c => c.username === username && c.password === password)) {
+    const matched = ADMIN_CREDENTIALS.find(c => c.username === username && c.password === password);
+    if (matched) {
       setIsLoggedIn(true);
+      setCurrentUser(matched.username);
       sessionStorage.setItem('admin_logged_in', 'true');
+      sessionStorage.setItem('admin_user', matched.username);
       fetchOrders();
       fetchProducts();
-      fetchAdminNotifications(); // THÊM: Fetch thông báo khi login
+      fetchAdminNotifications();
       toast({
         title: "Đăng nhập thành công",
-        description: "Chào mừng Admin!",
+        description: `Chào mừng ${matched.username}!`,
       });
     } else {
       toast({
@@ -576,7 +579,9 @@ export default function Admin() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentUser("");
     sessionStorage.removeItem('admin_logged_in');
+    sessionStorage.removeItem('admin_user');
     setUsername("");
     setPassword("");
     toast({
