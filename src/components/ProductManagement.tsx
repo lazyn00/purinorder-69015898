@@ -165,8 +165,8 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const fetchDbProducts = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('products').select('*').order('id', { ascending: false });
-      if (currentUser) query = query.eq('owner' as any, currentUser);
+      let query: any = supabase.from('products').select('*').order('id', { ascending: false });
+      if (currentUser) query = query.eq('owner', currentUser);
       const { data, error } = await query;
       if (error) throw error;
       setDbProducts((data as SupabaseProduct[]) || []);
