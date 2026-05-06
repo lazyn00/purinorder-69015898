@@ -61,7 +61,7 @@ interface SupabaseProduct {
 
 type ProductFormData = Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at'>;
 
-const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Thời trang", "Khác"];
+const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
 const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
 
 const emptyForm: ProductFormData = {
