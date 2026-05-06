@@ -90,11 +90,13 @@ export default function MasterManagement({ currentUser = "Admin" }: MasterManage
 
   const fetchMasters = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let q: any = supabase
       .from("products")
       .select("id, name, master, status, price, images")
       .not("master", "is", null)
       .neq("master", "");
+    if (currentUser) q = q.eq("owner", currentUser);
+    const { data } = await q;
     if (data) {
       setAllProducts(data.map((p: any) => ({ ...p, images: (p.images as string[]) || [] })));
       const uniqueMasters = [...new Set(data.map((p: any) => p.master as string).filter(Boolean))].sort();
@@ -104,11 +106,13 @@ export default function MasterManagement({ currentUser = "Admin" }: MasterManage
   };
 
   const fetchMasterProducts = async (master: string) => {
-    const { data } = await supabase
+    let q: any = supabase
       .from("products")
       .select("id, name, status, price, images")
       .eq("master", master)
       .order("created_at", { ascending: false });
+    if (currentUser) q = q.eq("owner", currentUser);
+    const { data } = await q;
     if (data) setProducts(data.map((p: any) => ({ ...p, images: (p.images as string[]) || [] })));
   };
 
