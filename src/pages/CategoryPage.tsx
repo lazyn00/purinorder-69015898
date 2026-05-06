@@ -49,6 +49,7 @@ const CATEGORY_MAP: { [key: string]: string } = {
   "outfit-doll": "Outfit & Doll",
   "merch": "Merch",
   "linh-tinh-xinh-xinh": "Linh tinh xinh xinh",
+  "package-items": "Đồ gói",
   "fashion": "Thời trang",
   "khac": "Khác",
   "tiem-in-purin": "Tiệm in Purin", // Đã thêm
@@ -58,6 +59,7 @@ const CATEGORY_TITLES: { [key: string]: string } = {
   "outfit-doll": "Outfit & Doll",
   "merch": "Merch",
   "linh-tinh-xinh-xinh": "Linh tinh xinh xinh", 
+  "package-items": "Đồ gói",
   "fashion": "Thời trang",
   "khac": "Khác",
   "pass-gom": "Mua bán trao đổi",
