@@ -2078,7 +2078,7 @@ ${generateEmailContent(order)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <MasterManagement />
+                  <MasterManagement currentUser={currentUser} />
                 </CardContent>
               </Card>
             </TabsContent>
