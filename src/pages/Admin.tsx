@@ -331,26 +331,39 @@ export default function Admin() {
     to: new Date()
   });
 
-  // Tính toán thống kê doanh thu
+  // Tính toán thống kê doanh thu (theo sản phẩm của acc đang đăng nhập)
   const statistics = useMemo(() => {
-    const totalRevenue = orders.reduce((sum, order) => {
-      if (order.order_progress !== 'Đã huỷ') {
-        return sum + order.total_price;
-      }
+    const itemTotal = (item: any) => {
+      const qty = item.quantity || 1;
+      const p = item.priceWithVariant ?? item.price ?? 0;
+      return Number(p) * qty;
+    };
+    const orderOwnedRevenue = (order: Order) => {
+      const items = (order.items as any[]) || [];
+      return items
+        .filter((it: any) => ownedProductIds.has(Number(it.id)))
+        .reduce((s, it) => s + itemTotal(it), 0);
+    };
+    const orderHasOwned = (order: Order) =>
+      ((order.items as any[]) || []).some((it: any) => ownedProductIds.has(Number(it.id)));
+
+    const scopedOrders = orders.filter(orderHasOwned);
+
+    const totalRevenue = scopedOrders.reduce((sum, order) => {
+      if (order.order_progress !== 'Đã huỷ') return sum + orderOwnedRevenue(order);
       return sum;
     }, 0);
 
     const paymentStatusCounts = PAYMENT_STATUSES.reduce((acc, status) => {
-      acc[status] = orders.filter(o => o.payment_status === status).length;
+      acc[status] = scopedOrders.filter(o => o.payment_status === status).length;
       return acc;
     }, {} as Record<string, number>);
 
     const progressCounts = ORDER_PROGRESS.reduce((acc, progress) => {
-      acc[progress] = orders.filter(o => o.order_progress === progress).length;
+      acc[progress] = scopedOrders.filter(o => o.order_progress === progress).length;
       return acc;
     }, {} as Record<string, number>);
 
-    // Tính số ngày dựa theo date range
     const startDate = dateRange.from;
     const endDate = dateRange.to;
     const daysCount = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -361,13 +374,11 @@ export default function Admin() {
       return date.toISOString().split('T')[0];
     });
 
-    // Nhóm dữ liệu theo ngày hoặc tháng tùy khoảng thời gian
     const getGroupKey = (dateStr: string) => {
       const date = new Date(dateStr);
       if (daysCount > 90) {
         return date.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', month: '2-digit', year: '2-digit' });
       } else if (daysCount > 31) {
-        // Nhóm theo tuần
         const weekNumber = Math.floor((date.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
         return `Tuần ${weekNumber + 1}`;
       }
@@ -378,11 +389,11 @@ export default function Admin() {
 
     dateList.forEach(date => {
       const key = getGroupKey(date);
-      const dayOrders = orders.filter(order => {
+      const dayOrders = scopedOrders.filter(order => {
         const orderDate = new Date(order.created_at).toISOString().split('T')[0];
         return orderDate === date && order.order_progress !== 'Đã huỷ';
       });
-      const revenue = dayOrders.reduce((sum, order) => sum + order.total_price, 0);
+      const revenue = dayOrders.reduce((sum, order) => sum + orderOwnedRevenue(order), 0);
       
       const existing = revenueMap.get(key) || { revenue: 0, orders: 0 };
       revenueMap.set(key, {
@@ -397,40 +408,31 @@ export default function Admin() {
       orders: data.orders
     }));
 
-    // Tính doanh thu theo khoảng thời gian được chọn
-    const periodRevenue = orders
+    const periodRevenue = scopedOrders
       .filter(order => {
         const orderDate = new Date(order.created_at);
         return orderDate >= startDate && orderDate <= endDate && order.order_progress !== 'Đã huỷ';
       })
-      .reduce((sum, order) => sum + order.total_price, 0);
+      .reduce((sum, order) => sum + orderOwnedRevenue(order), 0);
 
-    const periodOrders = orders.filter(order => {
+    const periodOrders = scopedOrders.filter(order => {
       const orderDate = new Date(order.created_at);
       return orderDate >= startDate && orderDate <= endDate;
     }).length;
 
-    // Phân bố thanh toán
     const paymentDistribution = Object.entries(paymentStatusCounts)
       .filter(([_, count]) => count > 0)
-      .map(([status, count]) => ({
-        name: status,
-        value: count
-      }));
+      .map(([status, count]) => ({ name: status, value: count }));
 
-    // Phân bố tiến độ
     const progressDistribution = Object.entries(progressCounts)
       .filter(([_, count]) => count > 0)
-      .map(([progress, count]) => ({
-        name: progress,
-        value: count
-      }));
+      .map(([progress, count]) => ({ name: progress, value: count }));
 
     return {
       totalRevenue,
       periodRevenue,
       periodOrders,
-      totalOrders: orders.length,
+      totalOrders: scopedOrders.length,
       paymentStatusCounts,
       progressCounts,
       revenueByDay,
@@ -438,7 +440,7 @@ export default function Admin() {
       progressDistribution,
       daysCount: Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)) + 1
     };
-  }, [orders, dateRange]);
+  }, [orders, dateRange, ownedProductIds]);
 
 
   const [ownedProductIds, setOwnedProductIds] = useState<Set<number>>(new Set());
