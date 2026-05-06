@@ -6,11 +6,13 @@ export type TenantConfig = {
   description: string;
   shopId: string;
   paymentInfo: {
-    accountName: string;
-    vpbank: string;
-    momo: string;
-    zalopay: string;
-  };
+    paymentInfo: {
+  accountName: string;
+  vpbank?: string;
+  momo?: string;
+  zalopay?: string;
+  mbbank?: string;
+};
   cssVars: Record<string, string>;
   cssVarsDark: Record<string, string>;
 };
@@ -68,10 +70,8 @@ const tenants: Record<string, TenantConfig> = {
     description: 'order mấy thứ đáng iuuu',
     shopId: 'tiemnhaca',
     paymentInfo: {
-      accountName: "TÊN CHỦ TK EM GÁI",   // ← điền vào
-      vpbank: "SỐ TK VPBANK EM GÁI",        // ← điền vào
-      momo: "SỐ MOMO EM GÁI",               // ← điền vào
-      zalopay: "SỐ ZALOPAY EM GÁI",         // ← điền vào
+      accountName: "BUI THANH Y QUYNH",   // ← điền vào
+      mbbank: "0932856423",        // ← điền vào
     },
     cssVars: {
       '--background':          '270 40% 97%',
