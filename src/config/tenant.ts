@@ -6,7 +6,6 @@ export type TenantConfig = {
   description: string;
   shopId: string;
   paymentInfo: {
-    paymentInfo: {
   accountName: string;
   vpbank?: string;
   momo?: string;
