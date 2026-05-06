@@ -13,29 +13,75 @@ interface Props {
     category?: string | null;
     master?: string | null;
     status?: string | null;
+    size?: string | null;
+    includes?: string | null;
+    order_deadline?: string | null;
+    fees_included?: boolean | null;
+    deposit_allowed?: boolean | null;
+    production_time?: string | null;
   };
   origin?: string;
 }
 
-const buildCaption = (product: Props["product"], origin: string) => {
-  const url = `${origin}/product/${product.id}`;
-  const price = product.price_display || `${(product.price || 0).toLocaleString("vi-VN")}đ`;
-  const lines: string[] = [];
-  lines.push(`🍮 ${product.name}`);
-  if (product.master) lines.push(`Shop: ${product.master}`);
-  lines.push(`💰 Giá: ${price}`);
-  if (product.status) lines.push(`📦 ${product.status}`);
-  if (product.description) {
-    const desc = product.description.split("\n").slice(0, 4).map(l => l.trim()).filter(Boolean);
-    if (desc.length) {
-      lines.push("");
-      desc.forEach(l => lines.push(`• ${l}`));
-    }
+const formatPriceShort = (price: number) => {
+  // 59500 -> 59,5k ; 268500 -> 268.500
+  if (price >= 1000) {
+    const k = price / 1000;
+    return Number.isInteger(k) ? `${k}k` : `${k.toString().replace('.', ',')}k`;
   }
+  return `${price}`;
+};
+
+const formatPriceVND = (price: number) =>
+  price.toLocaleString("vi-VN") + " VND";
+
+const formatDeadline = (iso?: string | null) => {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    const fmt = new Intl.DateTimeFormat("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      hour: "2-digit", minute: "2-digit",
+      day: "2-digit", month: "2-digit", year: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+    const get = (t: string) => fmt.find(p => p.type === t)?.value || "";
+    return `${get("hour")}:${get("minute")} ${get("day")}/${get("month")}/${get("year")}`;
+  } catch { return null; }
+};
+
+const buildFacebookCaption = (p: Props["product"], origin: string) => {
+  const url = `${origin}/product/${p.id}`;
+  const ff = p.fees_included ? " ff" : "";
+  const lines: string[] = [];
+  lines.push(`[order] ${p.name} 💛 🍮`);
   lines.push("");
-  lines.push(`🛒 Đặt hàng: ${url}`);
+  lines.push(`Link order: ${url}`);
+  if (p.master) lines.push(`Master: ${p.master}`);
+  if (p.size) lines.push(`Kích thước: ${p.size}`);
+  lines.push(`Giá: ${formatPriceShort(p.price)}${ff}`);
+  if (p.includes) lines.push(`Bao gồm: ${p.includes}`);
   lines.push("");
-  lines.push("#purinorder #order #merch");
+  lines.push("Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖");
+  return lines.join("\n");
+};
+
+const buildThreadsCaption = (p: Props["product"], origin: string) => {
+  const url = `${origin}/product/${p.id}`;
+  const ff = p.fees_included ? " (ff)" : "";
+  const lines: string[] = [];
+  lines.push(`${p.name} 🦋`);
+  lines.push("");
+  lines.push(`🏷️ ${formatPriceVND(p.price)}${ff}`);
+  const dl = formatDeadline(p.order_deadline);
+  if (dl) lines.push(`🔚 Deadline: ${dl}`);
+  const notes: string[] = [];
+  if (p.production_time) notes.push(`Sản xuất ${p.production_time}`);
+  notes.push("only ck");
+  if (p.deposit_allowed) notes.push("có cọc 50%");
+  lines.push(`❗️${notes.join(", ")}`);
+  lines.push("");
+  lines.push(`Order now: ${url}`);
   return lines.join("\n");
 };
 
@@ -44,7 +90,9 @@ export function ProductExportButtons({ product, origin }: Props) {
   const base = origin || (typeof window !== "undefined" ? window.location.origin : "");
 
   const copyAndOpen = async (target: "facebook" | "threads") => {
-    const caption = buildCaption(product, base);
+    const caption = target === "facebook"
+      ? buildFacebookCaption(product, base)
+      : buildThreadsCaption(product, base);
     try {
       await navigator.clipboard.writeText(caption);
       toast({ title: "Đã copy nội dung", description: "Dán vào ô đăng bài là được" });
@@ -58,11 +106,13 @@ export function ProductExportButtons({ product, origin }: Props) {
     }
   };
 
-  const copyOnly = async () => {
-    const caption = buildCaption(product, base);
+  const copyOnly = async (target: "facebook" | "threads") => {
+    const caption = target === "facebook"
+      ? buildFacebookCaption(product, base)
+      : buildThreadsCaption(product, base);
     try {
       await navigator.clipboard.writeText(caption);
-      toast({ title: "Đã copy nội dung" });
+      toast({ title: `Đã copy mẫu ${target === "facebook" ? "Facebook" : "Threads"}` });
     } catch {
       toast({ title: "Không copy được", variant: "destructive" });
     }
@@ -76,7 +126,7 @@ export function ProductExportButtons({ product, origin }: Props) {
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyAndOpen("threads")} title="Xuất bài Threads">
         <AtSign className="h-3.5 w-3.5" />
       </Button>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyOnly} title="Copy nội dung">
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyOnly("facebook")} title="Copy mẫu Facebook">
         <Copy className="h-3.5 w-3.5" />
       </Button>
     </div>
