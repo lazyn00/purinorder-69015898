@@ -48,7 +48,8 @@ interface UserListing {
 const CATEGORY_MAP: { [key: string]: string } = {
   "outfit-doll": "Outfit & Doll",
   "merch": "Merch",
-  "fashion": "Thời Trang",
+  "linh-tinh-xinh-xinh": "Linh tinh xinh xinh",
+  "fashion": "Thời trang",
   "khac": "Khác",
   "tiem-in-purin": "Tiệm in Purin", // Đã thêm
 };
@@ -56,7 +57,8 @@ const CATEGORY_MAP: { [key: string]: string } = {
 const CATEGORY_TITLES: { [key: string]: string } = {
   "outfit-doll": "Outfit & Doll",
   "merch": "Merch",
-  "fashion": "Thời Trang",
+  "linh-tinh-xinh-xinh": "Linh tinh xinh xinh", 
+  "fashion": "Thời trang",
   "khac": "Khác",
   "pass-gom": "Mua bán trao đổi",
   "tiem-in-purin": "Tiệm in Purin", // Đã thêm
