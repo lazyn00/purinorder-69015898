@@ -444,8 +444,6 @@ export default function Admin() {
   }, [orders, dateRange, ownedProductIds]);
 
 
-  const [ownedProductIds, setOwnedProductIds] = useState<Set<number>>(new Set());
-
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
