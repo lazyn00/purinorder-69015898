@@ -98,8 +98,8 @@ export default function MasterManagement({ currentUser = "Admin" }: MasterManage
     if (currentUser) q = q.eq("owner", currentUser);
     const { data } = await q;
     if (data) {
-      setAllProducts(data.map((p: any) => ({ ...p, images: (p.images as string[]) || [] })));
-      const uniqueMasters = [...new Set(data.map((p: any) => p.master as string).filter(Boolean))].sort();
+      setAllProducts((data as any[]).map((p: any) => ({ ...p, images: (p.images as string[]) || [] })));
+      const uniqueMasters = [...new Set((data as any[]).map((p: any) => p.master as string).filter(Boolean))].sort() as string[];
       setMasters(uniqueMasters);
     }
     setLoading(false);
