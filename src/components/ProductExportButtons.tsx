@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Facebook, AtSign, Copy } from "lucide-react";
+import { Facebook, AtSign } from "lucide-react";
 
 interface Props {
   product: {
@@ -24,7 +24,6 @@ interface Props {
 }
 
 const formatPriceShort = (price: number) => {
-  // 59500 -> 59,5k ; 268500 -> 268.500
   if (price >= 1000) {
     const k = price / 1000;
     return Number.isInteger(k) ? `${k}k` : `${k.toString().replace('.', ',')}k`;
@@ -50,16 +49,23 @@ const formatDeadline = (iso?: string | null) => {
   } catch { return null; }
 };
 
+// ff = full phí (fees_included = true), cff = chưa full phí (fees_included = false)
+const getFeeLabel = (fees_included?: boolean | null) => {
+  if (fees_included === true) return "ff";
+  if (fees_included === false) return "cff";
+  return "";
+};
+
 const buildFacebookCaption = (p: Props["product"], origin: string) => {
   const url = `${origin}/product/${p.id}`;
-  const ff = p.fees_included ? " ff" : "";
+  const fee = getFeeLabel(p.fees_included);
   const lines: string[] = [];
   lines.push(`[order] ${p.name} 💛 🍮`);
   lines.push("");
-  lines.push(`Link order: ${url}`);
+  lines.push(`🍮 Link order: ${url}`);
   if (p.master) lines.push(`Master: ${p.master}`);
   if (p.size) lines.push(`Kích thước: ${p.size}`);
-  lines.push(`Giá: ${formatPriceShort(p.price)}${ff}`);
+  lines.push(`Giá: ${formatPriceShort(p.price)}${fee ? ` ${fee}` : ""}`);
   if (p.includes) lines.push(`Bao gồm: ${p.includes}`);
   lines.push("");
   lines.push("Order ngay tại link hoặc ib Purin hỗ trợ nhaa 💖");
@@ -68,11 +74,11 @@ const buildFacebookCaption = (p: Props["product"], origin: string) => {
 
 const buildThreadsCaption = (p: Props["product"], origin: string) => {
   const url = `${origin}/product/${p.id}`;
-  const ff = p.fees_included ? " (ff)" : "";
+  const fee = getFeeLabel(p.fees_included);
   const lines: string[] = [];
   lines.push(`${p.name} 🦋`);
   lines.push("");
-  lines.push(`🏷️ ${formatPriceVND(p.price)}${ff}`);
+  lines.push(`🏷️ ${formatPriceVND(p.price)}${fee ? ` (${fee})` : ""}`);
   const dl = formatDeadline(p.order_deadline);
   if (dl) lines.push(`🔚 Deadline: ${dl}`);
   const notes: string[] = [];
@@ -89,30 +95,13 @@ export function ProductExportButtons({ product, origin }: Props) {
   const { toast } = useToast();
   const base = origin || (typeof window !== "undefined" ? window.location.origin : "");
 
-  const copyAndOpen = async (target: "facebook" | "threads") => {
+  const copyCaption = async (target: "facebook" | "threads") => {
     const caption = target === "facebook"
       ? buildFacebookCaption(product, base)
       : buildThreadsCaption(product, base);
     try {
       await navigator.clipboard.writeText(caption);
-      toast({ title: "Đã copy nội dung", description: "Dán vào ô đăng bài là được" });
-    } catch {
-      toast({ title: "Không copy được", variant: "destructive" });
-    }
-    if (target === "facebook") {
-      window.open(`https://www.facebook.com/`, "_blank", "noopener,noreferrer");
-    } else {
-      window.open(`https://www.threads.net/`, "_blank", "noopener,noreferrer");
-    }
-  };
-
-  const copyOnly = async (target: "facebook" | "threads") => {
-    const caption = target === "facebook"
-      ? buildFacebookCaption(product, base)
-      : buildThreadsCaption(product, base);
-    try {
-      await navigator.clipboard.writeText(caption);
-      toast({ title: `Đã copy mẫu ${target === "facebook" ? "Facebook" : "Threads"}` });
+      toast({ title: `Đã copy mẫu ${target === "facebook" ? "Facebook 📘" : "Threads 🧵"}`, description: "Dán vào ô đăng bài là được!" });
     } catch {
       toast({ title: "Không copy được", variant: "destructive" });
     }
@@ -120,14 +109,11 @@ export function ProductExportButtons({ product, origin }: Props) {
 
   return (
     <div className="flex gap-1">
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyAndOpen("facebook")} title="Xuất bài Facebook">
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyCaption("facebook")} title="Copy mẫu Facebook">
         <Facebook className="h-3.5 w-3.5 text-blue-600" />
       </Button>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyAndOpen("threads")} title="Xuất bài Threads">
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyCaption("threads")} title="Copy mẫu Threads">
         <AtSign className="h-3.5 w-3.5" />
-      </Button>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyOnly("facebook")} title="Copy mẫu Facebook">
-        <Copy className="h-3.5 w-3.5" />
       </Button>
     </div>
   );
