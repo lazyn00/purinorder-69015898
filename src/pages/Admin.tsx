@@ -212,6 +212,7 @@ export default function Admin() {
   const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [bulkProgress, setBulkProgress] = useState<string>("");
+  const [ownedProductIds, setOwnedProductIds] = useState<Set<number>>(new Set());
   
   // ========== STATE CHO QUẢN LÝ ĐĂNG BÁN ==========
   const [userListings, setUserListings] = useState<UserListing[]>([]);
