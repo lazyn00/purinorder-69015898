@@ -2110,6 +2110,7 @@ ${generateEmailContent(order)}
                       if (order.order_progress === 'Đã huỷ') return;
                       const items = order.items as any[];
                       items.forEach((item: any) => {
+                        if (!ownedProductIds.has(Number(item.id))) return;
                         const key = `${item.id}-${item.selectedVariant || 'no-variant'}`;
                         const existing = itemMap.get(key);
                         const orderRef = { orderId: order.id, orderNumber: order.order_number || order.id.slice(0, 8), qty: item.quantity || 1, progress: order.order_progress, deliveryName: order.delivery_name };
