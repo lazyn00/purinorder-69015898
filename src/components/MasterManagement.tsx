@@ -55,7 +55,11 @@ interface MasterProduct {
   images: string[];
 }
 
-export default function MasterManagement() {
+interface MasterManagementProps {
+  currentUser?: string;
+}
+
+export default function MasterManagement({ currentUser = "Admin" }: MasterManagementProps) {
   const [masters, setMasters] = useState<string[]>([]);
   const [allProducts, setAllProducts] = useState<MasterProduct[]>([]);
   const [selectedMaster, setSelectedMaster] = useState<string | null>(null);
