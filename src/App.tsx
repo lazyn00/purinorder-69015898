@@ -20,8 +20,6 @@ import CustomerOrderDetail from "./pages/CustomerOrderDetail";
 import Shops from "./pages/Shops";
 import ShopDetail from "./pages/ShopDetail";
 
-// Chỉ apply CSS vars nếu KHÔNG phải Purin
-// Purin dùng màu gốc từ index.css, không override
 const hostname = window.location.hostname;
 const isPurin = hostname === 'purinorder.vercel.app' || hostname === 'localhost' || hostname === '127.0.0.1';
 
@@ -30,8 +28,16 @@ if (!isPurin) {
   Object.entries(tenant.cssVars).forEach(([key, val]) => {
     root.style.setProperty(key, val);
   });
-  document.title = tenant.shopName;
 }
+
+// Set title và favicon theo tenant (cả 2 shop)
+document.title = tenant.shopName;
+
+const faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement
+  || document.createElement('link');
+faviconLink.rel = 'icon';
+faviconLink.href = tenant.favicon;
+document.head.appendChild(faviconLink);
 
 const queryClient = new QueryClient();
 
