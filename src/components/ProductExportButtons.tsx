@@ -56,11 +56,18 @@ const getFeeLabel = (fees_included?: boolean | null) => {
   return "";
 };
 
+const getOrderLabel = (status?: string | null) => {
+  if (status === "Sẵn") return "[sẵn]";
+  if (status === "Pre-order") return "[pre-order]";
+  return "[order]";
+};
+
 const buildFacebookCaption = (p: Props["product"], origin: string) => {
   const url = `${origin}/product/${p.id}`;
   const fee = getFeeLabel(p.fees_included);
+  const label = getOrderLabel(p.status); // ← THÊM
   const lines: string[] = [];
-  lines.push(`[order] ${p.name} 💛 🍮`);
+  lines.push(`${label} ${p.name} 💛 🍮`); // ← SỬA
   lines.push("");
   lines.push(`🍮 Link order: ${url}`);
   if (p.master) lines.push(`Master: ${p.master}`);
