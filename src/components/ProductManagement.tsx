@@ -434,7 +434,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       } else {
         const { error } = await supabase
           .from('products')
-          .insert(saveData);
+          .insert({ ...saveData, owner: currentUser || 'Admin' } as any);
         if (error) throw error;
         toast({ title: "Đã thêm", description: "Sản phẩm mới đã được tạo" });
       }
