@@ -83,6 +83,8 @@ const getStatusColor = (status: string) => {
       return "bg-amber-100 text-amber-800 border-amber-200";
     case "Đã hoàn cọc":
       return "bg-pink-100 text-pink-800 border-pink-200";
+    case "Đã hoàn tiền":
+      return "bg-red-100 text-red-800 border-red-200";
     case "Đã đặt hàng":
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "Đang sản xuất":
