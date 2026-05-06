@@ -1,6 +1,7 @@
 export type TenantConfig = {
   shopName: string;
-  logo: string;
+  emoji?: string;
+  logo?: string;
   favicon: string;
   description: string;
   cssVars: Record<string, string>;

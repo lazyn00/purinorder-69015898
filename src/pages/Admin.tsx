@@ -192,6 +192,7 @@ interface UserListing {
 
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<string>(() => sessionStorage.getItem('admin_user') || '');
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -211,6 +212,7 @@ export default function Admin() {
   const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [bulkProgress, setBulkProgress] = useState<string>("");
+  const [ownedProductIds, setOwnedProductIds] = useState<Set<number>>(new Set());
   
   // ========== STATE CHO QUẢN LÝ ĐĂNG BÁN ==========
   const [userListings, setUserListings] = useState<UserListing[]>([]);
@@ -330,26 +332,39 @@ export default function Admin() {
     to: new Date()
   });
 
-  // Tính toán thống kê doanh thu
+  // Tính toán thống kê doanh thu (theo sản phẩm của acc đang đăng nhập)
   const statistics = useMemo(() => {
-    const totalRevenue = orders.reduce((sum, order) => {
-      if (order.order_progress !== 'Đã huỷ') {
-        return sum + order.total_price;
-      }
+    const itemTotal = (item: any) => {
+      const qty = item.quantity || 1;
+      const p = item.priceWithVariant ?? item.price ?? 0;
+      return Number(p) * qty;
+    };
+    const orderOwnedRevenue = (order: Order) => {
+      const items = (order.items as any[]) || [];
+      return items
+        .filter((it: any) => ownedProductIds.has(Number(it.id)))
+        .reduce((s, it) => s + itemTotal(it), 0);
+    };
+    const orderHasOwned = (order: Order) =>
+      ((order.items as any[]) || []).some((it: any) => ownedProductIds.has(Number(it.id)));
+
+    const scopedOrders = orders.filter(orderHasOwned);
+
+    const totalRevenue = scopedOrders.reduce((sum, order) => {
+      if (order.order_progress !== 'Đã huỷ') return sum + orderOwnedRevenue(order);
       return sum;
     }, 0);
 
     const paymentStatusCounts = PAYMENT_STATUSES.reduce((acc, status) => {
-      acc[status] = orders.filter(o => o.payment_status === status).length;
+      acc[status] = scopedOrders.filter(o => o.payment_status === status).length;
       return acc;
     }, {} as Record<string, number>);
 
     const progressCounts = ORDER_PROGRESS.reduce((acc, progress) => {
-      acc[progress] = orders.filter(o => o.order_progress === progress).length;
+      acc[progress] = scopedOrders.filter(o => o.order_progress === progress).length;
       return acc;
     }, {} as Record<string, number>);
 
-    // Tính số ngày dựa theo date range
     const startDate = dateRange.from;
     const endDate = dateRange.to;
     const daysCount = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -360,13 +375,11 @@ export default function Admin() {
       return date.toISOString().split('T')[0];
     });
 
-    // Nhóm dữ liệu theo ngày hoặc tháng tùy khoảng thời gian
     const getGroupKey = (dateStr: string) => {
       const date = new Date(dateStr);
       if (daysCount > 90) {
         return date.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', month: '2-digit', year: '2-digit' });
       } else if (daysCount > 31) {
-        // Nhóm theo tuần
         const weekNumber = Math.floor((date.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
         return `Tuần ${weekNumber + 1}`;
       }
@@ -377,11 +390,11 @@ export default function Admin() {
 
     dateList.forEach(date => {
       const key = getGroupKey(date);
-      const dayOrders = orders.filter(order => {
+      const dayOrders = scopedOrders.filter(order => {
         const orderDate = new Date(order.created_at).toISOString().split('T')[0];
         return orderDate === date && order.order_progress !== 'Đã huỷ';
       });
-      const revenue = dayOrders.reduce((sum, order) => sum + order.total_price, 0);
+      const revenue = dayOrders.reduce((sum, order) => sum + orderOwnedRevenue(order), 0);
       
       const existing = revenueMap.get(key) || { revenue: 0, orders: 0 };
       revenueMap.set(key, {
@@ -396,40 +409,31 @@ export default function Admin() {
       orders: data.orders
     }));
 
-    // Tính doanh thu theo khoảng thời gian được chọn
-    const periodRevenue = orders
+    const periodRevenue = scopedOrders
       .filter(order => {
         const orderDate = new Date(order.created_at);
         return orderDate >= startDate && orderDate <= endDate && order.order_progress !== 'Đã huỷ';
       })
-      .reduce((sum, order) => sum + order.total_price, 0);
+      .reduce((sum, order) => sum + orderOwnedRevenue(order), 0);
 
-    const periodOrders = orders.filter(order => {
+    const periodOrders = scopedOrders.filter(order => {
       const orderDate = new Date(order.created_at);
       return orderDate >= startDate && orderDate <= endDate;
     }).length;
 
-    // Phân bố thanh toán
     const paymentDistribution = Object.entries(paymentStatusCounts)
       .filter(([_, count]) => count > 0)
-      .map(([status, count]) => ({
-        name: status,
-        value: count
-      }));
+      .map(([status, count]) => ({ name: status, value: count }));
 
-    // Phân bố tiến độ
     const progressDistribution = Object.entries(progressCounts)
       .filter(([_, count]) => count > 0)
-      .map(([progress, count]) => ({
-        name: progress,
-        value: count
-      }));
+      .map(([progress, count]) => ({ name: progress, value: count }));
 
     return {
       totalRevenue,
       periodRevenue,
       periodOrders,
-      totalOrders: orders.length,
+      totalOrders: scopedOrders.length,
       paymentStatusCounts,
       progressCounts,
       revenueByDay,
@@ -437,17 +441,19 @@ export default function Admin() {
       progressDistribution,
       daysCount: Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)) + 1
     };
-  }, [orders, dateRange]);
+  }, [orders, dateRange, ownedProductIds]);
 
 
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, pack, total, chenh, r_v, can_weight, variants');
+        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, pack, total, chenh, r_v, can_weight, variants, owner' as any);
       
       if (error) throw error;
-      setProducts((data as ProductData[]) || []);
+      const list = (data as any[]) || [];
+      setProducts(list as ProductData[]);
+      setOwnedProductIds(new Set(list.filter((p: any) => p.owner === currentUser).map((p: any) => p.id)));
     } catch (error) {
       console.error('Error fetching products for stats:', error);
     }
@@ -514,10 +520,13 @@ export default function Admin() {
     if (adminSession === 'true') {
       setIsLoggedIn(true);
       fetchOrders();
-      fetchProducts();
-      fetchAdminNotifications(); // THÊM: Fetch thông báo khi login
+      fetchAdminNotifications();
     }
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) fetchProducts();
+  }, [isLoggedIn, currentUser]);
 
   // ========== REALTIME SUBSCRIPTION CHO THÔNG BÁO ==========
   useEffect(() => {
@@ -554,15 +563,18 @@ export default function Admin() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (ADMIN_CREDENTIALS.some(c => c.username === username && c.password === password)) {
+    const matched = ADMIN_CREDENTIALS.find(c => c.username === username && c.password === password);
+    if (matched) {
       setIsLoggedIn(true);
+      setCurrentUser(matched.username);
       sessionStorage.setItem('admin_logged_in', 'true');
+      sessionStorage.setItem('admin_user', matched.username);
       fetchOrders();
       fetchProducts();
-      fetchAdminNotifications(); // THÊM: Fetch thông báo khi login
+      fetchAdminNotifications();
       toast({
         title: "Đăng nhập thành công",
-        description: "Chào mừng Admin!",
+        description: `Chào mừng ${matched.username}!`,
       });
     } else {
       toast({
@@ -575,7 +587,9 @@ export default function Admin() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentUser("");
     sessionStorage.removeItem('admin_logged_in');
+    sessionStorage.removeItem('admin_user');
     setUsername("");
     setPassword("");
     toast({
@@ -1324,7 +1338,7 @@ ${generateEmailContent(order)}
             </TabsList>
 
             <TabsContent value="product-mgmt">
-              <ProductManagement />
+              <ProductManagement currentUser={currentUser} />
             </TabsContent>
 
             <TabsContent value="stats" className="space-y-6">
@@ -2064,7 +2078,7 @@ ${generateEmailContent(order)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <MasterManagement />
+                  <MasterManagement currentUser={currentUser} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -2096,6 +2110,7 @@ ${generateEmailContent(order)}
                       if (order.order_progress === 'Đã huỷ') return;
                       const items = order.items as any[];
                       items.forEach((item: any) => {
+                        if (!ownedProductIds.has(Number(item.id))) return;
                         const key = `${item.id}-${item.selectedVariant || 'no-variant'}`;
                         const existing = itemMap.get(key);
                         const orderRef = { orderId: order.id, orderNumber: order.order_number || order.id.slice(0, 8), qty: item.quantity || 1, progress: order.order_progress, deliveryName: order.delivery_name };

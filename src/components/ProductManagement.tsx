@@ -132,7 +132,11 @@ const getStockStatus = (product: SupabaseProduct) => {
   return { label: `Còn ${availableStock}`, color: "bg-green-100 text-green-700" };
 };
 
-export default function ProductManagement() {
+interface ProductManagementProps {
+  currentUser?: string;
+}
+
+export default function ProductManagement({ currentUser = "Admin" }: ProductManagementProps) {
   const { refetchProducts } = useCart();
   const { toast } = useToast();
   
@@ -161,10 +165,9 @@ export default function ProductManagement() {
   const fetchDbProducts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('id', { ascending: false });
+      let query: any = supabase.from('products').select('*').order('id', { ascending: false });
+      if (currentUser) query = query.eq('owner', currentUser);
+      const { data, error } = await query;
       if (error) throw error;
       setDbProducts((data as SupabaseProduct[]) || []);
     } catch (error) {
@@ -431,7 +434,7 @@ export default function ProductManagement() {
       } else {
         const { error } = await supabase
           .from('products')
-          .insert(saveData);
+          .insert({ ...saveData, owner: currentUser || 'Admin' } as any);
         if (error) throw error;
         toast({ title: "Đã thêm", description: "Sản phẩm mới đã được tạo" });
       }

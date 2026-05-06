@@ -221,6 +221,7 @@ export type Database = {
           id: string
           is_visible: boolean
           master_name: string
+          owner: string
           shop_link: string | null
           slug: string
           sort_order: number
@@ -234,6 +235,7 @@ export type Database = {
           id?: string
           is_visible?: boolean
           master_name: string
+          owner?: string
           shop_link?: string | null
           slug: string
           sort_order?: number
@@ -247,6 +249,7 @@ export type Database = {
           id?: string
           is_visible?: boolean
           master_name?: string
+          owner?: string
           shop_link?: string | null
           slug?: string
           sort_order?: number
@@ -480,6 +483,7 @@ export type Database = {
           name: string
           option_groups: Json | null
           order_deadline: string | null
+          owner: string
           pack: number | null
           price: number
           price_display: string | null
@@ -519,6 +523,7 @@ export type Database = {
           name: string
           option_groups?: Json | null
           order_deadline?: string | null
+          owner?: string
           pack?: number | null
           price: number
           price_display?: string | null
@@ -558,6 +563,7 @@ export type Database = {
           name?: string
           option_groups?: Json | null
           order_deadline?: string | null
+          owner?: string
           pack?: number | null
           price?: number
           price_display?: string | null
