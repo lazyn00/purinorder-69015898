@@ -72,10 +72,10 @@ const getPaymentStatusColor = (status: string) => {
       return "bg-amber-100 text-amber-800 border-amber-200";
     case "Đã hoàn cọc":
       return "bg-pink-100 text-pink-800 border-pink-200";
+    case "Đã hoàn tiền":           // ← CHUYỂN LÊN TRƯỚC default
+      return "bg-purple-100 text-purple-800 border-purple-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
-    case "Đã hoàn tiền":
-      return "bg-red-100 text-red-800 border-red-200";
   }
 };
 
