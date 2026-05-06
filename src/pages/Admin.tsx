@@ -43,7 +43,7 @@ const PAYMENT_STATUSES = [
   "Đang xác nhận cọc",
   "Đã thanh toán",
   "Đã cọc",
-  "Đã hoàn cọc"
+  "Đã hoàn cọc",
   "Đã hoàn tiền"
 ];
 
