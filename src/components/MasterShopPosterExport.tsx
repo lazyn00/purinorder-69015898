@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import html2canvas from "html2canvas";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Download, Image as ImageIcon, Loader2, Store } from "lucide-react";
+import { Download, Image as ImageIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Shop {
@@ -28,9 +28,9 @@ interface Props {
 
 type Size = "square" | "portrait";
 
-const SIZES: Record<Size, { w: number; h: number; cols: number; max: number; label: string }> = {
-  square: { w: 1080, h: 1080, cols: 2, max: 4, label: "Vuông 1080×1080 (IG/Threads)" },
-  portrait: { w: 1080, h: 1350, cols: 2, max: 6, label: "Dọc 1080×1350 (FB/IG feed)" },
+const SIZES: Record<Size, { w: number; h: number; label: string }> = {
+  square: { w: 1080, h: 1080, label: "Vuông 1080×1080 (IG/Threads)" },
+  portrait: { w: 1080, h: 1350, label: "Dọc 1080×1350 (FB/IG feed)" },
 };
 
 const cover = (p: PosterProduct) => {
@@ -40,14 +40,14 @@ const cover = (p: PosterProduct) => {
 
 export function MasterShopPosterExport({ shop, products, origin }: Props) {
   const [open, setOpen] = useState(false);
-  const [size, setSize] = useState<Size>("square");
+  const [size, setSize] = useState<Size>("portrait");
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const base = origin || (typeof window !== "undefined" ? window.location.origin : "");
   const cfg = SIZES[size];
 
-  const visible = products.slice(0, cfg.max);
+  const visible = products.slice(0, 10);
 
   const download = async () => {
     if (!ref.current) return;
@@ -57,7 +57,7 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#ffffff",
-        scale: 1,
+        scale: 2,
         logging: false,
       });
       const url = canvas.toDataURL("image/png");
@@ -65,14 +65,15 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
       a.href = url;
       a.download = `${shop.display_name}-${size}.png`;
       a.click();
-      toast({ title: "Đã tải ảnh" });
+      toast({ title: "Đã tải ảnh!" });
     } catch (e: any) {
-      console.error(e);
       toast({ title: "Lỗi tạo ảnh", description: e?.message || "Có thể do CORS ảnh", variant: "destructive" });
     } finally {
       setBusy(false);
     }
   };
+
+  const SCALE = 0.45;
 
   return (
     <>
@@ -86,7 +87,7 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
             <DialogTitle>Xuất ảnh shop để đăng bài</DialogTitle>
           </DialogHeader>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             {(Object.keys(SIZES) as Size[]).map(s => (
               <Button key={s} size="sm" variant={size === s ? "default" : "outline"} onClick={() => setSize(s)}>
                 {SIZES[s].label}
@@ -99,14 +100,14 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Hiển thị tối đa {cfg.max} sản phẩm. Có {products.length} sản phẩm trong shop.
+            Hiển thị {Math.min(visible.length, 10)} / {products.length} sản phẩm (tối đa 10)
           </p>
 
-          {/* Preview - scaled */}
-          <div className="border rounded overflow-hidden bg-muted/30 p-2 flex justify-center">
-            <div style={{ width: cfg.w / 2, height: cfg.h / 2, overflow: "hidden" }}>
-              <div style={{ transform: "scale(0.5)", transformOrigin: "top left" }}>
-                <PosterCanvas innerRef={ref} shop={shop} products={visible} base={base} size={size} cfg={cfg} />
+          {/* Preview scaled */}
+          <div className="border rounded overflow-hidden bg-muted/30 flex justify-center p-2">
+            <div style={{ width: cfg.w * SCALE, height: cfg.h * SCALE, overflow: "hidden", position: "relative" }}>
+              <div style={{ transform: `scale(${SCALE})`, transformOrigin: "top left", position: "absolute" }}>
+                <PosterCanvas innerRef={ref} shop={shop} products={visible} base={base} cfg={cfg} />
               </div>
             </div>
           </div>
@@ -117,79 +118,161 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
 }
 
 function PosterCanvas({
-  innerRef, shop, products, base, size, cfg,
+  innerRef, shop, products, base, cfg,
 }: {
   innerRef: React.RefObject<HTMLDivElement>;
   shop: Shop;
   products: PosterProduct[];
   base: string;
-  size: Size;
-  cfg: { w: number; h: number; cols: number; max: number };
+  cfg: { w: number; h: number };
 }) {
   const domain = base.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const isPortrait = cfg.h > cfg.w;
+
+  // Layout: 5 cột × 2 hàng = 10 sản phẩm
+  const COLS = 5;
+  const ROWS = 2;
+  const PAD = 48;
+  const HEADER_H = isPortrait ? 200 : 160;
+  const FOOTER_H = 70;
+  const GAP = 16;
+  const gridW = cfg.w - PAD * 2;
+  const gridH = cfg.h - PAD * 2 - HEADER_H - FOOTER_H;
+  const cellW = (gridW - GAP * (COLS - 1)) / COLS;
+  const cellH = (gridH - GAP * (ROWS - 1)) / ROWS;
+  const imgSize = cellW; // ảnh vuông
+
   return (
     <div
       ref={innerRef}
       style={{
         width: cfg.w,
         height: cfg.h,
-        background: "linear-gradient(135deg, #fff5f7 0%, #fff 50%, #f0f9ff 100%)",
-        fontFamily: "Inter, system-ui, -apple-system, sans-serif",
+        background: "linear-gradient(160deg, #fff5f9 0%, #fffdf5 60%, #f5f0ff 100%)",
+        fontFamily: "'Quicksand', 'Inter', system-ui, sans-serif",
         color: "#1a1a1a",
-        padding: 60,
+        padding: PAD,
         display: "flex",
         flexDirection: "column",
         boxSizing: "border-box",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      {/* Decorative blobs */}
+      <div style={{
+        position: "absolute", top: -80, right: -80,
+        width: 300, height: 300, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(249,168,212,0.25) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: -60, left: -60,
+        width: 250, height: 250, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(196,181,253,0.2) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 40 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28, zIndex: 1 }}>
+        {/* Avatar */}
         <div style={{
-          width: 120, height: 120, borderRadius: 60, overflow: "hidden",
-          background: "#f3e8ee", display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0, border: "4px solid #fff", boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+          width: isPortrait ? 110 : 90,
+          height: isPortrait ? 110 : 90,
+          borderRadius: "50%",
+          overflow: "hidden",
+          background: "linear-gradient(135deg, #f9a8d4, #fde68a)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+          border: "3px solid #fff",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
         }}>
-          {shop.avatar_url ? (
-            <img src={shop.avatar_url} crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <div style={{ fontSize: 48 }}>🛍️</div>
-          )}
+          {shop.avatar_url
+            ? <img src={shop.avatar_url} crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <div style={{ fontSize: isPortrait ? 44 : 36 }}>🛍️</div>
+          }
         </div>
+
+        {/* Text */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 24, color: "#9ca3af", fontWeight: 500, marginBottom: 4 }}>🍮 Purin Order</div>
-          <div style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.1, marginBottom: 6 }}>{shop.display_name}</div>
-          <div style={{ fontSize: 22, color: "#6b7280" }}>{products.length} sản phẩm đang order</div>
+          <div style={{
+            fontSize: isPortrait ? 42 : 34,
+            fontWeight: 800,
+            lineHeight: 1.15,
+            marginBottom: 6,
+            color: "#1a1a1a",
+          }}>{shop.display_name}</div>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "rgba(249,168,212,0.25)",
+            borderRadius: 999,
+            padding: "4px 16px",
+          }}>
+            <span style={{ fontSize: 20, color: "#be185d", fontWeight: 600 }}>
+              🍮 {products.length} sản phẩm đang order
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Product Grid */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: `repeat(${cfg.cols}, 1fr)`,
-        gap: 24,
+        gridTemplateColumns: `repeat(${COLS}, ${cellW}px)`,
+        gridTemplateRows: `repeat(${ROWS}, ${cellH}px)`,
+        gap: GAP,
         flex: 1,
+        zIndex: 1,
       }}>
-        {products.map(p => {
+        {Array.from({ length: COLS * ROWS }).map((_, idx) => {
+          const p = products[idx];
+          if (!p) {
+            return (
+              <div key={idx} style={{
+                borderRadius: 14,
+                background: "rgba(0,0,0,0.03)",
+                border: "2px dashed rgba(0,0,0,0.08)",
+              }} />
+            );
+          }
           const img = cover(p);
           const price = p.price_display || `${(p.price || 0).toLocaleString("vi-VN")}đ`;
+          const textH = cellH - imgSize - 8;
+
           return (
             <div key={p.id} style={{
-              background: "#fff",
-              borderRadius: 20,
+              borderRadius: 14,
               overflow: "hidden",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+              background: "#fff",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
               display: "flex",
               flexDirection: "column",
             }}>
-              <div style={{ width: "100%", aspectRatio: "1 / 1", background: "#f5f5f5", overflow: "hidden" }}>
-                {img && <img src={img} crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+              {/* Ảnh */}
+              <div style={{ width: cellW, height: imgSize, flexShrink: 0, background: "#f5f5f5", overflow: "hidden" }}>
+                {img
+                  ? <img src={img} crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>📦</div>
+                }
               </div>
-              <div style={{ padding: 20, flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              {/* Info */}
+              <div style={{ padding: "6px 8px", height: textH, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div style={{
-                  fontSize: 22, fontWeight: 600, lineHeight: 1.3,
-                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                  fontSize: Math.max(13, cellW * 0.085),
+                  fontWeight: 600,
+                  lineHeight: 1.25,
+                  overflow: "hidden",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  color: "#1a1a1a",
                 }}>{p.name}</div>
-                <div style={{ fontSize: 26, fontWeight: 800, color: "#e11d48", marginTop: 8 }}>{price}</div>
+                <div style={{
+                  fontSize: Math.max(13, cellW * 0.09),
+                  fontWeight: 800,
+                  color: "#e11d48",
+                  marginTop: 2,
+                }}>{price}</div>
               </div>
             </div>
           );
@@ -198,11 +281,21 @@ function PosterCanvas({
 
       {/* Footer */}
       <div style={{
-        marginTop: 30, paddingTop: 20, borderTop: "2px solid rgba(0,0,0,0.08)",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginTop: 20,
+        paddingTop: 14,
+        borderTop: "1.5px solid rgba(0,0,0,0.07)",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        zIndex: 1,
       }}>
-        <div style={{ fontSize: 22, color: "#6b7280" }}>Đặt hàng tại</div>
-        <div style={{ fontSize: 26, fontWeight: 700, color: "#e11d48" }}>{domain || "purinorder.com"}</div>
+        <div style={{ fontSize: 20, color: "#9ca3af" }}>Order ngay tại</div>
+        <div style={{
+          fontSize: 22, fontWeight: 700,
+          background: "linear-gradient(90deg, #e11d48, #be185d)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}>{domain || "purinorder.vercel.app"}</div>
       </div>
     </div>
   );
