@@ -8,32 +8,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Upload, Facebook, Tag, X, Check, SquareCheck, Minus, Plus, Trash2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, RefreshCw, Minus, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { InAppUploadNotice } from "@/components/InAppBrowserBanner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
-import { Badge } from "@/components/ui/badge";
 import qrMomo from "@/assets/qr-momo.jpg";
 import qrZalopay from "@/assets/qr-zalopay.jpg";
 import qrVpbank from "@/assets/qr-vpbank.jpg";
-
-// --- THÊM IMPORT AWS SDK CHO R2 ---
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-
-const PAYMENT_INFO = {
-  accountName: "BUI THANH NHU Y",
-  vpbank: "0395939035",
-  momo: "0395939035",
-  zalopay: "0395939035"
-};
+import { tenant } from "@/config/tenant";
 
 const QR_IMAGES: { [key: string]: string } = {
   "Ngân hàng": qrVpbank,
   "Momo": qrMomo,
   "Zalopay": qrZalopay,
 };
+
+const PAYMENT_METHODS = [
+  tenant.paymentInfo.vpbank && { value: "Ngân hàng", label: "VPBank", number: tenant.paymentInfo.vpbank },
+  tenant.paymentInfo.mbbank && { value: "MB Bank", label: "MB Bank", number: tenant.paymentInfo.mbbank },
+  tenant.paymentInfo.momo && { value: "Momo", label: "Momo", number: tenant.paymentInfo.momo },
+  tenant.paymentInfo.zalopay && { value: "Zalopay", label: "Zalopay", number: tenant.paymentInfo.zalopay },
+].filter(Boolean) as { value: string; label: string; number: string }[];
 
 const getVariantImage = (item: CartItem) => {
   if (item.selectedVariant && item.variantImageMap) {
@@ -60,11 +58,13 @@ export default function Checkout() {
   const { cartItems, totalPrice, clearCart, updateQuantity, removeFromCart, syncCartWithServer } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   useEffect(() => { window.scrollTo({ top: 0 }); }, []);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("syncing");
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0]?.value || "");
 
   const runSync = async () => {
     setSyncStatus("syncing");
@@ -83,29 +83,12 @@ export default function Checkout() {
     }
   };
 
-  useEffect(() => {
-    runSync();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
-  const [contactInfo, setContactInfo] = useState({
-    fb: "",
-    ig: "",
-    email: "",
-    phone: ""
-  });
-  
-  const [deliveryInfo, setDeliveryInfo] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    note: ""
-  });
-  
-  const [selectedMethod, setSelectedMethod] = useState("VPBank");
+  useEffect(() => { runSync(); }, []);
+
+  const [contactInfo, setContactInfo] = useState({ fb: "", ig: "", email: "", phone: "" });
+  const [deliveryInfo, setDeliveryInfo] = useState({ name: "", phone: "", address: "", note: "" });
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
-  
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
@@ -161,7 +144,11 @@ export default function Checkout() {
         return;
       }
       setAppliedDiscount(data as DiscountCode);
-      setDiscountAmount(data.discount_type === 'percentage' ? Math.min(totalPrice * (data.discount_value / 100), data.max_discount || Infinity) : data.discount_value);
+      setDiscountAmount(
+        data.discount_type === 'percentage'
+          ? Math.min(totalPrice * (data.discount_value / 100), data.max_discount || Infinity)
+          : data.discount_value
+      );
     } catch (error) {
       toast({ title: "Lỗi kiểm tra mã", variant: "destructive" });
     } finally {
@@ -175,7 +162,6 @@ export default function Checkout() {
     setDiscountCode("");
   };
 
-  // Recalculate discount when totalPrice changes (e.g. after sync or qty edit)
   useEffect(() => {
     if (!appliedDiscount) return;
     const amount = appliedDiscount.discount_type === 'percentage'
@@ -192,9 +178,11 @@ export default function Checkout() {
     }
   };
 
+  const paymentDetails = PAYMENT_METHODS.find(m => m.value === selectedMethod) || PAYMENT_METHODS[0];
+
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!contactInfo.fb || !contactInfo.phone || !deliveryInfo.name || !deliveryInfo.address) {
       toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ thông tin.", variant: "destructive" });
       return;
@@ -209,8 +197,7 @@ export default function Checkout() {
 
     try {
       let paymentProofUrl = null;
-      
-      // --- LOGIC UPLOAD BILL LÊN R2 (DÙNG CHUNG BUCKET VỚI PRODUCT ĐỂ KHÔNG SAI LINK) ---
+
       if (paymentProof) {
         const r2Client = new S3Client({
           region: "auto",
@@ -223,12 +210,11 @@ export default function Checkout() {
 
         const fileExt = paymentProof.name.split('.').pop();
         const fileName = `bill-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
-        
         const arrayBuffer = await paymentProof.arrayBuffer();
         const fileContent = new Uint8Array(arrayBuffer);
 
         await r2Client.send(new PutObjectCommand({
-          Bucket: "product-images", // CHỖ NÀY: Dùng chung bucket để mượt mà nhất
+          Bucket: "product-images",
           Key: fileName,
           Body: fileContent,
           ContentType: paymentProof.type,
@@ -271,7 +257,8 @@ export default function Checkout() {
             payment_type: paymentType,
             payment_proof_url: paymentProofUrl,
             payment_status: paymentType === 'deposit' ? 'Đang xác nhận cọc' : 'Đang xác nhận thanh toán',
-            order_progress: 'Đang xử lý'
+            order_progress: 'Đang xử lý',
+            shop: tenant.shopId,
           } as any);
 
         if (insertError) throw insertError;
@@ -285,7 +272,7 @@ export default function Checkout() {
       }
 
       clearCart();
-      toast({ title: "Đặt hàng thành công!", description: "Purin sẽ sớm liên hệ xác nhận đơn hàng của bạn." });
+      toast({ title: "Đặt hàng thành công!", description: `${tenant.shopName} sẽ sớm liên hệ xác nhận đơn hàng của bạn.` });
       navigate(`/order-success?orderNumber=${orderNumbers[0]}`);
 
     } catch (error: any) {
@@ -295,8 +282,6 @@ export default function Checkout() {
       setIsSubmitting(false);
     }
   };
-
-  const paymentDetails = selectedMethod === 'Momo' ? { label: "Momo", number: PAYMENT_INFO.momo } : selectedMethod === 'Zalopay' ? { label: "Zalopay", number: PAYMENT_INFO.zalopay } : { label: "VPBank", number: PAYMENT_INFO.vpbank };
 
   if (cartItems.length === 0) {
     return (
@@ -344,6 +329,7 @@ export default function Checkout() {
         </div>
 
         <form onSubmit={handleSubmitOrder} className="space-y-8">
+          {/* Thông tin liên hệ */}
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
             <div className="space-y-4">
@@ -362,6 +348,7 @@ export default function Checkout() {
             </div>
           </div>
 
+          {/* Thông tin nhận hàng */}
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thông tin nhận hàng</h2>
             <div className="space-y-4">
@@ -384,6 +371,7 @@ export default function Checkout() {
             </div>
           </div>
 
+          {/* Thanh toán */}
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thanh toán</h2>
             <div className="space-y-6">
@@ -402,28 +390,37 @@ export default function Checkout() {
                 </label>
               </div>
 
-              <div>
-                <Label htmlFor="paymentMethod" className="font-semibold">Chọn phương thức</Label>
-                <Select value={selectedMethod} onValueChange={setSelectedMethod}>
-                  <SelectTrigger className="mt-2"><SelectValue placeholder="Chọn ngân hàng/ví điện tử" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Ngân hàng">Ngân hàng</SelectItem>
-                    <SelectItem value="Momo">Momo</SelectItem>
-                    <SelectItem value="Zalopay">Zalopay</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {PAYMENT_METHODS.length > 1 && (
+                <div>
+                  <Label htmlFor="paymentMethod" className="font-semibold">Chọn phương thức</Label>
+                  <Select value={selectedMethod} onValueChange={setSelectedMethod}>
+                    <SelectTrigger className="mt-2"><SelectValue placeholder="Chọn phương thức thanh toán" /></SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map(m => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="bg-muted/50 p-4 rounded-md space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold">Thông tin chuyển khoản</p>
-                  <Button type="button" variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(`${PAYMENT_INFO.accountName}\n${paymentDetails.label}: ${paymentDetails.number}`); toast({ title: "Đã copy" }); }}>Copy</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    navigator.clipboard.writeText(`${tenant.paymentInfo.accountName}\n${paymentDetails?.label}: ${paymentDetails?.number}`);
+                    toast({ title: "Đã copy" });
+                  }}>Copy</Button>
                 </div>
-                <p>Chủ TK: <span className="font-bold">{PAYMENT_INFO.accountName}</span></p>
-                <p>Số TK: <span className="font-bold">{paymentDetails.number}</span> ({paymentDetails.label})</p>
-                {QR_IMAGES[selectedMethod] && <div className="flex justify-center pt-2"><img src={QR_IMAGES[selectedMethod]} alt="QR" className="max-w-[250px] rounded-lg shadow-sm" /></div>}
+                <p>Chủ TK: <span className="font-bold">{tenant.paymentInfo.accountName}</span></p>
+                <p>Số TK: <span className="font-bold">{paymentDetails?.number}</span> ({paymentDetails?.label})</p>
+                {QR_IMAGES[selectedMethod] && (
+                  <div className="flex justify-center pt-2">
+                    <img src={QR_IMAGES[selectedMethod]} alt="QR" className="max-w-[250px] rounded-lg shadow-sm" />
+                  </div>
+                )}
               </div>
-              
+
               <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
                 <Label className="font-semibold text-lg mb-3 block">Đăng bill chuyển khoản *</Label>
                 <InAppUploadNotice />
@@ -434,6 +431,7 @@ export default function Checkout() {
             </div>
           </div>
 
+          {/* Sản phẩm */}
           <div className="rounded-lg border p-6 space-y-4">
             <h2 className="text-lg font-semibold">Sản phẩm đã chọn ({cartItems.length})</h2>
             <div className="space-y-3">
@@ -445,10 +443,7 @@ export default function Checkout() {
                     {item.selectedVariant && <p className="text-xs text-muted-foreground">Phân loại: {item.selectedVariant}</p>}
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       <div className="flex items-center gap-1 rounded-md border">
-                        <Button
-                          type="button" variant="ghost" size="icon" className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity - 1)}
-                        >
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity - 1)}>
                           <Minus className="h-3 w-3" />
                         </Button>
                         <Input
@@ -459,17 +454,11 @@ export default function Checkout() {
                           }}
                           className="h-7 w-12 border-0 p-0 text-center text-sm shadow-none focus-visible:ring-0"
                         />
-                        <Button
-                          type="button" variant="ghost" size="icon" className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity + 1)}
-                        >
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.selectedVariant, item.quantity + 1)}>
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
-                      <Button
-                        type="button" variant="ghost" size="icon" className="h-7 w-7"
-                        onClick={() => removeFromCart(item.id, item.selectedVariant)}
-                      >
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeFromCart(item.id, item.selectedVariant)}>
                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
                     </div>
@@ -482,13 +471,18 @@ export default function Checkout() {
             <div className="flex justify-between"><span>Tạm tính:</span><span>{totalPrice.toLocaleString('vi-VN')}đ</span></div>
             {discountAmount > 0 && <div className="flex justify-between text-green-600"><span>Giảm giá:</span><span>-{discountAmount.toLocaleString('vi-VN')}đ</span></div>}
             <Separator />
-            <div className="flex justify-between text-lg font-bold"><span>Tổng cộng:</span><span className="text-2xl text-primary">{finalPrice.toLocaleString('vi-VN')}đ</span></div>
+            <div className="flex justify-between text-lg font-bold">
+              <span>Tổng cộng:</span>
+              <span className="text-2xl text-primary">{finalPrice.toLocaleString('vi-VN')}đ</span>
+            </div>
             <div className="flex items-start gap-2">
               <Checkbox id="agree-policy" checked={agreedPolicy} onCheckedChange={(checked) => setAgreedPolicy(checked === true)} />
-              <label htmlFor="agree-policy" className="text-sm cursor-pointer">Tôi đồng ý với <a href="/policy" target="_blank" className="text-primary underline">chính sách đặt hàng</a></label>
+              <label htmlFor="agree-policy" className="text-sm cursor-pointer">
+                Tôi đồng ý với <a href="/policy" target="_blank" className="text-primary underline">chính sách đặt hàng</a>
+              </label>
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !agreedPolicy}>
-               {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Đặt hàng ngay"}
+              {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Đặt hàng ngay"}
             </Button>
           </div>
         </form>
