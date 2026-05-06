@@ -186,6 +186,7 @@ export default function MasterManagement({ currentUser = "Admin" }: MasterManage
         description: shopInfo.description?.trim() || null,
         is_visible: shopInfo.is_visible,
         sort_order: shopInfo.sort_order || 0,
+        owner: currentUser || 'Admin',
       };
       const { error } = await (supabase as any)
         .from("master_shops")
