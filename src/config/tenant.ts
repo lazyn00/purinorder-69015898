@@ -6,12 +6,23 @@ export type TenantConfig = {
   description: string;
   shopId: string;
   paymentInfo: {
-  accountName: string;
-  vpbank?: string;
-  momo?: string;
-  zalopay?: string;
-  mbbank?: string;
-};
+    accountName: string;
+    vpbank?: string;
+    momo?: string;
+    zalopay?: string;
+    mbbank?: string;
+  };
+  contactWidget: {
+    buttonColor: string;
+    popupTitle: string;
+    popupDesc: string;
+    primaryLabel: string;
+    primaryUrl: string;
+    primaryAppUrl: string;
+    secondaryLabel: string;
+    secondaryUrl: string;
+    isInstagram?: boolean;
+  };
   cssVars: Record<string, string>;
   cssVarsDark: Record<string, string>;
 };
@@ -28,6 +39,17 @@ const tenants: Record<string, TenantConfig> = {
       vpbank: "0395939035",
       momo: "0395939035",
       zalopay: "0395939035",
+    },
+    contactWidget: {
+      buttonColor: 'bg-[#0084FF] hover:bg-[#0073E6]',
+      popupTitle: 'Mở chat Messenger',
+      popupDesc: 'Chọn cách mở phù hợp với bạn:',
+      primaryLabel: 'Mở bằng App Messenger',
+      primaryUrl: 'https://www.facebook.com/messages/t/puorderin',
+      primaryAppUrl: 'fb-messenger://user-thread/105759462451542',
+      secondaryLabel: 'Mở bằng trình duyệt',
+      secondaryUrl: 'https://www.facebook.com/messages/t/puorderin',
+      isInstagram: false,
     },
     cssVars: {
       '--background':        '45 100% 97%',
@@ -69,8 +91,19 @@ const tenants: Record<string, TenantConfig> = {
     description: 'order mấy thứ đáng iuuu',
     shopId: 'tiemnhaca',
     paymentInfo: {
-      accountName: "BUI THANH Y QUYNH",   // ← điền vào
-      mbbank: "0932856423",        // ← điền vào
+      accountName: "BUI THANH Y QUYNH",
+      mbbank: "0932856423",
+    },
+    contactWidget: {
+      buttonColor: 'bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] hover:opacity-90',
+      popupTitle: 'Liên hệ tiệm nhà cá',
+      popupDesc: 'Nhắn tin qua Instagram nhé!',
+      primaryLabel: 'Mở Instagram',
+      primaryUrl: 'https://www.instagram.com/motchutca_/',
+      primaryAppUrl: 'instagram://user?username=motchutca_',
+      secondaryLabel: 'Mở bằng trình duyệt',
+      secondaryUrl: 'https://www.instagram.com/motchutca_/',
+      isInstagram: true,
     },
     cssVars: {
       '--background':          '270 40% 97%',
