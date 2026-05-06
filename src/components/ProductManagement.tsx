@@ -132,7 +132,11 @@ const getStockStatus = (product: SupabaseProduct) => {
   return { label: `Còn ${availableStock}`, color: "bg-green-100 text-green-700" };
 };
 
-export default function ProductManagement() {
+interface ProductManagementProps {
+  currentUser?: string;
+}
+
+export default function ProductManagement({ currentUser = "Admin" }: ProductManagementProps) {
   const { refetchProducts } = useCart();
   const { toast } = useToast();
   
