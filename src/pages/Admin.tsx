@@ -519,10 +519,13 @@ export default function Admin() {
     if (adminSession === 'true') {
       setIsLoggedIn(true);
       fetchOrders();
-      fetchProducts();
-      fetchAdminNotifications(); // THÊM: Fetch thông báo khi login
+      fetchAdminNotifications();
     }
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) fetchProducts();
+  }, [isLoggedIn, currentUser]);
 
   // ========== REALTIME SUBSCRIPTION CHO THÔNG BÁO ==========
   useEffect(() => {
