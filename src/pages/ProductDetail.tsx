@@ -196,7 +196,15 @@ export default function ProductDetail() {
       return;
     }
 
-    const productToAdd = { ...product, price: currentPrice, priceDisplay: `${currentPrice.toLocaleString('vi-VN')}đ` };
+    // Tính giá chính xác tại thời điểm add
+    let finalPrice = currentPrice;
+    if (selectedVariant && product.variants) {
+      const variant = product.variants.find(v => v.name === selectedVariant);
+      if (variant && variant.price > 0) finalPrice = variant.price;
+    }
+    if (finalPrice === 0) finalPrice = product.price;
+
+    const productToAdd = { ...product, price: finalPrice, priceDisplay: `${finalPrice.toLocaleString('vi-VN')}đ` };
     addToCart(productToAdd, quantity, selectedVariant || product.name);
     toast({ title: "Đã thêm vào giỏ hàng!", description: `${product.name} x${quantity}` });
   };
@@ -302,7 +310,7 @@ export default function ProductDetail() {
             <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
               <div className="flex items-baseline gap-2">
                   <p className={`text-2xl md:text-3xl font-extrabold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
-                    {renderPrice()}<span className="text-base font-bold underline ml-0.5">đ</span>
+                    {renderPrice()}
                   </p>
                   {isExpired && <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">Hết hạn</span>}
               </div>
