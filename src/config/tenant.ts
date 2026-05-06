@@ -63,7 +63,7 @@ const tenants: Record<string, TenantConfig> = {
   },
 
   'tiemnhaca.vercel.app': {
-    shopName: '˙⋆✮ tiệm nhà cá ✮⋆˙',
+    shopName: 'tiệm nhà cá ✮⋆˙',
     emoji: '🐡',
     favicon: '/favicon-tiemnhaca.ico',
     description: 'order mấy thứ đáng iuuu',
