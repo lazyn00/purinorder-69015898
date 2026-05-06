@@ -195,7 +195,7 @@ interface UserListing {
 
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<string>(() => sessionStorage.getItem('admin_user') || '');
+  const [currentUser, setCurrentUser] = useState<string>(() => localStorage.getItem('admin_user') || '');
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -447,20 +447,21 @@ export default function Admin() {
   }, [orders, dateRange, ownedProductIds]);
 
 
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, pack, total, chenh, r_v, can_weight, variants, owner' as any);
-      
-      if (error) throw error;
-      const list = (data as any[]) || [];
-      setProducts(list as ProductData[]);
-      setOwnedProductIds(new Set(list.filter((p: any) => p.owner === currentUser).map((p: any) => p.id)));
-    } catch (error) {
-      console.error('Error fetching products for stats:', error);
-    }
-  };
+  const fetchProducts = async (user?: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, pack, total, chenh, r_v, can_weight, variants, owner' as any);
+    
+    if (error) throw error;
+    const list = (data as any[]) || [];
+    setProducts(list as ProductData[]);
+    const owner = user ?? currentUser;  // ← dùng tham số nếu có
+    setOwnedProductIds(new Set(list.filter((p: any) => p.owner === owner).map((p: any) => p.id)));
+  } catch (error) {
+    console.error('Error fetching products for stats:', error);
+  }
+};
 
   // ========== FETCH THÔNG BÁO ADMIN ==========
   const fetchAdminNotifications = async () => {
@@ -518,14 +519,15 @@ export default function Admin() {
   };
   // ============================================
 
-  useEffect(() => {
-    const adminSession = sessionStorage.getItem('admin_logged_in');
-    if (adminSession === 'true') {
-      setIsLoggedIn(true);
-      fetchOrders();
-      fetchAdminNotifications();
-    }
-  }, []);
+  // Trong useEffect check login
+useEffect(() => {
+  const adminSession = localStorage.getItem('admin_logged_in');  // ← đổi
+  if (adminSession === 'true') {
+    setIsLoggedIn(true);
+    fetchOrders();
+    fetchAdminNotifications();
+  }
+}, []);
 
   useEffect(() => {
     if (isLoggedIn) fetchProducts();
@@ -570,8 +572,8 @@ export default function Admin() {
     if (matched) {
       setIsLoggedIn(true);
       setCurrentUser(matched.username);
-      sessionStorage.setItem('admin_logged_in', 'true');
-      sessionStorage.setItem('admin_user', matched.username);
+      localStorage.setItem('admin_logged_in', 'true');   // ← đổi
+      localStorage.setItem('admin_user', matched.username); // ← đổi
       fetchOrders();
       fetchProducts();
       fetchAdminNotifications();
@@ -591,8 +593,9 @@ export default function Admin() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser("");
-    sessionStorage.removeItem('admin_logged_in');
-    sessionStorage.removeItem('admin_user');
+    // Trong handleLogout
+localStorage.removeItem('admin_logged_in');  // ← đổi
+localStorage.removeItem('admin_user');       // ← đổi
     setUsername("");
     setPassword("");
     toast({
