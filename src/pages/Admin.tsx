@@ -1338,7 +1338,7 @@ ${generateEmailContent(order)}
             </TabsList>
 
             <TabsContent value="product-mgmt">
-              <ProductManagement />
+              <ProductManagement currentUser={currentUser} />
             </TabsContent>
 
             <TabsContent value="stats" className="space-y-6">
