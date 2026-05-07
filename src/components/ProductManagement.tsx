@@ -341,6 +341,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setForm({ ...emptyForm });
     setVariantInputs([]);
     setOptionGroupInputs([]);
+    setAttrGroups([]);
     setImageInputs([""]);
     setShowForm(true);
   };
@@ -391,6 +392,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     
     const optGroups = Array.isArray(product.option_groups) ? product.option_groups : [];
     setOptionGroupInputs(optGroups.map((g: any) => ({ name: g.name || "", options: (g.options || []).join(", ") })));
+
+    const attrs = Array.isArray((product as any).variant_attributes) ? (product as any).variant_attributes : [];
+    setAttrGroups(attrs.map((g: any) => ({ name: g.name || "", options: Array.isArray(g.options) ? g.options : [] })));
     
     setShowForm(true);
   };
