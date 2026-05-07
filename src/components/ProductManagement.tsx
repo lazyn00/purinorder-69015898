@@ -181,6 +181,22 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [uploadingImage, setUploadingImage] = useState(false);
   const [syncingImages, setSyncingImages] = useState(false);
 
+  // Khi nhóm phân loại Shopee thay đổi → sync variantInputs (giữ giá/stock cũ)
+  useEffect(() => {
+    const clean = attrGroups
+      .map(g => ({ name: g.name.trim(), options: g.options.map(o => o.trim()).filter(Boolean) }))
+      .filter(g => g.name && g.options.length > 0);
+    if (clean.length === 0) return;
+    const combos = buildCombos(clean);
+    setVariantInputs(prev => {
+      const map = new Map(prev.map(v => [v.name, v]));
+      return combos.map(name => {
+        const ex = map.get(name);
+        return { name, price: ex?.price ?? (form.price || 0), stock: ex?.stock };
+      });
+    });
+  }, [attrGroups, form.price]);
+
   const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
 
   const fetchDbProducts = async () => {
