@@ -126,10 +126,10 @@ export default function AdminOrderDetail() {
    
    // Check admin login
    useEffect(() => {
-     const adminSession = sessionStorage.getItem('admin_logged_in');
-     if (adminSession !== 'true') {
-       navigate('/admin');
-     }
+     const adminSession = localStorage.getItem('admin_logged_in');
+if (adminSession !== 'true') {
+  navigate('/admin');
+}
    }, [navigate]);
    
    // Fetch order details
