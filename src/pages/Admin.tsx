@@ -575,7 +575,7 @@ useEffect(() => {
       localStorage.setItem('admin_logged_in', 'true');   // ← đổi
       localStorage.setItem('admin_user', matched.username); // ← đổi
       fetchOrders();
-      fetchProducts();
+      fetchProducts(matched.username); // ← truyền username vào luôn
       fetchAdminNotifications();
       toast({
         title: "Đăng nhập thành công",
