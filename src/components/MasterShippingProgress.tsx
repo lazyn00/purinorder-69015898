@@ -9,12 +9,7 @@ interface Props {
 }
 
 const ACTIVE_PROGRESS = [
-  "đang xử lý",
-  "đang đặt hàng",
-  "đang vận chuyển",
-  "đã về kho",
-  "Sẵn sàng giao",
-  "đang giao",
+  "Đang xử lý",
 ];
 
 const fmt = (n: number) => n.toLocaleString("vi-VN") + "đ";
