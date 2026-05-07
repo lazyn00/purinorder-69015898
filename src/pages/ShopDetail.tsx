@@ -9,6 +9,7 @@ import { LoadingPudding } from "@/components/LoadingPudding";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/contexts/CartContext";
 import { MasterShopPosterExport } from "@/components/MasterShopPosterExport";
+import { MasterShippingProgress } from "@/components/MasterShippingProgress";
 
 interface MasterShop {
   master_name: string;
