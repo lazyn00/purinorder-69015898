@@ -31,16 +31,6 @@ const SIZES: Record<Size, { w: number; h: number; label: string }> = {
   portrait:{ w: 1080, h: 1350, label: "Dọc 1080×1350" },
 };
 
-// HSL string "270 55% 70%" → "hsl(270, 55%, 70%)"
-const hslToCss = (v: string, alpha?: number) => {
-  if (!v) return "#fff";
-  const parts = v.trim().split(/\s+/);
-  if (parts.length < 3) return v;
-  const [h, s, l] = parts;
-  if (alpha !== undefined) return `hsla(${h}, ${s}, ${l}, ${alpha})`;
-  return `hsl(${h}, ${s}, ${l})`;
-};
-
 const loadImage = (src: string): Promise<HTMLImageElement | null> =>
   new Promise(resolve => {
     if (!src) return resolve(null);
@@ -82,43 +72,145 @@ const wrapText = (
   ctx.fillText(line, x, y + lineCount * lineH);
 };
 
-// Per-tenant theme cho poster
 const getTheme = () => {
   const isPurin = tenant.shopId === "purin";
   if (isPurin) {
     return {
-      bg1: "#fff5f9",
-      bg2: "#fffdf5",
-      bg3: "#f5f0ff",
-      decor: "rgba(249,168,212,0.30)",
-      title: "#8b1a4b",
-      titleFont: "'Quicksand', 'Nunito', sans-serif",
-      bodyFont: "'Nunito', sans-serif",
-      price: "#e11d48",
-      footerLabel: "#a37b8c",
-      footerDomain: "#e11d48",
+      // Nền kem hồng vintage
+      bgTop: "#fdf6f0",
+      bgBottom: "#fce8ef",
+      // Texture dots color
+      dotColor: "rgba(233,150,175,0.18)",
+      // Header
+      headerAccent: "#e8b4c8",    // dải màu header
+      shopNameColor: "#c0426e",   // tên shop
+      taglineColor: "#b07088",
+      // Cards
       cardBg: "#ffffff",
+      cardShadow: "rgba(192,66,110,0.10)",
+      cardBorder: "rgba(232,180,200,0.6)",
+      imgOverlay: "rgba(253,246,240,0.08)",
+      // Text
+      nameColor: "#3d1a28",
+      priceColor: "#c0426e",
+      // Divider & footer
+      dividerColor: "rgba(192,66,110,0.20)",
+      footerBg: "#f9e8f0",
+      footerText: "#b07088",
+      footerDomain: "#c0426e",
+      // Decorations
+      star1: "#f9a8d4",
+      star2: "#fcd5e5",
+      ribbonColor: "rgba(232,180,200,0.55)",
       emoji: tenant.emoji || "🍮",
-      tagline: "Order ngay tại",
+      tagline: "order tại",
     };
   }
-  // tiệm nhà cá - tím pastel
+  // Tiệm nhà cá — tím lavender editorial
   return {
-    bg1: "#f6f0fa",
-    bg2: "#f9f5fc",
-    bg3: "#ece4f7",
-    decor: "rgba(196,167,231,0.35)",
-    title: "#3f2566",
-    titleFont: "'Quicksand', 'Nunito', sans-serif",
-    bodyFont: "'Nunito', sans-serif",
-    price: "#7a3fb8",
-    footerLabel: "#9b87b8",
-    footerDomain: "#7a3fb8",
+    bgTop: "#f4eff9",
+    bgBottom: "#ede4f5",
+    dotColor: "rgba(160,120,210,0.15)",
+    headerAccent: "#c9a8e8",
+    shopNameColor: "#5b2d8e",
+    taglineColor: "#8a6aaa",
     cardBg: "#ffffff",
+    cardShadow: "rgba(91,45,142,0.10)",
+    cardBorder: "rgba(196,160,232,0.6)",
+    imgOverlay: "rgba(244,239,249,0.08)",
+    nameColor: "#1e0d33",
+    priceColor: "#7a3fb8",
+    dividerColor: "rgba(91,45,142,0.18)",
+    footerBg: "#ede4f5",
+    footerText: "#8a6aaa",
+    footerDomain: "#7a3fb8",
+    star1: "#c9a8e8",
+    star2: "#e4d4f7",
+    ribbonColor: "rgba(196,160,232,0.50)",
     emoji: tenant.emoji || "🐡",
-    tagline: "Order tại",
+    tagline: "order tại",
   };
 };
+
+// Draw a soft ribbon/bow shape decoration
+const drawRibbon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.7;
+  // left loop
+  ctx.beginPath();
+  ctx.ellipse(-size * 0.7, 0, size * 0.65, size * 0.32, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  // right loop
+  ctx.beginPath();
+  ctx.ellipse(size * 0.7, 0, size * 0.65, size * 0.32, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  // center knot
+  ctx.globalAlpha = 0.9;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * 0.22, size * 0.22, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+};
+
+// Draw sparkle/star
+const drawStar = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string, alpha = 1) => {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = size * 0.15;
+  ctx.lineCap = "round";
+  for (let i = 0; i < 4; i++) {
+    const angle = (i * Math.PI) / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(angle) * size * 0.2, y + Math.sin(angle) * size * 0.2);
+    ctx.lineTo(x + Math.cos(angle) * size, y + Math.sin(angle) * size);
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
+// Draw dotted texture pattern
+const drawDots = (ctx: CanvasRenderingContext2D, w: number, h: number, color: string) => {
+  ctx.save();
+  ctx.fillStyle = color;
+  const spacing = 36;
+  for (let xi = 0; xi < w; xi += spacing) {
+    for (let yi = 0; yi < h; yi += spacing) {
+      ctx.beginPath();
+      ctx.arc(xi, yi, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+};
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function roundRectTop(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
 
 export function MasterShopPosterExport({ shop, products, origin }: Props) {
   const [open, setOpen]   = useState(false);
@@ -135,51 +227,90 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
     canvas.height = cfg.h;
     const ctx = canvas.getContext("2d")!;
 
-    const PAD   = 50;
-    const COLS  = 5;
-    const ROWS  = 2;
-    const GAP   = 18;
-    const HEADER_H = cfg.h > cfg.w ? 140 : 110;
-    const FOOTER_H = 80;
-    const GRID_W = cfg.w - PAD * 2;
-    const GRID_H = cfg.h - PAD * 2 - HEADER_H - FOOTER_H;
-    const CELL_W = Math.floor((GRID_W - GAP * (COLS - 1)) / COLS);
-    const CELL_H = Math.floor((GRID_H - GAP * (ROWS - 1)) / ROWS);
-    const IMG_H  = Math.floor(CELL_H * 0.62);
-    const R      = 14;
+    const isPortrait = cfg.h > cfg.w;
+    const PAD    = 48;
+    const COLS   = 5;
+    const ROWS   = 2;
+    const GAP    = 14;
 
-    // Background gradient theo theme
-    const bg = ctx.createLinearGradient(0, 0, cfg.w, cfg.h);
-    bg.addColorStop(0,   theme.bg1);
-    bg.addColorStop(0.5, theme.bg2);
-    bg.addColorStop(1,   theme.bg3);
+    // ── Background gradient ──
+    const bg = ctx.createLinearGradient(0, 0, cfg.w * 0.4, cfg.h);
+    bg.addColorStop(0,   theme.bgTop);
+    bg.addColorStop(1,   theme.bgBottom);
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, cfg.w, cfg.h);
 
-    // Decorative blobs
-    const gc1 = ctx.createRadialGradient(cfg.w - 60, 60, 0, cfg.w - 60, 60, 280);
-    gc1.addColorStop(0, theme.decor);
-    gc1.addColorStop(1, "transparent");
-    ctx.fillStyle = gc1;
-    ctx.fillRect(0, 0, cfg.w, cfg.h);
+    // Dot texture
+    drawDots(ctx, cfg.w, cfg.h, theme.dotColor);
 
-    const gc2 = ctx.createRadialGradient(80, cfg.h - 80, 0, 80, cfg.h - 80, 220);
-    gc2.addColorStop(0, theme.decor);
-    gc2.addColorStop(1, "transparent");
-    ctx.fillStyle = gc2;
-    ctx.fillRect(0, 0, cfg.w, cfg.h);
+    // ── Decorative ribbon top-right ──
+    drawRibbon(ctx, cfg.w - 90, 72, 52, theme.ribbonColor);
 
-    // Header: chỉ shop name + emoji, KHÔNG avatar/master/badge SL
-    ctx.fillStyle = theme.title;
-    const titleSize = cfg.h > cfg.w ? 64 : 54;
-    ctx.font = `800 ${titleSize}px ${theme.titleFont}`;
+    // ── Small sparkles ──
+    drawStar(ctx, cfg.w - 180, 48, 16, theme.star1, 0.8);
+    drawStar(ctx, 60, cfg.h - 110, 12, theme.star1, 0.6);
+    drawStar(ctx, cfg.w - 55, 180, 9, theme.star2, 0.7);
+    drawStar(ctx, 90, 90, 10, theme.star2, 0.5);
+
+    // ── Header accent bar (thin colored stripe) ──
+    ctx.save();
+    ctx.fillStyle = theme.headerAccent;
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    ctx.roundRect(PAD, PAD - 10, cfg.w - PAD * 2, 6, 3);
+    ctx.fill();
+    ctx.restore();
+
+    // ── Shop name ──
+    const HEADER_H = isPortrait ? 120 : 100;
+    const titleSize = isPortrait ? 58 : 50;
+
+    // Emoji small
+    ctx.font = `${Math.floor(titleSize * 0.65)}px serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    const title = `${theme.emoji}  ${shop.display_name}`;
-    wrapText(ctx, title, PAD, PAD + 8, cfg.w - PAD * 2, titleSize * 1.15, 1);
+    ctx.fillText(theme.emoji, PAD, PAD + 10);
 
-    // Product grid
-    const gridTop = PAD + HEADER_H;
+    // Shop name — serif bold
+    ctx.fillStyle = theme.shopNameColor;
+    ctx.font = `800 ${titleSize}px Georgia, 'Times New Roman', serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    const nameX = PAD + titleSize * 0.75;
+    wrapText(ctx, shop.display_name, nameX, PAD + 8, cfg.w - nameX - PAD - 130, titleSize * 1.15, 1);
+
+    // Tagline / subtitle — light italic
+    ctx.fillStyle = theme.taglineColor;
+    ctx.font = `italic 300 22px Georgia, serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("✦  new arrivals & pre-order  ✦", PAD, PAD + titleSize * 1.2 + 6);
+
+    // ── Thin divider below header ──
+    const divY = PAD + HEADER_H - 8;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(PAD, divY);
+    ctx.lineTo(cfg.w - PAD, divY);
+    ctx.strokeStyle = theme.dividerColor;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([6, 8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // ── Product grid ──
+    const FOOTER_H    = 70;
+    const GRID_TOP    = PAD + HEADER_H;
+    const GRID_W      = cfg.w - PAD * 2;
+    const GRID_H      = cfg.h - GRID_TOP - PAD - FOOTER_H - 12;
+    const CELL_W      = Math.floor((GRID_W - GAP * (COLS - 1)) / COLS);
+    const CELL_H      = Math.floor((GRID_H - GAP * (ROWS - 1)) / ROWS);
+    const IMG_RATIO   = 0.60;
+    const IMG_H       = Math.floor(CELL_H * IMG_RATIO);
+    const R           = 12;
+    const TEXT_PAD    = 7;
+
     const items = products.slice(0, COLS * ROWS);
     const imgEls = await Promise.all(items.map(p => {
       const imgs = Array.isArray(p.images) ? p.images : [];
@@ -190,22 +321,31 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
       for (let col = 0; col < COLS; col++) {
         const idx = row * COLS + col;
         const cx = PAD + col * (CELL_W + GAP);
-        const cy = gridTop + row * (CELL_H + GAP);
+        const cy = GRID_TOP + row * (CELL_H + GAP);
 
-        ctx.shadowColor = "rgba(0,0,0,0.08)";
-        ctx.shadowBlur  = 14;
-        ctx.shadowOffsetY = 3;
+        // Card shadow
+        ctx.save();
+        ctx.shadowColor = theme.cardShadow;
+        ctx.shadowBlur  = 16;
+        ctx.shadowOffsetY = 4;
         ctx.fillStyle = theme.cardBg;
         roundRect(ctx, cx, cy, CELL_W, CELL_H, R);
         ctx.fill();
-        ctx.shadowColor = "transparent";
-        ctx.shadowBlur  = 0;
-        ctx.shadowOffsetY = 0;
+        ctx.restore();
+
+        // Card border
+        ctx.save();
+        ctx.strokeStyle = theme.cardBorder;
+        ctx.lineWidth = 1;
+        roundRect(ctx, cx, cy, CELL_W, CELL_H, R);
+        ctx.stroke();
+        ctx.restore();
 
         if (idx >= items.length) continue;
         const p   = items[idx];
         const img = imgEls[idx];
 
+        // Image area
         ctx.save();
         roundRectTop(ctx, cx, cy, CELL_W, IMG_H, R);
         ctx.clip();
@@ -215,56 +355,102 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
           const sx = (img.width  - sw) / 2;
           const sy = (img.height - sh) / 2;
           ctx.drawImage(img, sx, sy, sw, sh, cx, cy, CELL_W, IMG_H);
-        } else {
-          ctx.fillStyle = "#f3f3f3";
+          // Subtle vignette overlay on image
+          const vg = ctx.createLinearGradient(cx, cy + IMG_H * 0.6, cx, cy + IMG_H);
+          vg.addColorStop(0, "transparent");
+          vg.addColorStop(1, "rgba(0,0,0,0.12)");
+          ctx.fillStyle = vg;
           ctx.fillRect(cx, cy, CELL_W, IMG_H);
-          ctx.fillStyle = "#ccc";
-          ctx.font = `${Math.floor(IMG_H * 0.35)}px sans-serif`;
+        } else {
+          ctx.fillStyle = "#f0eef5";
+          ctx.fillRect(cx, cy, CELL_W, IMG_H);
+          ctx.fillStyle = "#c8b8e0";
+          ctx.font = `${Math.floor(IMG_H * 0.3)}px serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("📦", cx + CELL_W / 2, cy + IMG_H / 2);
+          ctx.fillText("🛍", cx + CELL_W / 2, cy + IMG_H / 2);
         }
         ctx.restore();
 
-        const textPad = 8;
-        const nameY   = cy + IMG_H + textPad + 2;
-        const fontSize = Math.max(13, Math.floor(CELL_W * 0.1));
-        ctx.fillStyle = "#1a1a1a";
-        ctx.font = `600 ${fontSize}px ${theme.bodyFont}`;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        wrapText(ctx, p.name, cx + textPad, nameY, CELL_W - textPad * 2, fontSize * 1.3, 2);
+        // Status badge (nếu có)
+        if (p.status) {
+          const badgeW = CELL_W * 0.52;
+          const badgeH = 18;
+          const badgeX = cx + TEXT_PAD;
+          const badgeY = cy + IMG_H - badgeH - 6;
+          ctx.save();
+          ctx.fillStyle = "rgba(0,0,0,0.45)";
+          ctx.beginPath();
+          ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 5);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `600 11px sans-serif`;
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(p.status, badgeX + 5, badgeY + badgeH / 2);
+          ctx.restore();
+        }
 
+        // Product name
+        const nameY    = cy + IMG_H + TEXT_PAD + 3;
+        const fontSize = Math.max(11, Math.floor(CELL_W * 0.093));
+        ctx.fillStyle  = theme.nameColor;
+        ctx.font       = `600 ${fontSize}px 'Nunito', sans-serif`;
+        ctx.textAlign  = "left";
+        ctx.textBaseline = "top";
+        wrapText(ctx, p.name, cx + TEXT_PAD, nameY, CELL_W - TEXT_PAD * 2, fontSize * 1.28, 2);
+
+        // Price
+        const priceY       = cy + CELL_H - Math.floor(CELL_H * 0.155);
+        const priceFontSize = Math.max(12, Math.floor(CELL_W * 0.098));
+        ctx.fillStyle      = theme.priceColor;
+        ctx.font           = `800 ${priceFontSize}px 'Nunito', sans-serif`;
+        ctx.textBaseline   = "bottom";
         const price = p.price_display || `${(p.price || 0).toLocaleString("vi-VN")}đ`;
-        const priceY = cy + CELL_H - Math.floor(CELL_H * 0.16);
-        const priceFontSize = Math.max(13, Math.floor(CELL_W * 0.105));
-        ctx.fillStyle = theme.price;
-        ctx.font = `800 ${priceFontSize}px ${theme.bodyFont}`;
-        ctx.textBaseline = "bottom";
-        ctx.fillText(price, cx + textPad, priceY);
+        ctx.fillText(price, cx + TEXT_PAD, priceY);
       }
     }
 
-    // Footer
-    const footerY = cfg.h - PAD - FOOTER_H + 10;
+    // ── Footer ──
+    const footerY = cfg.h - PAD - FOOTER_H + 8;
+
+    // Footer bg pill
+    ctx.save();
+    ctx.fillStyle = theme.footerBg;
+    ctx.globalAlpha = 0.7;
     ctx.beginPath();
-    ctx.moveTo(PAD, footerY);
-    ctx.lineTo(cfg.w - PAD, footerY);
-    ctx.strokeStyle = "rgba(0,0,0,0.08)";
-    ctx.lineWidth = 1.5;
+    ctx.roundRect(PAD, footerY - 6, cfg.w - PAD * 2, FOOTER_H - 4, 10);
+    ctx.fill();
+    ctx.restore();
+
+    // Dashed divider above footer
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(PAD, footerY - 8);
+    ctx.lineTo(cfg.w - PAD, footerY - 8);
+    ctx.strokeStyle = theme.dividerColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 7]);
     ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
 
     const domain = base.replace(/^https?:\/\//, "").replace(/\/$/, "");
-    ctx.fillStyle = theme.footerLabel;
-    ctx.font = `400 22px ${theme.bodyFont}`;
+    const midY = footerY + (FOOTER_H - 4) / 2 + 2;
+
+    ctx.fillStyle = theme.footerText;
+    ctx.font = `300 italic 20px Georgia, serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    ctx.fillText(theme.tagline, PAD, footerY + FOOTER_H / 2);
+    ctx.fillText(theme.tagline, PAD + 14, midY);
 
-    ctx.font = `700 26px ${theme.bodyFont}`;
+    ctx.font = `700 24px Georgia, serif`;
     ctx.fillStyle = theme.footerDomain;
     ctx.textAlign = "right";
-    ctx.fillText(domain || tenant.shopId, cfg.w - PAD, footerY + FOOTER_H / 2);
+    ctx.fillText(domain || tenant.shopId, cfg.w - PAD - 14, midY);
+
+    // Decorative bow in footer center
+    drawRibbon(ctx, cfg.w / 2, midY, 18, theme.ribbonColor);
 
     return canvas;
   };
@@ -309,7 +495,7 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Xuất ảnh shop để đăng bài</DialogTitle>
+            <DialogTitle>Xuất ảnh shop để đăng Instagram</DialogTitle>
           </DialogHeader>
 
           <div className="flex gap-2 flex-wrap items-center">
@@ -347,30 +533,4 @@ export function MasterShopPosterExport({ shop, products, origin }: Props) {
       </Dialog>
     </>
   );
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function roundRectTop(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h);
-  ctx.lineTo(x, y + h);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
 }
