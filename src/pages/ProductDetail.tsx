@@ -308,6 +308,10 @@ export default function ProductDetail() {
               </div>
             </div>
 
+            {product.master && (
+              <MasterShippingProgress masterName={product.master} />
+            )}
+
             <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
               <div className="flex items-baseline gap-2">
                   <p className={`text-2xl md:text-3xl font-extrabold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
