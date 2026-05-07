@@ -22,7 +22,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
    "Đang xác nhận cọc",
    "Đã thanh toán",
    "Đã cọc",
-   "Đã hoàn cọc"
+   "Đã hoàn cọc",
+   "Đã hoàn tiền"
  ];
  
  const ORDER_PROGRESS = [
@@ -44,6 +45,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
      case "Đã thanh toán": return "bg-green-100 text-green-800 border-green-200";
      case "Đã cọc": return "bg-amber-100 text-amber-800 border-amber-200";
      case "Đã hoàn cọc": return "bg-pink-100 text-pink-800 border-pink-200";
+     case "Đã hoàn tiền": return "bg-red-100 text-red-800 border-red-200";
      default: return "bg-gray-100 text-gray-800 border-gray-200";
    }
  };
