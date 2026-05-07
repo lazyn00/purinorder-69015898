@@ -989,15 +989,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs">Link order</Label>
-                <Input value={form.link_order || ""} onChange={e => setForm(prev => ({ ...prev, link_order: e.target.value }))} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs">Proof</Label>
-                <Input value={form.proof || ""} onChange={e => setForm(prev => ({ ...prev, proof: e.target.value }))} className="h-8 text-sm" />
-              </div>
+            <div>
+              <Label className="text-xs">Link order</Label>
+              <Input value={form.link_order || ""} onChange={e => setForm(prev => ({ ...prev, link_order: e.target.value }))} className="h-8 text-sm" />
             </div>
 
             <div>
