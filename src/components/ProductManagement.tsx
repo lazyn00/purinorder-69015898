@@ -537,6 +537,8 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setVariantInputs(variants.map((v: any) => ({ name: v.name || "", price: v.price || 0, stock: v.stock })));
     const optGroups = Array.isArray(product.option_groups) ? product.option_groups : [];
     setOptionGroupInputs(optGroups.map((g: any) => ({ name: g.name || "", options: (g.options || []).join(", ") })));
+    const attrs = Array.isArray((product as any).variant_attributes) ? (product as any).variant_attributes : [];
+    setAttrGroups(attrs.map((g: any) => ({ name: g.name || "", options: Array.isArray(g.options) ? g.options : [] })));
     setShowForm(true);
     toast({ title: "Đã sao chép", description: `Đang tạo bản sao của "${product.name}"` });
   };
