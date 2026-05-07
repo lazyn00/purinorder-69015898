@@ -1071,92 +1071,113 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Phân loại (Variants)</Label>
-                <div className="flex gap-2">
-                  {variantInputs.length > 1 && (
-                    <Button variant="outline" size="sm" onClick={applyUniformPrice}>
-                      <Copy className="h-3 w-3 mr-1" /> Đồng giá
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" onClick={() => setVariantInputs(prev => [...prev, { name: "", price: form.price || 0 }])}>
-                    <Plus className="h-3 w-3 mr-1" /> Thêm
-                  </Button>
+            {/* Shopee-style: Nhóm phân loại tự sinh tổ hợp */}
+            <div className="border rounded-lg p-3 space-y-3 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-semibold">Nhóm phân loại</Label>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    VD: Nhóm 1 = Màu (Đỏ, Xanh), Nhóm 2 = Size (S, M, L) → tự sinh tổ hợp Đỏ-S, Đỏ-M, Xanh-S…
+                  </p>
                 </div>
+                {attrGroups.length < 2 && (
+                  <Button variant="outline" size="sm" onClick={() => setAttrGroups(prev => [...prev, { name: "", options: [] }])}>
+                    <Plus className="h-3 w-3 mr-1" /> Thêm nhóm
+                  </Button>
+                )}
               </div>
-              <div className="space-y-2">
-                {variantInputs.map((v, idx) => (
-                  <div
-                    key={idx}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", `v-${idx}`);
-                      e.currentTarget.classList.add("opacity-50");
-                    }}
-                    onDragEnd={(e) => e.currentTarget.classList.remove("opacity-50")}
-                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-accent/50"); }}
-                    onDragLeave={(e) => e.currentTarget.classList.remove("bg-accent/50")}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.classList.remove("bg-accent/50");
-                      const data = e.dataTransfer.getData("text/plain");
-                      if (!data.startsWith("v-")) return;
-                      const fromIdx = Number(data.slice(2));
-                      if (fromIdx === idx) return;
-                      setVariantInputs(prev => {
-                        const arr = [...prev];
-                        const [m] = arr.splice(fromIdx, 1);
-                        arr.splice(idx, 0, m);
-                        return arr;
-                      });
-                    }}
-                    className="flex gap-2 items-center rounded-md p-1 transition-colors cursor-grab active:cursor-grabbing"
-                  >
-                    <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+
+              {attrGroups.map((g, gIdx) => (
+                <div key={gIdx} className="border rounded p-2 bg-background space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <span className="text-xs font-medium w-16 shrink-0">Nhóm {gIdx + 1}</span>
                     <Input
-                      placeholder="Tên phân loại"
-                      value={v.name}
+                      placeholder="Tên nhóm (VD: Màu, Size)"
+                      value={g.name}
                       onChange={e => {
-                        const n = [...variantInputs];
-                        n[idx] = { ...n[idx], name: e.target.value };
-                        setVariantInputs(n);
+                        const n = [...attrGroups];
+                        n[gIdx] = { ...n[gIdx], name: e.target.value };
+                        setAttrGroups(n);
                       }}
-                      className="h-8 text-sm flex-1 min-w-0"
+                      className="h-8 text-sm flex-1"
                     />
-                    <Input
-                      type="number"
-                      placeholder="Giá"
-                      value={v.price || ""}
-                      onChange={e => {
-                        const n = [...variantInputs];
-                        n[idx] = { ...n[idx], price: Number(e.target.value) || 0 };
-                        setVariantInputs(n);
-                      }}
-                      className="h-8 text-sm w-24"
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Kho"
-                      value={v.stock ?? ""}
-                      onChange={e => {
-                        const n = [...variantInputs];
-                        n[idx] = { ...n[idx], stock: e.target.value === "" ? undefined : Number(e.target.value) };
-                        setVariantInputs(n);
-                      }}
-                      className="h-8 text-sm w-16"
-                    />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setVariantInputs(prev => prev.filter((_, i) => i !== idx))}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0"
+                      onClick={() => setAttrGroups(prev => prev.filter((_, i) => i !== gIdx))}>
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
-                ))}
-              </div>
+                  <div className="flex gap-1.5 flex-wrap items-center pl-[72px]">
+                    {g.options.map((opt, oIdx) => (
+                      <span key={oIdx} className="inline-flex items-center gap-1 bg-primary/10 border border-primary/30 rounded px-2 py-0.5 text-xs">
+                        {opt}
+                        <button type="button"
+                          onClick={() => {
+                            const n = [...attrGroups];
+                            n[gIdx] = { ...n[gIdx], options: n[gIdx].options.filter((_, i) => i !== oIdx) };
+                            setAttrGroups(n);
+                          }}
+                          className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <Input
+                      placeholder="+ Thêm lựa chọn rồi Enter"
+                      className="h-7 text-xs w-44"
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const v = (e.target as HTMLInputElement).value.trim();
+                          if (!v) return;
+                          const n = [...attrGroups];
+                          n[gIdx] = { ...n[gIdx], options: [...n[gIdx].options, v] };
+                          setAttrGroups(n);
+                          (e.target as HTMLInputElement).value = "";
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {/* Bảng tổ hợp giá/kho */}
+              {attrGroups.length > 0 && variantInputs.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">Giá & kho từng tổ hợp ({variantInputs.length})</Label>
+                    <Button variant="outline" size="sm" onClick={applyUniformPrice}>
+                      <Copy className="h-3 w-3 mr-1" /> Đồng giá
+                    </Button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto space-y-1 border rounded p-2 bg-background">
+                    {variantInputs.map((v, idx) => (
+                      <div key={idx} className="flex gap-2 items-center text-sm">
+                        <span className="flex-1 min-w-0 truncate text-xs">{v.name}</span>
+                        <Input type="number" placeholder="Giá" value={v.price || ""}
+                          onChange={e => {
+                            const n = [...variantInputs];
+                            n[idx] = { ...n[idx], price: Number(e.target.value) || 0 };
+                            setVariantInputs(n);
+                          }}
+                          className="h-7 text-xs w-24" />
+                        <Input type="number" placeholder="Kho" value={v.stock ?? ""}
+                          onChange={e => {
+                            const n = [...variantInputs];
+                            n[idx] = { ...n[idx], stock: e.target.value === "" ? undefined : Number(e.target.value) };
+                            setVariantInputs(n);
+                          }}
+                          className="h-7 text-xs w-20" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
+            {/* Nhóm tùy chọn (không đổi giá) — giữ nguyên */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Nhóm tùy chọn (Option Groups)</Label>
+                <Label>Nhóm tùy chọn (không đổi giá)</Label>
                 <Button variant="outline" size="sm" onClick={() => setOptionGroupInputs(prev => [...prev, { name: "", options: "" }])}>
                   <Plus className="h-3 w-3 mr-1" /> Thêm nhóm
                 </Button>
@@ -1164,26 +1185,20 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
               <div className="space-y-2">
                 {optionGroupInputs.map((g, idx) => (
                   <div key={idx} className="flex gap-2 items-center">
-                    <Input
-                      placeholder="Tên nhóm"
-                      value={g.name}
+                    <Input placeholder="Tên nhóm" value={g.name}
                       onChange={e => {
                         const n = [...optionGroupInputs];
                         n[idx] = { ...n[idx], name: e.target.value };
                         setOptionGroupInputs(n);
                       }}
-                      className="h-8 text-sm w-32"
-                    />
-                    <Input
-                      placeholder="Tùy chọn (phân cách bằng dấu phẩy)"
-                      value={g.options}
+                      className="h-8 text-sm w-32" />
+                    <Input placeholder="Tùy chọn (phân cách bằng dấu phẩy)" value={g.options}
                       onChange={e => {
                         const n = [...optionGroupInputs];
                         n[idx] = { ...n[idx], options: e.target.value };
                         setOptionGroupInputs(n);
                       }}
-                      className="h-8 text-sm flex-1"
-                    />
+                      className="h-8 text-sm flex-1" />
                     <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setOptionGroupInputs(prev => prev.filter((_, i) => i !== idx))}>
                       <X className="h-3 w-3" />
                     </Button>
