@@ -59,7 +59,26 @@ interface SupabaseProduct {
   updated_at: string | null;
 }
 
-type ProductFormData = Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at'>;
+type ProductFormData = Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at'> & { variant_attributes?: any };
+
+// Helper: tổ hợp các nhóm phân loại
+const buildCombos = (groups: { name: string; options: string[] }[]): string[] => {
+  const valid = groups.filter(g => g.name.trim() && g.options.length > 0);
+  if (valid.length === 0) return [];
+  if (valid.length === 1) return valid[0].options.map(o => o.trim()).filter(Boolean);
+  // 2+ nhóm: tích Descartes
+  let acc: string[] = valid[0].options.map(o => o.trim()).filter(Boolean);
+  for (let i = 1; i < valid.length; i++) {
+    const next: string[] = [];
+    for (const a of acc) {
+      for (const b of valid[i].options.map(o => o.trim()).filter(Boolean)) {
+        next.push(`${a} - ${b}`);
+      }
+    }
+    acc = next;
+  }
+  return acc;
+};
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
 const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
