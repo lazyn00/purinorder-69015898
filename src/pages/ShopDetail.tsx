@@ -184,6 +184,12 @@ export default function ShopDetail() {
           </div>
         </div>
 
+        {resolvedMasterName && (
+          <div className="mb-6">
+            <MasterShippingProgress masterName={resolvedMasterName} />
+          </div>
+        )}
+
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Đang order ({available.length})</h2>
           {available.length === 0 ? <p className="text-sm text-muted-foreground">Hiện chưa có sản phẩm nào.</p> : (
