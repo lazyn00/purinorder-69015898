@@ -408,10 +408,26 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setSaving(true);
     try {
       const images = imageInputs.filter(url => url.trim() !== "");
-      const variants = variantInputs.filter(v => v.name.trim() !== "");
       const optionGroups = optionGroupInputs
         .filter(g => g.name.trim() !== "")
         .map(g => ({ name: g.name, options: g.options.split(",").map(o => o.trim()).filter(Boolean) }));
+
+      // Nếu có nhóm phân loại Shopee-style → tự sinh variants từ tổ hợp,
+      // giữ giá/stock đã nhập theo tên tổ hợp, fallback giá gốc.
+      const cleanAttrs = attrGroups
+        .map(g => ({ name: g.name.trim(), options: g.options.map(o => o.trim()).filter(Boolean) }))
+        .filter(g => g.name && g.options.length > 0);
+      const combos = buildCombos(cleanAttrs);
+      let variants;
+      if (combos.length > 0) {
+        const existing = new Map(variantInputs.map(v => [v.name, v]));
+        variants = combos.map(name => {
+          const ex = existing.get(name);
+          return { name, price: ex?.price ?? (form.price || 0), stock: ex?.stock };
+        });
+      } else {
+        variants = variantInputs.filter(v => v.name.trim() !== "");
+      }
 
       const saveData: any = {
         name: form.name,
@@ -439,10 +455,10 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         master: form.master || null,
         variants: variants,
         option_groups: optionGroups,
+        variant_attributes: cleanAttrs,
         variant_image_map: form.variant_image_map || {},
         stock: form.stock,
         link_order: form.link_order || null,
-        proof: form.proof || null,
         actual_rate: form.actual_rate,
         actual_can: form.actual_can,
         actual_pack: form.actual_pack,
