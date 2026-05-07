@@ -20,6 +20,7 @@ interface MasterShop {
   description: string | null;
   is_visible: boolean;
   sort_order: number;
+  shipping_fee_total?: number | null;
 }
 
 // ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung, Nhật, Hàn và đa ngôn ngữ
@@ -145,6 +146,7 @@ export default function MasterManagement({ currentUser = "Admin" }: MasterManage
         description: null,
         is_visible: true,
         sort_order: 0,
+        shipping_fee_total: 0,
       });
     }
     setShopLoading(false);
@@ -186,6 +188,7 @@ export default function MasterManagement({ currentUser = "Admin" }: MasterManage
         description: shopInfo.description?.trim() || null,
         is_visible: shopInfo.is_visible,
         sort_order: shopInfo.sort_order || 0,
+        shipping_fee_total: shopInfo.shipping_fee_total || 0,
         owner: currentUser || 'Admin',
       };
       const { error } = await (supabase as any)
@@ -373,6 +376,19 @@ export default function MasterManagement({ currentUser = "Admin" }: MasterManage
                         value={shopInfo.description || ""}
                         onChange={(e) => setShopInfo({ ...shopInfo, description: e.target.value })}
                       />
+                    </div>
+
+                    <div>
+                      <Label className="text-xs">Tổng phí ship nội địa (VNĐ)</Label>
+                      <Input
+                        type="number"
+                        value={shopInfo.shipping_fee_total ?? 0}
+                        onChange={(e) => setShopInfo({ ...shopInfo, shipping_fee_total: parseInt(e.target.value) || 0 })}
+                        placeholder="VD: 500000"
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Phí ship sẽ chia đều cho số lượng sản phẩm đã đặt của master này (chỉ hiển thị tham khảo, không tự cộng vào đơn).
+                      </p>
                     </div>
 
                     <div className="flex items-center gap-4 flex-wrap">
