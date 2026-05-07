@@ -172,6 +172,8 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   
   const [variantInputs, setVariantInputs] = useState<{ name: string; price: number; stock?: number }[]>([]);
   const [optionGroupInputs, setOptionGroupInputs] = useState<{ name: string; options: string }[]>([]);
+  // Shopee-style: nhóm phân loại tự sinh tổ hợp + giá/stock
+  const [attrGroups, setAttrGroups] = useState<{ name: string; options: string[] }[]>([]);
   const [imageInputs, setImageInputs] = useState<string[]>([]);
   
   const [syncing, setSyncing] = useState(false);
