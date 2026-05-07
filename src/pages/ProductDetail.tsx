@@ -16,6 +16,7 @@ import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductNotificationForm } from "@/components/ProductNotificationForm";
+import { MasterShippingProgress } from "@/components/MasterShippingProgress";
 import {
   Carousel,
   CarouselContent,
@@ -306,6 +307,10 @@ export default function ProductDetail() {
                  </Button>
               </div>
             </div>
+
+            {product.master && (
+              <MasterShippingProgress masterName={product.master} />
+            )}
 
             <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
               <div className="flex items-baseline gap-2">

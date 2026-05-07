@@ -222,6 +222,7 @@ export type Database = {
           is_visible: boolean
           master_name: string
           owner: string
+          shipping_fee_total: number | null
           shop_link: string | null
           slug: string
           sort_order: number
@@ -236,6 +237,7 @@ export type Database = {
           is_visible?: boolean
           master_name: string
           owner?: string
+          shipping_fee_total?: number | null
           shop_link?: string | null
           slug: string
           sort_order?: number
@@ -250,6 +252,7 @@ export type Database = {
           is_visible?: boolean
           master_name?: string
           owner?: string
+          shipping_fee_total?: number | null
           shop_link?: string | null
           slug?: string
           sort_order?: number
@@ -499,6 +502,7 @@ export type Database = {
           te: number | null
           total: number | null
           updated_at: string | null
+          variant_attributes: Json | null
           variant_image_map: Json | null
           variants: Json | null
         }
@@ -539,6 +543,7 @@ export type Database = {
           te?: number | null
           total?: number | null
           updated_at?: string | null
+          variant_attributes?: Json | null
           variant_image_map?: Json | null
           variants?: Json | null
         }
@@ -579,6 +584,7 @@ export type Database = {
           te?: number | null
           total?: number | null
           updated_at?: string | null
+          variant_attributes?: Json | null
           variant_image_map?: Json | null
           variants?: Json | null
         }

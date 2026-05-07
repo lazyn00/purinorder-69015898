@@ -9,6 +9,7 @@ import { LoadingPudding } from "@/components/LoadingPudding";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/contexts/CartContext";
 import { MasterShopPosterExport } from "@/components/MasterShopPosterExport";
+import { MasterShippingProgress } from "@/components/MasterShippingProgress";
 
 interface MasterShop {
   master_name: string;
@@ -182,6 +183,12 @@ export default function ShopDetail() {
             </div>
           </div>
         </div>
+
+        {resolvedMasterName && (
+          <div className="mb-6">
+            <MasterShippingProgress masterName={resolvedMasterName} />
+          </div>
+        )}
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Đang order ({available.length})</h2>
