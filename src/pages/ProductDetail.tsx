@@ -16,6 +16,7 @@ import { useCart, Product } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductNotificationForm } from "@/components/ProductNotificationForm";
+import { MasterShippingProgress } from "@/components/MasterShippingProgress";
 import {
   Carousel,
   CarouselContent,
