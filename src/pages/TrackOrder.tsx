@@ -75,6 +75,7 @@ const getStatusColor = (status: string) => {
     case "Chưa thanh toán":
       return "bg-red-100 text-red-800 border-red-200";
     case "Đang xác nhận thanh toán":
+      return "bg-blue-50 text-blue-700 border-blue-200";
     case "Đang xác nhận cọc":
       return "bg-blue-50 text-blue-700 border-blue-200";
     case "Đã thanh toán":
