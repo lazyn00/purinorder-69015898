@@ -58,7 +58,7 @@ export function MasterShippingProgress({ masterName, className }: Props) {
     return () => { cancelled = true; };
   }, [masterName]);
 
-  if (loading || !shippingTotal) return null;
+  if (loading || !shippingTotal || shippingTotal === 0) return null;
 
   const perItem = orderedQty > 0 ? Math.ceil(shippingTotal / orderedQty) : shippingTotal;
   // Progress = how close we are to "ship per item" being low. Use orderedQty progress vs target estimated as qty needed for perItem ≤ 10k
