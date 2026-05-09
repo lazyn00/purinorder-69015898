@@ -17,7 +17,6 @@ import { CartItem } from "@/contexts/CartContext";
 import qrMomo from "@/assets/qr-momo.jpg";
 import qrZalopay from "@/assets/qr-zalopay.jpg";
 import qrVpbank from "@/assets/qr-vpbank.jpg";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { tenant } from "@/config/tenant";
 
 const QR_IMAGES: { [key: string]: string } = {
@@ -199,6 +198,9 @@ export default function Checkout() {
       let paymentProofUrl = null;
 
       if (paymentProof) {
+        // ← DÙNG DYNAMIC IMPORT để tránh lỗi Buffer trên Safari/iOS
+        const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+
         const r2Client = new S3Client({
           region: "auto",
           endpoint: import.meta.env.VITE_R2_ENDPOINT,
