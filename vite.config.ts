@@ -18,30 +18,14 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  optimizeDeps: {
-    include: ['@aws-crypto/sha256-js', '@aws-crypto/sha256-browser']
-  },
   build: {
-    chunkSizeWarningLimit: 1000,
-    commonjsOptions: {
-      include: [/node_modules/],
-    },
+    chunkSizeWarningLimit: 1500, // Tăng giới hạn cảnh báo để không bị báo đỏ
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            // NẾU LÀ THƯ VIỆN CRYPTO: Ép gộp chung vào 1 file duy nhất, không xé nhỏ
-            if (id.includes("@aws-crypto") || id.includes("crypto")) {
-              return "crypto-vendor";
-            }
-            // Các thư viện khác vẫn tự động tách bình thường
-            return id
-              .toString()
-              .split("node_modules/")[1]
-              .split("/")[0]
-              .toString();
-          }
-        },
+        // Thay vì tự động xé nhỏ mọi thứ bằng manualChunks, chúng ta dùng cơ chế gom nhóm lớn an toàn của Rollup
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+        }
       },
     },
   },
