@@ -1,8 +1,9 @@
-// Thêm 3 dòng này lên ĐẦU TIÊN của file src/main.tsx
+// 1. CHÈN THÊM 3 DÒNG NÀY VÀO ĐẦU TIÊN
 if (typeof (window as any).global === 'undefined') {
   (window as any).global = window;
 }
 
+// 2. ĐOẠN CODE CŨ CỦA BẠN GIỮ NGUYÊN PHÍA DƯỚI
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
