@@ -18,14 +18,23 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // --- PHẦN BỔ SUNG BẮT ĐẦU TỪ ĐÂY ---
+  optimizeDeps: {
+    include: ['@aws-crypto/sha256-js', '@aws-crypto/sha256-browser']
+  },
   build: {
-    chunkSizeWarningLimit: 1000, // Tăng giới hạn cảnh báo lên 1000kB
+    chunkSizeWarningLimit: 1000,
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
     rollupOptions: {
       output: {
-        // Tự động tách các thư viện trong node_modules thành các file chunk riêng
         manualChunks(id) {
           if (id.includes("node_modules")) {
+            // NẾU LÀ THƯ VIỆN CRYPTO: Ép gộp chung vào 1 file duy nhất, không xé nhỏ
+            if (id.includes("@aws-crypto") || id.includes("crypto")) {
+              return "crypto-vendor";
+            }
+            // Các thư viện khác vẫn tự động tách bình thường
             return id
               .toString()
               .split("node_modules/")[1]
@@ -36,5 +45,4 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  // --- KẾT THÚC PHẦN BỔ SUNG ---
 }));
