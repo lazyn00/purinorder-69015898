@@ -25,7 +25,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { productsData } from "@/data/products";
 import { SHIPPING_PROVIDERS, findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
-import { useNavigate as useNav } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -72,7 +71,7 @@ const getPaymentStatusColor = (status: string) => {
       return "bg-amber-100 text-amber-800 border-amber-200";
     case "Đã hoàn cọc":
       return "bg-pink-100 text-pink-800 border-pink-200";
-    case "Đã hoàn tiền":           // ← CHUYỂN LÊN TRƯỚC default
+    case "Đã hoàn tiền":
       return "bg-purple-100 text-purple-800 border-purple-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
@@ -127,7 +126,6 @@ interface Order {
   surcharge: number;
 }
 
-// ========== THÊM INTERFACE CHO THÔNG BÁO ADMIN ==========
 interface AdminNotification {
   id: string;
   type: 'new_order' | 'delivery_update' | 'payment_proof' | 'product_expired' | 'product_expiring' | 'new_affiliate' | 'new_listing';
@@ -137,7 +135,6 @@ interface AdminNotification {
   is_read: boolean;
   created_at: string;
 }
-// ========================================================
 
 const COLORS = ['#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#60a5fa', '#fb923c'];
 const ORDERS_PER_PAGE = 20;
@@ -194,6 +191,31 @@ interface UserListing {
 }
 
 export default function Admin() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // --- 2. THUỘC TÍNH FIX KHỎI PHỤC VỊ TRÍ VÀ TAB ---
+  const [activeTab, setActiveTab] = useState<string>(() => sessionStorage.getItem('admin_tab') || 'stats');
+
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem('admin_scroll');
+    if (savedScroll) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedScroll));
+      }, 100);
+    }
+    
+    const handleScroll = () => {
+      sessionStorage.setItem('admin_scroll', window.scrollY.toString());
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+  // --------------------------------------------------
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<string>(() => localStorage.getItem('admin_user') || '');
   const [username, setUsername] = useState("");
@@ -217,30 +239,18 @@ export default function Admin() {
   const [bulkProgress, setBulkProgress] = useState<string>("");
   const [ownedProductIds, setOwnedProductIds] = useState<Set<number>>(new Set());
   
-  // ========== STATE CHO QUẢN LÝ ĐĂNG BÁN ==========
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
   const [listingStatusFilter, setListingStatusFilter] = useState<string>("all");
   const [listingSearchTerm, setListingSearchTerm] = useState("");
   const [expandedListingId, setExpandedListingId] = useState<string | null>(null);
   const [adminNoteInputs, setAdminNoteInputs] = useState<{[key: string]: string}>({});
-  // ================================================
   
-  // ========== THÊM STATE CHO THÔNG BÁO ADMIN ==========
   const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  // =====================================================
   
-  // =================================================
-  
-  const { toast } = useToast();
-  const navigate = useNavigate();
-
-  // ========== TÍNH SỐ THÔNG BÁO CHƯA ĐỌC ==========
   const unreadCount = adminNotifications.filter(n => !n.is_read).length;
-  // =================================================
 
-  // Filter orders based on search and filters
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       const matchesSearch = searchTerm === "" || 
@@ -263,10 +273,8 @@ export default function Admin() {
     });
   }, [orders, searchTerm, paymentStatusFilter, orderProgressFilter, progressMulti]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
   const paginatedOrders = useMemo(() => {
-    // Sort: push completed and cancelled orders to bottom
     const sortedOrders = [...filteredOrders].sort((a, b) => {
       const aCompleted = a.order_progress === 'Đã hoàn thành' || a.order_progress === 'Đã huỷ';
       const bCompleted = b.order_progress === 'Đã hoàn thành' || b.order_progress === 'Đã huỷ';
@@ -274,7 +282,6 @@ export default function Admin() {
       if (aCompleted && !bCompleted) return 1;
       if (!aCompleted && bCompleted) return -1;
       
-      // Within same category, sort by created_at desc
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     
@@ -282,12 +289,10 @@ export default function Admin() {
     return sortedOrders.slice(startIndex, startIndex + ORDERS_PER_PAGE);
   }, [filteredOrders, currentPage]);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, paymentStatusFilter, orderProgressFilter, progressMulti]);
 
-  // Product statistics by variant
   const productStats = useMemo(() => {
     const stats: { [key: string]: { count: number; productName: string } } = {};
     
@@ -329,13 +334,11 @@ export default function Admin() {
       .sort((a, b) => b.value - a.value);
   }, [productStats]);
 
-  // State cho khoảng thời gian thống kê - date range picker
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date()
   });
 
-  // Tính toán thống kê doanh thu (theo sản phẩm của acc đang đăng nhập)
   const statistics = useMemo(() => {
     const itemTotal = (item: any) => {
       const qty = item.quantity || 1;
@@ -446,24 +449,22 @@ export default function Admin() {
     };
   }, [orders, dateRange, ownedProductIds]);
 
-
   const fetchProducts = async (user?: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, pack, total, chenh, r_v, can_weight, variants, owner' as any);
-    
-    if (error) throw error;
-    const list = (data as any[]) || [];
-    setProducts(list as ProductData[]);
-    const owner = user ?? currentUser;  // ← dùng tham số nếu có
-    setOwnedProductIds(new Set(list.filter((p: any) => p.owner === owner).map((p: any) => p.id)));
-  } catch (error) {
-    console.error('Error fetching products for stats:', error);
-  }
-};
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, te, rate, actual_rate, actual_can, actual_pack, cong, pack, total, chenh, r_v, can_weight, variants, owner' as any);
+      
+      if (error) throw error;
+      const list = (data as any[]) || [];
+      setProducts(list as ProductData[]);
+      const owner = user ?? currentUser;
+      setOwnedProductIds(new Set(list.filter((p: any) => p.owner === owner).map((p: any) => p.id)));
+    } catch (error) {
+      console.error('Error fetching products for stats:', error);
+    }
+  };
 
-  // ========== FETCH THÔNG BÁO ADMIN ==========
   const fetchAdminNotifications = async () => {
     try {
       const { data, error } = await supabase
@@ -479,7 +480,6 @@ export default function Admin() {
     }
   };
 
-  // ĐÁNH DẤU ĐÃ ĐỌC THÔNG BÁO
   const markNotificationAsRead = async (id: string) => {
     try {
       await supabase
@@ -495,7 +495,6 @@ export default function Admin() {
     }
   };
 
-  // ĐÁNH DẤU TẤT CẢ ĐÃ ĐỌC
   const markAllAsRead = async () => {
     try {
       const unreadIds = adminNotifications.filter(n => !n.is_read).map(n => n.id);
@@ -510,30 +509,25 @@ export default function Admin() {
         prev.map(n => ({ ...n, is_read: true }))
       );
 
-      toast({
-        title: "Đã đánh dấu tất cả đã đọc",
-      });
+      toast({ title: "Đã đánh dấu tất cả đã đọc" });
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
   };
-  // ============================================
 
-  // Trong useEffect check login
-useEffect(() => {
-  const adminSession = localStorage.getItem('admin_logged_in');  // ← đổi
-  if (adminSession === 'true') {
-    setIsLoggedIn(true);
-    fetchOrders();
-    fetchAdminNotifications();
-  }
-}, []);
+  useEffect(() => {
+    const adminSession = localStorage.getItem('admin_logged_in');
+    if (adminSession === 'true') {
+      setIsLoggedIn(true);
+      fetchOrders();
+      fetchAdminNotifications();
+    }
+  }, []);
 
   useEffect(() => {
     if (isLoggedIn) fetchProducts();
   }, [isLoggedIn, currentUser]);
 
-  // ========== REALTIME SUBSCRIPTION CHO THÔNG BÁO ==========
   useEffect(() => {
     if (!isLoggedIn) return;
 
@@ -541,16 +535,9 @@ useEffect(() => {
       .channel('admin-notifications-realtime')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'admin_notifications'
-        },
+        { event: 'INSERT', schema: 'public', table: 'admin_notifications' },
         (payload) => {
-          console.log('New notification received:', payload);
           setAdminNotifications(prev => [payload.new as AdminNotification, ...prev]);
-          
-          // Hiển thị toast khi có thông báo mới
           toast({
             title: "🔔 Thông báo mới",
             description: (payload.new as AdminNotification).message,
@@ -563,19 +550,17 @@ useEffect(() => {
       supabase.removeChannel(channel);
     };
   }, [isLoggedIn, toast]);
-  // =========================================================
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
     const matched = ADMIN_CREDENTIALS.find(c => c.username === username && c.password === password);
     if (matched) {
       setIsLoggedIn(true);
       setCurrentUser(matched.username);
-      localStorage.setItem('admin_logged_in', 'true');   // ← đổi
-      localStorage.setItem('admin_user', matched.username); // ← đổi
+      localStorage.setItem('admin_logged_in', 'true');
+      localStorage.setItem('admin_user', matched.username);
       fetchOrders();
-      fetchProducts(matched.username); // ← truyền username vào luôn
+      fetchProducts(matched.username);
       fetchAdminNotifications();
       toast({
         title: "Đăng nhập thành công",
@@ -593,14 +578,11 @@ useEffect(() => {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser("");
-    // Trong handleLogout
-localStorage.removeItem('admin_logged_in');  // ← đổi
-localStorage.removeItem('admin_user');       // ← đổi
+    localStorage.removeItem('admin_logged_in');
+    localStorage.removeItem('admin_user');
     setUsername("");
     setPassword("");
-    toast({
-      title: "Đã đăng xuất",
-    });
+    toast({ title: "Đã đăng xuất" });
   };
 
   const fetchOrders = async () => {
@@ -621,7 +603,7 @@ localStorage.removeItem('admin_user');       // ← đổi
         description: "Không thể tải đơn hàng",
         variant: "destructive"
       });
-    } finally {
+    } bits: {
       setIsLoading(false);
     }
   };
@@ -638,7 +620,6 @@ localStorage.removeItem('admin_user');       // ← đổi
 
       if (error) throw error;
 
-      // Record status history
       if (oldStatus !== newStatus) {
         await supabase.from('order_status_history').insert({
           order_id: orderId,
@@ -668,8 +649,6 @@ localStorage.removeItem('admin_user');       // ← đổi
   };
 
   const updateOrderProgress = async (orderId: string, newProgress: string) => {
-    // Không yêu cầu mã vận đơn khi chuyển sang "Đang giao" nữa
-
     try {
       const order = orders.find(o => o.id === orderId);
       const oldProgress = order?.order_progress;
@@ -688,7 +667,6 @@ localStorage.removeItem('admin_user');       // ← đổi
 
       if (error) throw error;
 
-      // Record status history
       if (oldProgress !== newProgress) {
         await supabase.from('order_status_history').insert({
           order_id: orderId,
@@ -698,8 +676,6 @@ localStorage.removeItem('admin_user');       // ← đổi
           changed_by: 'admin'
         });
       }
-      
-      // Email tự động đã được tắt
 
       setOrders(orders.map(order => 
         order.id === orderId ? { ...order, ...updateData } : order
@@ -801,11 +777,7 @@ localStorage.removeItem('admin_user');       // ← đổi
       if (error) throw error;
 
       setOrders(orders.filter(order => order.id !== orderId));
-
-      toast({
-        title: "Đã xóa",
-        description: "Đơn hàng đã được xóa",
-      });
+      toast({ title: "Đã xóa", description: "Đơn hàng đã được xóa" });
     } catch (error) {
       console.error(error);
       toast({
@@ -822,16 +794,9 @@ SĐT: ${order.delivery_phone}
 Địa chỉ: ${order.delivery_address}${order.delivery_note ? `\nGhi chú: ${order.delivery_note}` : ''}`;
     
     navigator.clipboard.writeText(info).then(() => {
-      toast({
-        title: "Đã sao chép",
-        description: "Thông tin giao hàng đã được copy",
-      });
+      toast({ title: "Đã sao chép", description: "Thông tin giao hàng đã được copy" });
     }).catch(() => {
-      toast({
-        title: "Lỗi",
-        description: "Không thể sao chép",
-        variant: "destructive"
-      });
+      toast({ title: "Lỗi", description: "Không thể sao chép", variant: "destructive" });
     });
   };
 
@@ -855,13 +820,8 @@ SĐT: ${order.delivery_phone}
 
   const exportToExcel = () => {
     const selectedOrders = orders.filter(o => selectedOrderIds.has(o.id));
-    
     if (selectedOrders.length === 0) {
-      toast({
-        title: "Chưa chọn đơn hàng",
-        description: "Vui lòng chọn ít nhất 1 đơn hàng để xuất",
-        variant: "destructive"
-      });
+      toast({ title: "Chưa chọn đơn hàng", description: "Vui lòng chọn ít nhất 1 đơn hàng để xuất", variant: "destructive" });
       return;
     }
 
@@ -895,13 +855,8 @@ SĐT: ${order.delivery_phone}
     const fileName = `don-hang-${new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }).replace(/\//g, '-')}.xlsx`;
     XLSX.writeFile(wb, fileName);
     
-    toast({
-      title: "Xuất thành công",
-      description: `Đã xuất ${selectedOrders.length} đơn hàng`,
-    });
+    toast({ title: "Xuất thành công", description: `Đã xuất ${selectedOrders.length} đơn hàng` });
   };
-
-
 
   const generateEmailContent = (order: Order) => {
     const itemsList = order.items.map((item: any) => 
@@ -933,24 +888,14 @@ Purin Order`.trim();
 
   const sendBulkEmails = async () => {
     const selectedOrders = orders.filter(order => selectedOrderIds.has(order.id));
-    
     if (selectedOrders.length === 0) {
-      toast({
-        title: "Chưa chọn đơn hàng",
-        description: "Vui lòng chọn ít nhất 1 đơn hàng",
-        variant: "destructive"
-      });
+      toast({ title: "Chưa chọn đơn hàng", description: "Vui lòng chọn ít nhất 1 đơn hàng", variant: "destructive" });
       return;
     }
 
     const ordersWithEmail = selectedOrders.filter(order => order.customer_email);
-    
     if (ordersWithEmail.length === 0) {
-      toast({
-        title: "Không có email",
-        description: "Các đơn hàng đã chọn không có email khách hàng",
-        variant: "destructive"
-      });
+      toast({ title: "Không có email", description: "Các đơn hàng đã chọn không có email khách hàng", variant: "destructive" });
       return;
     }
 
@@ -968,7 +913,6 @@ ${generateEmailContent(order)}
 
     try {
       await navigator.clipboard.writeText(allEmailsContent);
-      
       toast({
         title: "Đã copy vào clipboard!",
         description: `Nội dung ${ordersWithEmail.length} email đã được copy. Bạn có thể paste vào email client để gửi.`,
@@ -976,201 +920,18 @@ ${generateEmailContent(order)}
       });
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể copy vào clipboard. Vui lòng thử lại.",
-        variant: "destructive"
-      });
+      toast({ title: "Lỗi", description: "Không thể copy vào clipboard. Vui lòng thử lại.", variant: "destructive" });
     }
   };
-
-  const fetchNotifications = async () => {
-    setLoadingNotifications(true);
-    try {
-      const { data, error } = await supabase
-        .from('product_notifications')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setNotifications(data || []);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách thông báo",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingNotifications(false);
-    }
-  };
-
-  const sendProductNotification = async (productId: number, productName: string) => {
-    try {
-      const productUrl = `${window.location.origin}/product/${productId}`;
-      
-      const { error } = await supabase.functions.invoke('notify-product-available', {
-        body: {
-          productId,
-          productName,
-          productUrl
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Đã gửi thông báo",
-        description: `Đã gửi email cho khách hàng đăng ký sản phẩm ${productName}`,
-      });
-
-      fetchNotifications();
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể gửi thông báo",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // ========== FETCH USER LISTINGS ==========
-  const fetchUserListings = async () => {
-    setLoadingListings(true);
-    try {
-      const { data, error } = await supabase
-        .from('user_listings')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUserListings((data as any) || []);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách đăng bán",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingListings(false);
-    }
-  };
-
-  // ========== UPDATE LISTING STATUS ==========
-  const updateListingStatus = async (listingId: string, newStatus: string) => {
-    try {
-      const updateData: any = { status: newStatus };
-      const adminNote = adminNoteInputs[listingId];
-      if (adminNote) {
-        updateData.admin_note = adminNote;
-      }
-
-      const { error } = await supabase
-        .from('user_listings')
-        .update(updateData)
-        .eq('id', listingId);
-
-      if (error) throw error;
-
-      setUserListings(listings => 
-        listings.map(l => l.id === listingId ? { ...l, ...updateData } : l)
-      );
-
-      toast({
-        title: "Cập nhật thành công",
-        description: `Trạng thái: ${newStatus}`,
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể cập nhật trạng thái",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // ========== DELETE LISTING ==========
-  const deleteListing = async (listingId: string) => {
-    if (!confirm("Bạn có chắc muốn xóa bài đăng này?")) return;
-
-    try {
-      const { error } = await supabase
-        .from('user_listings')
-        .delete()
-        .eq('id', listingId);
-
-      if (error) throw error;
-
-      setUserListings(listings => listings.filter(l => l.id !== listingId));
-
-      toast({
-        title: "Đã xóa",
-        description: "Bài đăng đã được xóa",
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể xóa bài đăng",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // ========== FILTERED LISTINGS ==========
-  const filteredListings = useMemo(() => {
-    return userListings.filter(listing => {
-      const matchesSearch = listingSearchTerm === "" ||
-        listing.name.toLowerCase().includes(listingSearchTerm.toLowerCase()) ||
-        listing.listing_code.toLowerCase().includes(listingSearchTerm.toLowerCase()) ||
-        listing.seller_phone.includes(listingSearchTerm);
-      
-      const matchesStatus = listingStatusFilter === "all" || listing.status === listingStatusFilter;
-      
-      return matchesSearch && matchesStatus;
-    });
-  }, [userListings, listingSearchTerm, listingStatusFilter]);
-
-  const getListingStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
-      case 'sold': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getListingStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Chờ duyệt';
-      case 'approved': return 'Đã duyệt';
-      case 'rejected': return 'Từ chối';
-      case 'sold': return 'Đã bán';
-      default: return status;
-    }
-  };
-  // ==========================================
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'new_order':
-        return '🛒';
-      case 'delivery_update':
-        return '📦';
-      case 'payment_proof':
-        return '💳';
-      default:
-        return '🔔';
+      case 'new_order': return '🛒';
+      case 'delivery_update': return '📦';
+      case 'payment_proof': return '💳';
+      default: return '🔔';
     }
   };
-  // ==========================================================
-
-  // ======================================
 
   if (!isLoggedIn) {
     return (
@@ -1184,26 +945,13 @@ ${generateEmailContent(order)}
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
                   <Label htmlFor="username">Tên đăng nhập</Label>
-                  <Input
-                    id="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
+                  <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
                 </div>
                 <div>
                   <Label htmlFor="password">Mật khẩu</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
-                <Button type="submit" className="w-full">
-                  Đăng nhập
-                </Button>
+                <Button type="submit" className="w-full">Đăng nhập</Button>
               </form>
             </CardContent>
           </Card>
@@ -1215,19 +963,12 @@ ${generateEmailContent(order)}
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        {/* ========== HEADER VỚI CHUÔNG THÔNG BÁO ========== */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Quản lý Admin</h1>
           
           <div className="flex items-center gap-4">
-            {/* CHUÔNG THÔNG BÁO */}
             <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative"
-              >
+              <Button variant="ghost" size="icon" onClick={() => setShowNotifications(!showNotifications)} className="relative">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
@@ -1236,7 +977,6 @@ ${generateEmailContent(order)}
                 )}
               </Button>
               
-              {/* DROPDOWN THÔNG BÁO */}
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-card border rounded-lg shadow-lg z-50 max-h-[70vh] overflow-hidden">
                   <div className="p-3 border-b font-semibold flex items-center justify-between sticky top-0 bg-card">
@@ -1245,9 +985,7 @@ ${generateEmailContent(order)}
                       Thông báo ({unreadCount} chưa đọc)
                     </span>
                     {unreadCount > 0 && (
-                      <Button variant="ghost" size="sm" onClick={markAllAsRead}>
-                        Đọc tất cả
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={markAllAsRead}>Đọc tất cả</Button>
                     )}
                   </div>
                   
@@ -1295,19 +1033,13 @@ ${generateEmailContent(order)}
             </div>
 
             <Button onClick={handleLogout} variant="outline">
-              <LogOut className="h-4 w-4 mr-2" />
-              Đăng xuất
+              <LogOut className="h-4 w-4 mr-2" />Đăng xuất
             </Button>
           </div>
         </div>
-        {/* ================================================== */}
 
-        {/* CLICK OUTSIDE TO CLOSE NOTIFICATIONS */}
         {showNotifications && (
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setShowNotifications(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
         )}
 
         {isLoading ? (
@@ -1315,7 +1047,15 @@ ${generateEmailContent(order)}
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <Tabs defaultValue="stats" className="space-y-6">
+          /* --- 3. ĐỔI SANG DÙNG VALUE VÀ EVENT CONTROLLED ĐỂ LƯU TRẠNG THÁI TAB --- */
+          <Tabs 
+            value={activeTab} 
+            onValueChange={(v) => {
+              setActiveTab(v);
+              sessionStorage.setItem('admin_tab', v);
+            }} 
+            className="space-y-6"
+          >
             <TabsList className="inline-flex h-12 items-center justify-start gap-2 bg-muted p-1">
               <TabsTrigger value="product-mgmt" className="h-10 w-10 p-0" title="Quản lý sản phẩm">
                 <BoxIcon className="h-5 w-5" />
@@ -1348,7 +1088,6 @@ ${generateEmailContent(order)}
             </TabsContent>
 
             <TabsContent value="stats" className="space-y-6">
-              {/* Tổng hợp */}
               <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
                 <Card>
                   <CardContent className="pt-4 pb-3 px-4">
@@ -1376,13 +1115,10 @@ ${generateEmailContent(order)}
                 </Card>
               </div>
 
-              {/* Biểu đồ */}
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 <Card>
                   <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <CardTitle className="text-sm sm:text-base">
-                      Doanh thu ({statistics.daysCount} ngày)
-                    </CardTitle>
+                    <CardTitle className="text-sm sm:text-base">Doanh thu ({statistics.daysCount} ngày)</CardTitle>
                     <div className="flex gap-2">
                       <Popover>
                         <PopoverTrigger asChild>
@@ -1451,8 +1187,7 @@ ${generateEmailContent(order)}
                           XLSX.writeFile(wb, `doanh-thu_${format(startDate, 'ddMMyy')}-${format(endDate, 'ddMMyy')}.xlsx`);
                         }}
                       >
-                        <FileDown className="mr-1 h-3 w-3" />
-                        Xuất Excel
+                        <FileDown className="mr-1 h-3 w-3" />Xuất Excel
                       </Button>
                     </div>
                   </CardHeader>
@@ -1527,7 +1262,6 @@ ${generateEmailContent(order)}
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-
             </TabsContent>
 
             <TabsContent value="orders" className="space-y-4">
@@ -1667,13 +1401,15 @@ ${generateEmailContent(order)}
                         
                         <TableCell className="font-medium sticky left-[50px] bg-background">
                           <div className="space-y-1">
-                            <a 
-                              href={`/admin/order/${order.id}`}
-                              className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                            {/* --- 1. SỬA THÀNH BUTTON + NAVIGATE ĐỂ TRÁNH TRANH LOAD TRANG --- */}
+                            <button 
+                              onClick={() => navigate(`/admin/order/${order.id}`)}
+                              className="text-sm text-primary hover:underline font-medium flex items-center gap-1 text-left"
                             >
                               #{order.order_number || order.id.slice(0, 8)}
                               <Eye className="h-3 w-3" />
-                            </a>
+                            </button>
+                            {/* --------------------------------------------------------------- */}
                             <div className="text-xs text-muted-foreground">
                               {new Date(order.created_at).toLocaleDateString('vi-VN')}
                             </div>
@@ -1694,10 +1430,7 @@ ${generateEmailContent(order)}
                                 <Copy className="h-3 w-3" />
                               </Button>
                             </div>
-                            <a 
-                              href={`tel:${order.customer_phone}`} 
-                              className="text-xs text-primary hover:underline block"
-                            >
+                            <a href={`tel:${order.customer_phone}`} className="text-xs text-primary hover:underline block">
                               📞 {order.customer_phone}
                             </a>
                             {order.customer_email && (
@@ -1711,12 +1444,7 @@ ${generateEmailContent(order)}
                               </a>
                             )}
                             {order.customer_fb && (
-                              <a 
-                                href={order.customer_fb} 
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline block"
-                              >
+                              <a href={order.customer_fb} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline block">
                                 👥 {order.customer_fb}
                               </a>
                             )}
@@ -1785,10 +1513,7 @@ ${generateEmailContent(order)}
                                 }}
                                 className="text-xs text-primary hover:underline cursor-pointer"
                               >
-                                {expandedOrderIds.has(order.id) 
-                                  ? 'Thu gọn' 
-                                  : `+${order.items.length - 2} sản phẩm`
-                                }
+                                {expandedOrderIds.has(order.id) ? 'Thu gọn' : `+${order.items.length - 2} sản phẩm`}
                               </button>
                             )}
                           </div>
@@ -1851,36 +1576,22 @@ ${generateEmailContent(order)}
                         </TableCell>
 
                         <TableCell>
-                          <Select
-                            value={order.payment_status}
-                            onValueChange={(value) => updatePaymentStatus(order.id, value)}
-                          >
-                            <SelectTrigger className="w-[140px]">
-                              <SelectValue />
-                            </SelectTrigger>
+                          <Select value={order.payment_status} onValueChange={(value) => updatePaymentStatus(order.id, value)}>
+                            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {PAYMENT_STATUSES.map((status) => (
-                                <SelectItem key={status} value={status}>
-                                  {status}
-                                </SelectItem>
+                                <SelectItem key={status} value={status}>{status}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </TableCell>
 
                         <TableCell>
-                          <Select
-                            value={order.order_progress}
-                            onValueChange={(value) => updateOrderProgress(order.id, value)}
-                          >
-                            <SelectTrigger className="w-[140px]">
-                              <SelectValue />
-                            </SelectTrigger>
+                          <Select value={order.order_progress} onValueChange={(value) => updateOrderProgress(order.id, value)}>
+                            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {ORDER_PROGRESS.map((progress) => (
-                                <SelectItem key={progress} value={progress}>
-                                  {progress}
-                                </SelectItem>
+                                <SelectItem key={progress} value={progress}>{progress}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -1893,12 +1604,7 @@ ${generateEmailContent(order)}
                                 {(() => {
                                   const provider = findProviderByName(order.shipping_provider);
                                   return provider ? (
-                                    <img 
-                                      src={provider.logo} 
-                                      alt={provider.name}
-                                      className="h-5 w-auto object-contain"
-                                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                                    />
+                                    <img src={provider.logo} alt={provider.name} className="h-5 w-auto object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
                                   ) : null;
                                 })()}
                                 <span className="font-medium">{order.shipping_provider}</span>
@@ -1936,10 +1642,7 @@ ${generateEmailContent(order)}
                                 value={shippingInfo[order.id]?.provider || order.shipping_provider || ""}
                                 onValueChange={(value) => setShippingInfo({
                                   ...shippingInfo,
-                                  [order.id]: {
-                                    ...shippingInfo[order.id],
-                                    provider: value
-                                  }
+                                  [order.id]: { ...shippingInfo[order.id], provider: value }
                                 })}
                               >
                                 <SelectTrigger className="h-7 text-xs">
@@ -1949,12 +1652,7 @@ ${generateEmailContent(order)}
                                   {SHIPPING_PROVIDERS.map((p) => (
                                     <SelectItem key={p.id} value={p.shortName}>
                                       <div className="flex items-center gap-2">
-                                        <img 
-                                          src={p.logo} 
-                                          alt={p.name}
-                                          className="h-4 w-auto object-contain"
-                                          onError={(e) => (e.currentTarget.style.display = 'none')}
-                                        />
+                                        <img src={p.logo} alt={p.name} className="h-4 w-auto object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
                                         <span>{p.shortName}</span>
                                       </div>
                                     </SelectItem>
@@ -1967,10 +1665,7 @@ ${generateEmailContent(order)}
                                 value={shippingInfo[order.id]?.code || order.tracking_code || ""}
                                 onChange={(e) => setShippingInfo({
                                   ...shippingInfo,
-                                  [order.id]: {
-                                    ...shippingInfo[order.id],
-                                    code: e.target.value
-                                  }
+                                  [order.id]: { ...shippingInfo[order.id], code: e.target.value }
                                 })}
                               />
                               {shippingInfo[order.id]?.editing && (
@@ -2008,11 +1703,7 @@ ${generateEmailContent(order)}
                         </TableCell>
 
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteOrder(order.id)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
@@ -2033,15 +1724,10 @@ ${generateEmailContent(order)}
                     </PaginationItem>
                     {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                       let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
+                      if (totalPages <= 5) pageNum = i + 1;
+                      else if (currentPage <= 3) pageNum = i + 1;
+                      else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                      else pageNum = currentPage - 2 + i;
                       return (
                         <PaginationItem key={pageNum}>
                           <PaginationLink
@@ -2073,14 +1759,11 @@ ${generateEmailContent(order)}
               <DiscountCodeManagement />
             </TabsContent>
 
-
-            {/* ========== QUẢN LÝ MASTER ========== */}
             <TabsContent value="master-mgmt">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Layers className="h-5 w-5" />
-                    Quản lý Master
+                    <Layers className="h-5 w-5" />Quản lý Master
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -2089,19 +1772,16 @@ ${generateEmailContent(order)}
               </Card>
             </TabsContent>
 
-            {/* ========== THEO DÕI TIẾN ĐỘ SẢN PHẨM ========== */}
             <TabsContent value="product-tracking">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Eye className="h-5 w-5" />
-                    Theo dõi tiến độ sản phẩm
+                    <Eye className="h-5 w-5" />Theo dõi tiến độ sản phẩm
                   </CardTitle>
                   <CardDescription>Tổng hợp sản phẩm đã đặt từ tất cả đơn hàng (trừ đơn huỷ)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    // Aggregate all items from non-cancelled orders
                     const itemMap = new Map<string, { 
                       productId: number; 
                       name: string; 
@@ -2139,12 +1819,8 @@ ${generateEmailContent(order)}
                     });
                     
                     const aggregated = Array.from(itemMap.values()).sort((a, b) => b.totalQty - a.totalQty);
-                    
-                    if (aggregated.length === 0) {
-                      return <p className="text-sm text-muted-foreground">Chưa có đơn hàng nào</p>;
-                    }
+                    if (aggregated.length === 0) return <p className="text-sm text-muted-foreground">Chưa có đơn hàng nào</p>;
 
-                    // Get unique product names and statuses for filters
                     const uniqueNames = Array.from(new Set(aggregated.map(i => i.name))).sort();
                     const allStatuses = Array.from(new Set(aggregated.flatMap(i => Object.keys(i.progress)))).sort();
                     
@@ -2156,7 +1832,6 @@ ${generateEmailContent(order)}
               </Card>
             </TabsContent>
 
-            {/* ========== CÀI ĐẶT ========== */}
             <TabsContent value="settings">
               <AdminSettings />
             </TabsContent>
