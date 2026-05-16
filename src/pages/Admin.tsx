@@ -1402,10 +1402,12 @@ ${generateEmailContent(order)}
                         <TableCell className="font-medium sticky left-[50px] bg-background">
                           <div className="space-y-1">
                             {/* --- 1. SỬA THÀNH BUTTON + NAVIGATE ĐỂ TRÁNH TRANH LOAD TRANG --- */}
-                            <button 
-                              onClick={() => navigate(`/admin/order/${order.id}`)}
-                              className="text-sm text-primary hover:underline font-medium flex items-center gap-1 text-left"
-                            >
+                            <a 
+  href={`/admin/order/${order.id}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+>
                               #{order.order_number || order.id.slice(0, 8)}
                               <Eye className="h-3 w-3" />
                             </button>
