@@ -1410,7 +1410,7 @@ ${generateEmailContent(order)}
 >
                               #{order.order_number || order.id.slice(0, 8)}
                               <Eye className="h-3 w-3" />
-                            </button>
+                            </a>
                             {/* --------------------------------------------------------------- */}
                             <div className="text-xs text-muted-foreground">
                               {new Date(order.created_at).toLocaleDateString('vi-VN')}
