@@ -328,6 +328,10 @@ export default function ProductDetail() {
             <div className="border rounded-lg divide-y divide-border/60">
               <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Mô tả</span><span className="text-sm text-foreground/90">{product.description || "—"}</span></div>
               <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Kích thước</span><span className="text-sm text-foreground/90">{product.size || "—"}</span></div>
+              <div className="p-3 md:p-4 flex gap-4">
+  <span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Bao gồm</span>
+  <span className="text-sm text-foreground/90">{product.includes || "—"}</span>
+</div>
               <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
             </div>
 
