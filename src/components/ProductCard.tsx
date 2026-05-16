@@ -41,7 +41,7 @@ export function ProductCard({ product }: { product: Product }) {
   const thumbnail = product.images[0] || "https://i.imgur.com/placeholder.png";
   
   const minPriceValue = getMinPrice(product.variants, product.price);
-  const priceDisplay = formatPrice(minPriceValue);
+const priceDisplay = minPriceValue === 0 ? "Liên hệ" : formatPrice(minPriceValue);
 
   let availableStock: number | undefined;
   let isOutOfStock: boolean = false;
