@@ -53,6 +53,12 @@ interface DiscountCode {
   applicable_product_ids: number[] | null;
 }
 
+interface PaymentProofData {
+  buffer: Uint8Array;
+  type: string;
+  name: string;
+}
+
 export default function Checkout() {
   const { cartItems, totalPrice, clearCart, updateQuantity, removeFromCart, syncCartWithServer } = useCart();
   const { toast } = useToast();
@@ -88,6 +94,7 @@ export default function Checkout() {
   const [deliveryInfo, setDeliveryInfo] = useState({ name: "", phone: "", address: "", note: "" });
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [paymentProofData, setPaymentProofData] = useState<PaymentProofData | null>(null);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
@@ -171,9 +178,21 @@ export default function Checkout() {
 
   const finalPrice = Math.max(0, totalPrice - discountAmount);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ← ĐỌC FILE NGAY KHI CHỌN để tránh Android revoke quyền truy cập
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setPaymentProof(e.target.files[0]);
+      const file = e.target.files[0];
+      setPaymentProof(file); // giữ để hiện tên file
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        setPaymentProofData({
+          buffer: new Uint8Array(arrayBuffer),
+          type: file.type,
+          name: file.name,
+        });
+      } catch {
+        toast({ title: "Lỗi đọc file", description: "Không thể đọc file ảnh. Vui lòng thử lại.", variant: "destructive" });
+      }
     }
   };
 
@@ -187,7 +206,7 @@ export default function Checkout() {
       return;
     }
 
-    if (!paymentProof) {
+    if (!paymentProofData) {
       toast({ title: "Lỗi", description: "Vui lòng đăng bill chuyển khoản.", variant: "destructive" });
       return;
     }
@@ -197,8 +216,7 @@ export default function Checkout() {
     try {
       let paymentProofUrl = null;
 
-      if (paymentProof) {
-        // ← DÙNG DYNAMIC IMPORT để tránh lỗi Buffer trên Safari/iOS
+      if (paymentProofData) {
         const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
 
         const r2Client = new S3Client({
@@ -210,16 +228,14 @@ export default function Checkout() {
           },
         });
 
-        const fileExt = paymentProof.name.split('.').pop();
+        const fileExt = paymentProofData.name.split('.').pop();
         const fileName = `bill-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
-        const arrayBuffer = await paymentProof.arrayBuffer();
-        const fileContent = new Uint8Array(arrayBuffer);
 
         await r2Client.send(new PutObjectCommand({
           Bucket: "product-images",
           Key: fileName,
-          Body: fileContent,
-          ContentType: paymentProof.type,
+          Body: paymentProofData.buffer,
+          ContentType: paymentProofData.type,
         }));
 
         paymentProofUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
@@ -426,8 +442,9 @@ export default function Checkout() {
               <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
                 <Label className="font-semibold text-lg mb-3 block">Đăng bill chuyển khoản *</Label>
                 <InAppUploadNotice />
-                <Input type="file" accept="image/*" onChange={handleFileChange} required className="cursor-pointer mt-2" />
+                <Input type="file" accept="image/*" onChange={handleFileChange} className="cursor-pointer mt-2" />
                 {paymentProof && <p className="mt-2 text-sm text-green-600 font-medium">✓ {paymentProof.name}</p>}
+                {paymentProofData && <p className="mt-1 text-xs text-green-600">✓ Đã đọc file thành công</p>}
                 <p className="text-xs text-muted-foreground mt-2 italic">* Vui lòng upload bill trước khi bấm đặt hàng.</p>
               </div>
             </div>
