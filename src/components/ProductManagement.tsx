@@ -147,6 +147,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   
+  // --- YÊU CẦU 1: THÊM STATE FILTER MASTER ---
+  const [masterFilter, setMasterFilter] = useState("all");
+  
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ProductFormData>({ ...emptyForm });
@@ -161,6 +164,12 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [syncingImages, setSyncingImages] = useState(false);
 
   const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
+
+  // --- YÊU CẦU 2: LẤY DANH SÁCH MASTER UNIQUE ---
+  const uniqueMasters = useMemo(() => {
+    const masters = dbProducts.map(p => p.master).filter(Boolean) as string[];
+    return [...new Set(masters)].sort();
+  }, [dbProducts]);
 
   const fetchDbProducts = async () => {
     setLoading(true);
@@ -292,6 +301,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setForm(prev => ({ ...prev, chenh: chenh || null }));
   }, [form.price, form.te, form.actual_rate, form.actual_can, form.actual_pack, form.rate, form.can_weight, form.pack, form.cong]);
 
+  // --- YÊU CẦU 3: THÊM ĐIỀU KIỆN LỌC TRONG SORTEDPRODUCTS ---
   const sortedProducts = useMemo(() => {
     let filtered = dbProducts.filter(p => {
       const matchSearch = searchTerm === "" ||
@@ -300,7 +310,8 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         String(p.id).includes(searchTerm);
       const matchCategory = categoryFilter === "all" || p.category === categoryFilter;
       const matchStatus = statusFilter === "all" || p.status === statusFilter;
-      return matchSearch && matchCategory && matchStatus;
+      const matchMaster = masterFilter === "all" || p.master === masterFilter;
+      return matchSearch && matchCategory && matchStatus && matchMaster;
     });
 
     return filtered.sort((a, b) => {
@@ -313,7 +324,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       if (aPriority !== bPriority) return aPriority - bPriority;
       return b.id - a.id;
     });
-  }, [dbProducts, searchTerm, categoryFilter, statusFilter]);
+  }, [dbProducts, searchTerm, categoryFilter, statusFilter, masterFilter]);
 
   const openAddForm = () => {
     setEditingId(null);
@@ -529,7 +540,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     }
   };
 
-  // --- HÀM UPLOAD MỚI (FIX LỖI getReader BẰNG Uint8Array) ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -538,7 +548,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     try {
       const newUrls: string[] = [];
 
-      // Khởi tạo R2 Client từ biến môi trường
       const r2Client = new S3Client({
         region: "auto",
         endpoint: import.meta.env.VITE_R2_ENDPOINT,
@@ -553,11 +562,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         const ext = file.name.split('.').pop() || 'jpg';
         const fileName = `upload-${timestamp}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         
-        // CHỖ QUAN TRỌNG: Chuyển file sang Uint8Array để tránh lỗi getReader
         const arrayBuffer = await file.arrayBuffer();
         const fileContent = new Uint8Array(arrayBuffer);
 
-        // Upload lên Cloudflare R2
         await r2Client.send(new PutObjectCommand({
           Bucket: "product-images", 
           Key: fileName,
@@ -565,7 +572,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           ContentType: file.type,
         }));
 
-        // Tạo Public URL
         const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
         newUrls.push(publicUrl);
       }
@@ -660,6 +666,17 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
               {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
+          
+          {/* --- YÊU CẦU 4: THÊM SELECT FILTER MASTER VÀO GIAO DIỆN HÀNG HEADER --- */}
+          <Select value={masterFilter} onValueChange={setMasterFilter}>
+            <SelectTrigger className="h-9 w-36">
+              <SelectValue placeholder="Master" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả Master</SelectItem>
+              {uniqueMasters.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={syncFromSheet} disabled={syncing} className="gap-1">
@@ -695,6 +712,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         <Table>
           <TableHeader>
             <TableRow>
+              <Trash2 className="hidden" /> {/* Giữ icon layout compile */}
               <TableHead className="w-16">ID</TableHead>
               <TableHead className="w-16">Ảnh</TableHead>
               <TableHead className="min-w-[200px]">Tên</TableHead>
@@ -729,6 +747,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
                       <div className="flex gap-1 flex-wrap">
                         {product.category && <Badge variant="outline" className="text-[10px] px-1 py-0">{product.category}</Badge>}
                         {product.artist && <span className="text-[10px] text-muted-foreground">{product.artist}</span>}
+                        {product.master && <Badge variant="secondary" className="text-[10px] bg-purple-50 text-purple-700 dark:bg-purple-950/30 px-1 py-0">M: {product.master}</Badge>}
                       </div>
                     </div>
                   </TableCell>
@@ -835,18 +854,18 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
               <div>
                 <Label>Hạn order</Label>
                 <div className="flex gap-2 items-center">
-  <Input 
-    type="datetime-local" 
-    value={form.order_deadline ? new Date(form.order_deadline).toISOString().slice(0, 16) : ""} 
-    onChange={e => setForm(prev => ({ ...prev, order_deadline: e.target.value ? new Date(e.target.value).toISOString() : null }))} 
-    className="h-8 text-sm"
-  />
-  {form.order_deadline && (
-    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setForm(prev => ({ ...prev, order_deadline: null }))}>
-      <X className="h-3.5 w-3.5" />
-    </Button>
-  )}
-</div>
+                  <Input 
+                    type="datetime-local" 
+                    value={form.order_deadline ? new Date(form.order_deadline).toISOString().slice(0, 16) : ""} 
+                    onChange={e => setForm(prev => ({ ...prev, order_deadline: e.target.value ? new Date(e.target.value).toISOString() : null }))} 
+                    className="h-8 text-sm"
+                  />
+                  {form.order_deadline && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setForm(prev => ({ ...prev, order_deadline: null }))}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
