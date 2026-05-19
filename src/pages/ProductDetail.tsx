@@ -255,20 +255,12 @@ export default function ProductDetail() {
                 <Carousel className="w-full" setApi={setCarouselApi}>
                 <CarouselContent>
                     {product.images.map((image, index) => {
-                      const variantName = product.variantImageMap 
-                        ? Object.keys(product.variantImageMap).find(key => product.variantImageMap![key] === index)
-                        : null;
+                      
 
                       return (
                         <CarouselItem key={index}>
                           <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
                               <img src={image} alt={`${product.name}`} className="w-auto h-auto max-w-full max-h-[350px] md:max-h-[400px] object-contain" />
-                              {variantName && (
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                  <p className="text-white text-xs font-medium opacity-80 uppercase tracking-wider line-clamp-1">{variantName}</p>
-                                  <p className="text-white text-lg font-bold">{currentPrice > 0 ? currentPrice.toLocaleString('vi-VN') : product.price.toLocaleString('vi-VN')}đ</p>
-                                </div>
-                              )}
                           </div>
                         </CarouselItem>
                       );
