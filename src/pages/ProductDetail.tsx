@@ -227,25 +227,31 @@ export default function ProductDetail() {
   if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
 
   const renderPrice = () => {
-  const priceDisplay = product.priceDisplay || (product as any).price;
-  
-  if (product.price === 0 && (!product.variants || product.variants.length === 0)) {
-    return priceDisplay && priceDisplay !== "0đ" ? priceDisplay : "Liên hệ";
+  // 1. Nếu đã chọn một phân loại cụ thể (Biến thể)
+  if (selectedVariant) {
+    return currentPrice > 0 ? `${currentPrice.toLocaleString('vi-VN')}đ` : "Liên hệ";
   }
-  if (product.variants && product.variants.every(v => v.price === 0)) {
-    return priceDisplay && priceDisplay !== "0đ" ? priceDisplay : "Liên hệ";
-  }
-  if (selectedVariant && currentPrice > 0) return `${currentPrice.toLocaleString('vi-VN')}đ`;
-  if (selectedVariant && currentPrice === 0) return "Liên hệ";
+
+  // 2. Nếu sản phẩm có danh sách nhiều phân loại biến thể
   if (product.variants && product.variants.length > 0) {
-    const prices = product.variants.map(v => v.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    if (minPrice === maxPrice) return minPrice === 0 ? "Liên hệ" : `${minPrice.toLocaleString('vi-VN')}đ`;
-    return `Từ ${minPrice.toLocaleString('vi-VN')}đ`;
+    // Trường hợp đặc biệt: Tất cả biến thể đều cấu hình giá bằng 0
+    if (product.variants.every(v => v.price === 0)) return "Liên hệ";
+
+    const prices = product.variants.map(v => v.price).filter(p => p > 0);
+    if (prices.length > 0) {
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (minPrice === maxPrice) {
+        return `${minPrice.toLocaleString('vi-VN')}đ`;
+      }
+      return `Từ ${minPrice.toLocaleString('vi-VN')}đ`;
+    }
   }
-  if (priceDisplay && priceDisplay !== "0đ") return priceDisplay;
-  return `${product.price.toLocaleString('vi-VN')}đ`;
+
+  // 3. Trường hợp sản phẩm không có phân loại (Hoặc chưa chọn phân loại)
+  // Nếu price = 0 thì hiện "Liên hệ", ngược lại hiện đúng giá trị số của price
+  return product.price === 0 ? "Liên hệ" : `${product.price.toLocaleString('vi-VN')}đ`;
 };
 
   return (
