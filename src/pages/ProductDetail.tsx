@@ -227,7 +227,7 @@ export default function ProductDetail() {
   if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
 
   const renderPrice = () => {
-  const priceDisplay = product.priceDisplay || (product as any).price_display;
+  const priceDisplay = product.priceDisplay || (product as any).price;
   
   if (product.price === 0 && (!product.variants || product.variants.length === 0)) {
     return priceDisplay && priceDisplay !== "0đ" ? priceDisplay : "Liên hệ";
