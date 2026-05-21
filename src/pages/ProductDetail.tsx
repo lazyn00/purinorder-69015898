@@ -227,11 +227,14 @@ export default function ProductDetail() {
   if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
 
   const renderPrice = () => {
+  const priceDisplay = product.priceDisplay || (product as any).price_display;
+  
   if (product.price === 0 && (!product.variants || product.variants.length === 0)) {
-    // Nếu có price_display thì dùng nó, không thì hiện Liên hệ
-    return product.priceDisplay && product.priceDisplay !== "0đ" ? product.priceDisplay : "Liên hệ";
+    return priceDisplay && priceDisplay !== "0đ" ? priceDisplay : "Liên hệ";
   }
-  if (product.variants && product.variants.every(v => v.price === 0)) return "Liên hệ";
+  if (product.variants && product.variants.every(v => v.price === 0)) {
+    return priceDisplay && priceDisplay !== "0đ" ? priceDisplay : "Liên hệ";
+  }
   if (selectedVariant && currentPrice > 0) return `${currentPrice.toLocaleString('vi-VN')}đ`;
   if (selectedVariant && currentPrice === 0) return "Liên hệ";
   if (product.variants && product.variants.length > 0) {
@@ -241,6 +244,7 @@ export default function ProductDetail() {
     if (minPrice === maxPrice) return minPrice === 0 ? "Liên hệ" : `${minPrice.toLocaleString('vi-VN')}đ`;
     return `Từ ${minPrice.toLocaleString('vi-VN')}đ`;
   }
+  if (priceDisplay && priceDisplay !== "0đ") return priceDisplay;
   return `${product.price.toLocaleString('vi-VN')}đ`;
 };
 
