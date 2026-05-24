@@ -146,11 +146,14 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  
   const [masterFilter, setMasterFilter] = useState("all");
   
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  
+  // --- CHỖ THỬ 1: THÊM STATE ĐỂ GIỮ CHÂN ORIGINAL ID GỐC ---
+  const [originalId, setOriginalId] = useState<number | null>(null);
+  
   const [form, setForm] = useState<ProductFormData>({ ...emptyForm });
   
   const [variantInputs, setVariantInputs] = useState<{ name: string; price: number; stock?: number }[]>([]);
@@ -333,6 +336,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
 
   const openAddForm = () => {
     setEditingId(null);
+    setOriginalId(null); // Clear ID gốc khi add mới
     const draft = localStorage.getItem(DRAFT_KEY);
     if (draft) {
       try {
@@ -356,6 +360,10 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
 
   const openEditForm = (product: SupabaseProduct) => {
     setEditingId(product.id);
+    
+    // --- CHỖ THỬ 2: KHỞI TẠO VÀ LƯU GIỮ ID BAN ĐẦU CỦA SẢN PHẨM ---
+    setOriginalId(product.id);
+    
     setForm({
       name: product.name,
       te: product.te,
@@ -455,17 +463,35 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       };
 
       if (editingId) {
-        // --- CHỖ 3: CẬP NHẬT CẢ ID MỚI KHI EDIT SẢN PHẨM ---
-        const originalId = dbProducts.find(p => p.id === editingId)?.id ?? editingId;
-        const { error } = await supabase
-          .from('products')
-          .update({ ...saveData, id: editingId })
-          .eq('id', originalId);
-          
-        if (error) throw error;
-        toast({ title: "Đã cập nhật", description: `Sản phẩm #${editingId} đã được lưu` });
+        // --- CHỖ THỬ 3: SỬA LOGIC UPDATE/RE-INSERT KHI ĐỔI PRIMARY KEY ID ---
+        const isChangingId = editingId !== originalId;
+        
+        if (isChangingId) {
+          // BƯỚC A: Thêm dòng mới mang thông tin cũ gộp ID mới tinh
+          const { error: insertError } = await supabase
+            .from('products')
+            .insert({ ...saveData, id: editingId, owner: currentUser || 'Admin' } as any);
+          if (insertError) throw insertError;
+
+          // BƯỚC B: Gỡ bỏ dòng cũ mang ID cũ ra khỏi Database
+          const { error: deleteError } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', originalId);
+          if (deleteError) throw deleteError;
+
+          toast({ title: "Đã cập nhật", description: `Đã đổi ID sản phẩm công khai: #${originalId} → #${editingId}` });
+        } else {
+          // Nếu không thay đổi ID số thì chạy update thông tin như thường lệ
+          const { error } = await supabase
+            .from('products')
+            .update(saveData)
+            .eq('id', editingId);
+          if (error) throw error;
+          toast({ title: "Đã cập nhật", description: `Sản phẩm #${editingId} đã được lưu thành công` });
+        }
       } else {
-        // --- CHỖ 1: TỰ TÍNH ID TIẾP THEO KHI THÊM MỚI ---
+        // Tạo mới tự động cộng dồn số ID lớn nhất
         const maxId = dbProducts.length > 0 ? Math.max(...dbProducts.map(p => p.id)) : 0;
         const nextId = maxId + 1;
         
@@ -484,7 +510,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       refetchProducts();
     } catch (error: any) {
       console.error('Error saving product:', error);
-      toast({ title: "Lỗi", description: error.message || "Không thể lưu sản phẩm", variant: "destructive" });
+      toast({ title: "Lỗi hệ thống", description: error.message || "Không thể lưu thay đổi", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -511,6 +537,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
 
   const duplicateProduct = (product: SupabaseProduct) => {
     setEditingId(null);
+    setOriginalId(null);
     setForm({
       name: `${product.name} (Copy)`,
       te: product.te,
@@ -860,7 +887,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
-              {/* --- CHỒ SỐ 2: THÊM Ô NHẬP ID CHỈ XUẤT HIỆN KHI ĐANG EDIT --- */}
+              {/* --- CHỖ SỬA 2: ĐỒNG BỘ HIỂN THỊ Ô SỬA ID TRONG DIALOG --- */}
               {editingId && (
                 <div className="md:col-span-2 bg-muted/30 p-3 rounded-lg border border-dashed">
                   <Label className="text-xs font-bold text-primary">ID sản phẩm (Chỉnh sửa số để sắp xếp)</Label>
