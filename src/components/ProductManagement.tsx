@@ -157,7 +157,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [optionGroupInputs, setOptionGroupInputs] = useState<{ name: string; options: string }[]>([]);
   const [imageInputs, setImageInputs] = useState<string[]>([]);
 
-  // --- FEATURE 2: CẤU HÌNH ĐỊNH DANH KEY LƯU NHÁP ---
   const DRAFT_KEY = `product_draft_${currentUser}`;
   
   const [syncing, setSyncing] = useState(false);
@@ -302,7 +301,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setForm(prev => ({ ...prev, chenh: chenh || null }));
   }, [form.price, form.te, form.actual_rate, form.actual_can, form.actual_pack, form.rate, form.can_weight, form.pack, form.cong]);
 
-  // --- FEATURE 2: TIMEOUT EFFECT TỰ ĐỘNG LƯU NHÁP ---
   useEffect(() => {
     if (!showForm || editingId) return;
     const draft = { form, variantInputs, imageInputs, optionGroupInputs };
@@ -333,7 +331,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     });
   }, [dbProducts, searchTerm, categoryFilter, statusFilter, masterFilter]);
 
-  // --- FEATURE 2: HÀM KHỞI TẠO HOẶC KHÔI PHỤC BẢN NHÁP ---
   const openAddForm = () => {
     setEditingId(null);
     const draft = localStorage.getItem(DRAFT_KEY);
@@ -458,22 +455,29 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       };
 
       if (editingId) {
+        // --- CHỖ 3: CẬP NHẬT CẢ ID MỚI KHI EDIT SẢN PHẨM ---
+        const originalId = dbProducts.find(p => p.id === editingId)?.id ?? editingId;
         const { error } = await supabase
           .from('products')
-          .update(saveData)
-          .eq('id', editingId);
+          .update({ ...saveData, id: editingId })
+          .eq('id', originalId);
+          
         if (error) throw error;
         toast({ title: "Đã cập nhật", description: `Sản phẩm #${editingId} đã được lưu` });
       } else {
+        // --- CHỖ 1: TỰ TÍNH ID TIẾP THEO KHI THÊM MỚI ---
+        const maxId = dbProducts.length > 0 ? Math.max(...dbProducts.map(p => p.id)) : 0;
+        const nextId = maxId + 1;
+        
         const { error } = await supabase
           .from('products')
-          .insert({ ...saveData, owner: currentUser || 'Admin' } as any);
+          .insert({ ...saveData, id: nextId, owner: currentUser || 'Admin' } as any);
+          
         if (error) throw error;
-        toast({ title: "Đã thêm", description: "Sản phẩm mới đã được tạo" });
+        toast({ title: "Đã thêm", description: `Sản phẩm #${nextId} đã được tạo` });
       }
 
       setShowForm(false);
-      // --- FEATURE 2: XÓA BẢN NHÁP KHI LƯU THÀNH CÔNG ---
       localStorage.removeItem(DRAFT_KEY);
 
       fetchDbProducts();
@@ -802,7 +806,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
                     <div className="flex gap-1 justify-end items-center flex-wrap">
                       <ProductExportButtons product={product as any} />
                       
-                      {/* --- FEATURE 1: NÚT COPY LINK SẢN PHẨM TRONG BẢNG --- */}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -856,6 +859,21 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* --- CHỒ SỐ 2: THÊM Ô NHẬP ID CHỈ XUẤT HIỆN KHI ĐANG EDIT --- */}
+              {editingId && (
+                <div className="md:col-span-2 bg-muted/30 p-3 rounded-lg border border-dashed">
+                  <Label className="text-xs font-bold text-primary">ID sản phẩm (Chỉnh sửa số để sắp xếp)</Label>
+                  <Input
+                    type="number"
+                    value={editingId}
+                    onChange={e => setEditingId(Number(e.target.value) || editingId)}
+                    className="h-8 text-sm mt-1 w-full sm:w-48 font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">💡 ID lớn hơn sẽ được tự động xếp lên trước trên trang chủ shop.</p>
+                </div>
+              )}
+              
               <div className="md:col-span-2">
                 <Label>Tên sản phẩm *</Label>
                 <Input value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
