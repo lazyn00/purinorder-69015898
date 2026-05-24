@@ -147,7 +147,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   
-  // --- YÊU CẦU 1: THÊM STATE FILTER MASTER ---
   const [masterFilter, setMasterFilter] = useState("all");
   
   const [showForm, setShowForm] = useState(false);
@@ -157,6 +156,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [variantInputs, setVariantInputs] = useState<{ name: string; price: number; stock?: number }[]>([]);
   const [optionGroupInputs, setOptionGroupInputs] = useState<{ name: string; options: string }[]>([]);
   const [imageInputs, setImageInputs] = useState<string[]>([]);
+
+  // --- FEATURE 2: CẤU HÌNH ĐỊNH DANH KEY LƯU NHÁP ---
+  const DRAFT_KEY = `product_draft_${currentUser}`;
   
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -165,7 +167,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
 
   const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
 
-  // --- YÊU CẦU 2: LẤY DANH SÁCH MASTER UNIQUE ---
   const uniqueMasters = useMemo(() => {
     const masters = dbProducts.map(p => p.master).filter(Boolean) as string[];
     return [...new Set(masters)].sort();
@@ -301,7 +302,13 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setForm(prev => ({ ...prev, chenh: chenh || null }));
   }, [form.price, form.te, form.actual_rate, form.actual_can, form.actual_pack, form.rate, form.can_weight, form.pack, form.cong]);
 
-  // --- YÊU CẦU 3: THÊM ĐIỀU KIỆN LỌC TRONG SORTEDPRODUCTS ---
+  // --- FEATURE 2: TIMEOUT EFFECT TỰ ĐỘNG LƯU NHÁP ---
+  useEffect(() => {
+    if (!showForm || editingId) return;
+    const draft = { form, variantInputs, imageInputs, optionGroupInputs };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [form, variantInputs, imageInputs, optionGroupInputs, showForm, editingId]);
+
   const sortedProducts = useMemo(() => {
     let filtered = dbProducts.filter(p => {
       const matchSearch = searchTerm === "" ||
@@ -326,8 +333,23 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     });
   }, [dbProducts, searchTerm, categoryFilter, statusFilter, masterFilter]);
 
+  // --- FEATURE 2: HÀM KHỞI TẠO HOẶC KHÔI PHỤC BẢN NHÁP ---
   const openAddForm = () => {
     setEditingId(null);
+    const draft = localStorage.getItem(DRAFT_KEY);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        if (confirm("Có nháp chưa lưu, bạn muốn tiếp tục không?")) {
+          setForm(parsed.form || { ...emptyForm });
+          setVariantInputs(parsed.variantInputs || []);
+          setImageInputs(parsed.imageInputs || [""]);
+          setOptionGroupInputs(parsed.optionGroupInputs || []);
+          setShowForm(true);
+          return;
+        }
+      } catch {}
+    }
     setForm({ ...emptyForm });
     setVariantInputs([]);
     setOptionGroupInputs([]);
@@ -451,6 +473,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       }
 
       setShowForm(false);
+      // --- FEATURE 2: XÓA BẢN NHÁP KHI LƯU THÀNH CÔNG ---
+      localStorage.removeItem(DRAFT_KEY);
+
       fetchDbProducts();
       refetchProducts();
     } catch (error: any) {
@@ -667,7 +692,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
             </SelectContent>
           </Select>
           
-          {/* --- YÊU CẦU 4: THÊM SELECT FILTER MASTER VÀO GIAO DIỆN HÀNG HEADER --- */}
           <Select value={masterFilter} onValueChange={setMasterFilter}>
             <SelectTrigger className="h-9 w-36">
               <SelectValue placeholder="Master" />
@@ -712,7 +736,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         <Table>
           <TableHeader>
             <TableRow>
-              <Trash2 className="hidden" /> {/* Giữ icon layout compile */}
+              <Trash2 className="hidden" />
               <TableHead className="w-16">ID</TableHead>
               <TableHead className="w-16">Ảnh</TableHead>
               <TableHead className="min-w-[200px]">Tên</TableHead>
@@ -777,6 +801,21 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end items-center flex-wrap">
                       <ProductExportButtons product={product as any} />
+                      
+                      {/* --- FEATURE 1: NÚT COPY LINK SẢN PHẨM TRONG BẢNG --- */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Copy link sản phẩm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/product/${product.id}`);
+                          toast({ title: "Đã copy link!" });
+                        }}
+                      >
+                        <Link className="h-3.5 w-3.5" />
+                      </Button>
+                      
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateProduct(product)} title="Sao chép">
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
