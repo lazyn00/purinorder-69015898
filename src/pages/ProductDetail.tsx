@@ -46,6 +46,12 @@ const getVariantStock = (product: Product, variantName: string): number | undefi
     return product.stock;
 };
 
+// Hàm tính tổng tồn kho của tất cả các biến thể để check trạng thái hết hàng tổng thể
+const getTotalVariantsStock = (product: Product): number => {
+  if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
+  return product.variants.reduce((total, v) => total + (v.stock ?? 0), 0);
+};
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -120,14 +126,17 @@ export default function ProductDetail() {
             return acc;
         }, {} as { [key: string]: string });
         setSelectedOptions(initialOptions);
-        setAvailableStock(undefined);
+        // Sửa ở đây: Nếu chưa chọn option, lấy tổng kho của các option để check xem có hết hàng tổng thể không
+        setAvailableStock(getTotalVariantsStock(product));
       } else if (product.variants && product.variants.length === 1) {
           const firstVariant = product.variants[0];
           setSelectedVariant(firstVariant.name);
           setCurrentPrice(firstVariant.price);
           setAvailableStock(getVariantStock(product, firstVariant.name) ?? 0);
+      } else if (product.variants && product.variants.length > 1) {
+          // Trường hợp dùng list variant đơn giản không qua optionGroups
+          setAvailableStock(getTotalVariantsStock(product));
       } else {
-        // Tồn kho để trống (null/undefined) tự động chuyển sang số 0 (Hết hàng)
         setAvailableStock(product.stock ?? 0);
       }
     }
@@ -150,11 +159,12 @@ export default function ProductDetail() {
         } else {
           setSelectedVariant("");
           setCurrentPrice(product.price);
-          setAvailableStock(undefined);
+          setAvailableStock(0); // Không tìm thấy variant phù hợp coi như = 0
         }
     } else {
+        // Nếu chưa chọn đầy đủ các option, vẫn giữ tổng kho của sản phẩm để check trạng thái hết hàng tổng thể
         setSelectedVariant("");
-        setAvailableStock(undefined);
+        setAvailableStock(getTotalVariantsStock(product));
     }
   }, [selectedOptions, product, carouselApi]);
 
@@ -382,9 +392,9 @@ export default function ProductDetail() {
               <div className="flex items-center gap-4">
                 {availableStock !== undefined && <span className="text-xs font-medium text-muted-foreground">{availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500">Hết hàng</span>}</span>}
                 <div className="flex items-center border rounded-md h-10 bg-background">
-                    <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1} className="h-full"><Minus className="h-3 w-3" /></Button>
-                    <Input type="number" value={quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0 font-bold" />
-                    <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={availableStock !== undefined && quantity >= availableStock} className="h-full"><Plus className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1 || availableStock === 0} className="h-full"><Minus className="h-3 w-3" /></Button>
+                    <Input type="number" value={availableStock === 0 ? 0 : quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0 font-bold" />
+                    <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={availableStock !== undefined && (quantity >= availableStock || availableStock === 0)} className="h-full"><Plus className="h-3 w-3" /></Button>
                 </div>
               </div>
             </div>
