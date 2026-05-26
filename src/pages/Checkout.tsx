@@ -213,7 +213,7 @@ export default function Checkout() {
     setIsSubmitting(true);
 
     try {
-      // --- LOGIC KIỂM TRA TỒN KHO & HẠN CHÓT MỚI NHẤT TẠI THỜI ĐIỂM SUBMIT ---
+      // --- LOGIC KIỂM TRA TỒN KHO PHÂN CẤP & HẠN CHÓT MỚI NHẤT TẠI THỜI ĐIỂM SUBMIT ---
       for (const item of cartItems) {
         const { data: realProduct, error: fetchError } = await supabase
           .from('products')
@@ -238,31 +238,41 @@ export default function Checkout() {
           return;
         }
 
-        // B. Kiểm tra tồn kho (Bọc an toàn: để trống kho đồng nghĩa với số 0 - Hết hàng)
+        // B. ÁP DỤNG QUY TẮC KIỂM TRA TỒN KHO THEO PHÂN CẤP DỰ PHÒNG CHUẨN XÁC
+        let finalAvailableStock = 0;
+
         if (item.selectedVariant && item.selectedVariant !== item.name && realProduct.variants) {
           const currentVariant = realProduct.variants.find((v: any) => v.name === item.selectedVariant);
-          const variantStock = currentVariant?.stock ?? 0; // Để trống mặc định về 0
           
-          if (variantStock <= 0 || item.quantity > variantStock) {
-            toast({
-              title: "Hết hàng hoặc không đủ tồn kho",
-              description: `Phân loại "${item.selectedVariant}" của "${realProduct.name}" hiện tại đã hết hàng hoặc không đủ số lượng bạn cần.`,
-              variant: "destructive"
-            });
-            setIsSubmitting(false);
-            return;
+          // Kiểm tra xem stock của phân loại biến thể có được thiết lập hợp lệ không
+          if (currentVariant && currentVariant.stock !== null && currentVariant.stock !== undefined) {
+            finalAvailableStock = currentVariant.stock; // Lấy tồn kho riêng của phân loại
+          } else {
+            finalAvailableStock = realProduct.stock ?? 0; // Phân loại trống kho -> Dự phòng lấy kho chung sản phẩm
           }
         } else {
-          const mainStock = realProduct.stock ?? 0; // Để trống mặc định về 0
-          if (mainStock <= 0 || item.quantity > mainStock) {
-            toast({
-              title: "Hết hàng hoặc không đủ tồn kho",
-              description: `Sản phẩm "${realProduct.name}" hiện tại đã hết hàng hoặc không đủ số lượng bạn cần.`,
-              variant: "destructive"
-            });
-            setIsSubmitting(false);
-            return;
-          }
+          finalAvailableStock = realProduct.stock ?? 0; // Sản phẩm thường không biến thể
+        }
+
+        // C. TIẾN HÀNH ĐỐI CHIẾU SỐ LƯỢNG ĐẶT MUA MỚI NHẤT
+        if (finalAvailableStock <= 0) {
+          toast({
+            title: "Hết hàng hoặc không đủ tồn kho",
+            description: `Phân loại hoặc sản phẩm "${item.selectedVariant || realProduct.name}" hiện tại đã hết hàng.`,
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (item.quantity > finalAvailableStock) {
+          toast({
+            title: "Không đủ tồn kho",
+            description: `Phân loại "${item.selectedVariant || realProduct.name}" chỉ còn lại tối đa ${finalAvailableStock} sản phẩm trong kho.`,
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
         }
       }
       // ------------------------------------------------------------------------
