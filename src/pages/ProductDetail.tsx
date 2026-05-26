@@ -116,18 +116,18 @@ export default function ProductDetail() {
       
       if (product.optionGroups && product.optionGroups.length > 0) {
         const initialOptions = product.optionGroups.reduce((acc, group) => {
-    acc[group.name] = "";
-    return acc;
-}, {} as { [key: string]: string });
+            acc[group.name] = "";
+            return acc;
+        }, {} as { [key: string]: string });
         setSelectedOptions(initialOptions);
         setAvailableStock(undefined);
       } else if (product.variants && product.variants.length === 1) {
           const firstVariant = product.variants[0];
           setSelectedVariant(firstVariant.name);
           setCurrentPrice(firstVariant.price);
-          setAvailableStock(getVariantStock(product, firstVariant.name));
+          setAvailableStock(getVariantStock(product, firstVariant.name) ?? 0);
       } else {
-        // --- CHỖ SỬA 1: DÙNG COALESCING PHÒNG HỜ STOCK BỊ NULL HOẶC UNDEFINED ---
+        // Tồn kho để trống (null/undefined) tự động chuyển sang số 0 (Hết hàng)
         setAvailableStock(product.stock ?? 0);
       }
     }
@@ -142,7 +142,7 @@ export default function ProductDetail() {
         if (variant) {
           setCurrentPrice(variant.price);
           setSelectedVariant(variant.name);
-          setAvailableStock(getVariantStock(product, variant.name));
+          setAvailableStock(getVariantStock(product, variant.name) ?? 0);
           if (carouselApi && product.variantImageMap) {
             const imageIndex = product.variantImageMap[variant.name];
             if (imageIndex !== undefined) carouselApi.scrollTo(imageIndex);
@@ -169,7 +169,7 @@ export default function ProductDetail() {
     setSelectedVariant(variantName);
     const variant = product?.variants.find(v => v.name === variantName);
     if (variant) setCurrentPrice(variant.price);
-    if (product) setAvailableStock(getVariantStock(product, variantName));
+    if (product) setAvailableStock(getVariantStock(product, variantName) ?? 0);
     
     if (carouselApi && product?.variantImageMap) {
         const imageIndex = product.variantImageMap[variantName];
@@ -315,12 +315,20 @@ export default function ProductDetail() {
 
             <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
               <div className="flex items-baseline gap-2">
-                  <p className={`text-2xl md:text-3xl font-extrabold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
+                  <p className={`text-2xl md:text-3xl font-extrabold ${(isExpired || availableStock === 0) ? 'text-muted-foreground line-through' : 'text-primary'}`}>
                     {renderPrice()}
                   </p>
-                  {isExpired && <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">Hết hạn</span>}
+                  {(isExpired || availableStock === 0) && (
+                    <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">
+                      {availableStock === 0 ? "Hết hàng" : "Hết hạn"}
+                    </span>
+                  )}
               </div>
-              {product.orderDeadline && <div className="mt-2"><OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} /></div>}
+              {product.orderDeadline && availableStock !== 0 && (
+                <div className="mt-2">
+                  <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />
+                </div>
+              )}
             </div>
             
             <div className="border rounded-lg divide-y divide-border/60">
@@ -382,7 +390,6 @@ export default function ProductDetail() {
             </div>
 
             <div className="space-y-3 pt-2">
-              {/* --- CHỖ SỬA 2: ĐIỀU KIỆN DISABLE NÚT CHIA NHỎ THEO CÁC MỨC AN TOÀN --- */}
               <Button 
                 onClick={handleAddToCart} 
                 className="w-full shadow-lg h-12 text-base font-bold text-white uppercase tracking-wide" 
