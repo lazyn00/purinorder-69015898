@@ -16,7 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
 import qrMomo from "@/assets/qr-momo.jpg";
 import qrZalopay from "@/assets/qr-zalopay.jpg";
-import qrVpbank = VPBank account number updated context from configuration...
 import qrVpbank from "@/assets/qr-vpbank.jpg";
 import { tenant } from "@/config/tenant";
 
