@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
 import qrMomo from "@/assets/qr-momo.jpg";
 import qrZalopay from "@/assets/qr-zalopay.jpg";
+import qrVpbank = VPBank account number updated context from configuration...
 import qrVpbank from "@/assets/qr-vpbank.jpg";
 import { tenant } from "@/config/tenant";
 
@@ -178,11 +179,10 @@ export default function Checkout() {
 
   const finalPrice = Math.max(0, totalPrice - discountAmount);
 
-  // ← ĐỌC FILE NGAY KHI CHỌN để tránh Android revoke quyền truy cập
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setPaymentProof(file); // giữ để hiện tên file
+      setPaymentProof(file);
       try {
         const arrayBuffer = await file.arrayBuffer();
         setPaymentProofData({
@@ -214,6 +214,60 @@ export default function Checkout() {
     setIsSubmitting(true);
 
     try {
+      // --- LOGIC KIỂM TRA TỒN KHO & HẠN CHÓT MỚI NHẤT TẠI THỜI ĐIỂM SUBMIT ---
+      for (const item of cartItems) {
+        const { data: realProduct, error: fetchError } = await supabase
+          .from('products')
+          .select('variants, stock, order_deadline, name')
+          .eq('id', item.id)
+          .single();
+
+        if (fetchError || !realProduct) {
+          toast({ title: "Sản phẩm không tồn tại", description: `Không tìm thấy thông tin mới nhất cho sản phẩm trong giỏ hàng.`, variant: "destructive" });
+          setIsSubmitting(false);
+          return;
+        }
+
+        // A. Kiểm tra hạn chót order
+        if (realProduct.order_deadline && new Date(realProduct.order_deadline) < new Date()) {
+          toast({
+            title: "Sản phẩm đã hết hạn",
+            description: `Sản phẩm "${realProduct.name}" đã đóng cổng nhận order. Vui lòng gỡ khỏi giỏ hàng.`,
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        // B. Kiểm tra tồn kho (Bọc an toàn: để trống kho đồng nghĩa với số 0 - Hết hàng)
+        if (item.selectedVariant && item.selectedVariant !== item.name && realProduct.variants) {
+          const currentVariant = realProduct.variants.find((v: any) => v.name === item.selectedVariant);
+          const variantStock = currentVariant?.stock ?? 0; // Để trống mặc định về 0
+          
+          if (variantStock <= 0 || item.quantity > variantStock) {
+            toast({
+              title: "Hết hàng hoặc không đủ tồn kho",
+              description: `Phân loại "${item.selectedVariant}" của "${realProduct.name}" hiện tại đã hết hàng hoặc không đủ số lượng bạn cần.`,
+              variant: "destructive"
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          const mainStock = realProduct.stock ?? 0; // Để trống mặc định về 0
+          if (mainStock <= 0 || item.quantity > mainStock) {
+            toast({
+              title: "Hết hàng hoặc không đủ tồn kho",
+              description: `Sản phẩm "${realProduct.name}" hiện tại đã hết hàng hoặc không đủ số lượng bạn cần.`,
+              variant: "destructive"
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+      // ------------------------------------------------------------------------
+
       let paymentProofUrl = null;
 
       if (paymentProofData) {
@@ -319,7 +373,6 @@ export default function Checkout() {
           <ArrowLeft className="h-4 w-4" /> Tiếp tục mua sắm
         </Button>
 
-        {/* Sync status */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
           <div className="flex items-center gap-2">
             {syncStatus === "syncing" && (
@@ -347,7 +400,6 @@ export default function Checkout() {
         </div>
 
         <form onSubmit={handleSubmitOrder} className="space-y-8">
-          {/* Thông tin liên hệ */}
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thông tin liên hệ</h2>
             <div className="space-y-4">
@@ -366,7 +418,6 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Thông tin nhận hàng */}
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thông tin nhận hàng</h2>
             <div className="space-y-4">
@@ -389,7 +440,6 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Thanh toán */}
           <div className="rounded-lg border p-6">
             <h2 className="text-2xl font-semibold mb-6">Thanh toán</h2>
             <div className="space-y-6">
@@ -450,7 +500,6 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Sản phẩm */}
           <div className="rounded-lg border p-6 space-y-4">
             <h2 className="text-lg font-semibold">Sản phẩm đã chọn ({cartItems.length})</h2>
             <div className="space-y-3">
