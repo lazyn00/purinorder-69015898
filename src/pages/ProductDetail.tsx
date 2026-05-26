@@ -118,7 +118,7 @@ export default function ProductDetail() {
         const initialOptions = product.optionGroups.reduce((acc, group) => {
             acc[group.name] = "";
             return acc;
-        }, {} as { [key: string]: string });
+        }, {} sugar as { [key: string]: string });
         setSelectedOptions(initialOptions);
         setAvailableStock(undefined);
       } else if (product.variants && product.variants.length === 1) {
@@ -127,7 +127,8 @@ export default function ProductDetail() {
           setCurrentPrice(firstVariant.price);
           setAvailableStock(getVariantStock(product, firstVariant.name));
       } else {
-        setAvailableStock(product.stock);
+        // --- CHỖ SỬA 1: DÙNG COALESCING PHÒNG HỜ STOCK BỊ NULL HOẶC UNDEFINED ---
+        setAvailableStock(product.stock ?? 0);
       }
     }
   }, [product]);
@@ -197,7 +198,6 @@ export default function ProductDetail() {
       return;
     }
 
-    // Tính giá chính xác tại thời điểm add
     let finalPrice = currentPrice;
     if (selectedVariant && product.variants) {
       const variant = product.variants.find(v => v.name === selectedVariant);
@@ -227,32 +227,27 @@ export default function ProductDetail() {
   if (!product) return <Layout><div className="container mx-auto py-12 text-center"><h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1><Button onClick={() => navigate("/products")}>Quay lại</Button></div></Layout>;
 
   const renderPrice = () => {
-  // 1. Nếu đã chọn một phân loại cụ thể (Biến thể)
-  if (selectedVariant) {
-    return currentPrice > 0 ? `${currentPrice.toLocaleString('vi-VN')}đ` : "Liên hệ";
-  }
-
-  // 2. Nếu sản phẩm có danh sách nhiều phân loại biến thể
-  if (product.variants && product.variants.length > 0) {
-    // Trường hợp đặc biệt: Tất cả biến thể đều cấu hình giá bằng 0
-    if (product.variants.every(v => v.price === 0)) return "Liên hệ";
-
-    const prices = product.variants.map(v => v.price).filter(p => p > 0);
-    if (prices.length > 0) {
-      const minPrice = Math.min(...prices);
-      const maxPrice = Math.max(...prices);
-      
-      if (minPrice === maxPrice) {
-        return `${minPrice.toLocaleString('vi-VN')}đ`;
-      }
-      return `Từ ${minPrice.toLocaleString('vi-VN')}đ`;
+    if (selectedVariant) {
+      return currentPrice > 0 ? `${currentPrice.toLocaleString('vi-VN')}đ` : "Liên hệ";
     }
-  }
 
-  // 3. Trường hợp sản phẩm không có phân loại (Hoặc chưa chọn phân loại)
-  // Nếu price = 0 thì hiện "Liên hệ", ngược lại hiện đúng giá trị số của price
-  return product.price === 0 ? "Liên hệ" : `${product.price.toLocaleString('vi-VN')}đ`;
-};
+    if (product.variants && product.variants.length > 0) {
+      if (product.variants.every(v => v.price === 0)) return "Liên hệ";
+
+      const prices = product.variants.map(v => v.price).filter(p => p > 0);
+      if (prices.length > 0) {
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        
+        if (minPrice === maxPrice) {
+          return `${minPrice.toLocaleString('vi-VN')}đ`;
+        }
+        return `Từ ${minPrice.toLocaleString('vi-VN')}đ`;
+      }
+    }
+
+    return product.price === 0 ? "Liên hệ" : `${product.price.toLocaleString('vi-VN')}đ`;
+  };
 
   return (
     <Layout>
@@ -268,8 +263,6 @@ export default function ProductDetail() {
                 <Carousel className="w-full" setApi={setCarouselApi}>
                 <CarouselContent>
                     {product.images.map((image, index) => {
-                      
-
                       return (
                         <CarouselItem key={index}>
                           <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
@@ -334,9 +327,9 @@ export default function ProductDetail() {
               <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Mô tả</span><span className="text-sm text-foreground/90">{product.description || "—"}</span></div>
               <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Kích thước</span><span className="text-sm text-foreground/90">{product.size || "—"}</span></div>
               <div className="p-3 md:p-4 flex gap-4">
-  <span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Bao gồm</span>
-  <span className="text-sm text-foreground/90">{product.includes || "—"}</span>
-</div>
+                <span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Bao gồm</span>
+                <span className="text-sm text-foreground/90">{product.includes || "—"}</span>
+              </div>
               <div className="p-3 md:p-4 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 flex-shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
             </div>
 
@@ -389,14 +382,20 @@ export default function ProductDetail() {
             </div>
 
             <div className="space-y-3 pt-2">
-              <Button onClick={handleAddToCart} className="w-full shadow-lg h-12 text-base font-bold text-white uppercase tracking-wide" size="lg" disabled={isExpired || availableStock === 0}>
+              {/* --- CHỖ SỬA 2: ĐIỀU KIỆN DISABLE NÚT CHIA NHỎ THEO CÁC MỨC AN TOÀN --- */}
+              <Button 
+                onClick={handleAddToCart} 
+                className="w-full shadow-lg h-12 text-base font-bold text-white uppercase tracking-wide" 
+                size="lg" 
+                disabled={isExpired || availableStock === 0 || (availableStock !== undefined && availableStock <= 0)}
+              >
                 <ShoppingCart className="h-5 w-5 mr-2" /> 
-                {isExpired ? "Đã hết hạn order" : availableStock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
+                {isExpired ? "Đã hết hạn order" : (availableStock === 0 || (availableStock !== undefined && availableStock <= 0)) ? "Hết hàng" : "Thêm vào giỏ hàng"}
               </Button>
               <Button variant="outline" className="w-full h-12 text-sm font-bold border-dashed border-primary/40 text-primary hover:bg-primary/5 uppercase tracking-wide" onClick={() => navigate("/products")}>
                 Tiếp tục mua hàng
               </Button>
-              {(isExpired || availableStock === 0) && <ProductNotificationForm productId={product.id} productName={product.name} />}
+              {(isExpired || availableStock === 0 || (availableStock !== undefined && availableStock <= 0)) && <ProductNotificationForm productId={product.id} productName={product.name} />}
             </div>
           </div>
         </div>
