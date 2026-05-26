@@ -116,9 +116,9 @@ export default function ProductDetail() {
       
       if (product.optionGroups && product.optionGroups.length > 0) {
         const initialOptions = product.optionGroups.reduce((acc, group) => {
-            acc[group.name] = "";
-            return acc;
-        }, {} sugar as { [key: string]: string });
+    acc[group.name] = "";
+    return acc;
+}, {} as { [key: string]: string });
         setSelectedOptions(initialOptions);
         setAvailableStock(undefined);
       } else if (product.variants && product.variants.length === 1) {
