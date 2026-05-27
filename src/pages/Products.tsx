@@ -1,15 +1,16 @@
 import { Layout } from "@/components/Layout";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { useCart, Product } from "@/contexts/CartContext";
 import { CategoryPreview } from "@/components/CategoryPreview";
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// Import thêm component ProductDetail để làm Pop-up
-import ProductDetail from "@/components/ProductDetail";
+// --- IMPORT COMPONENT POPUP DIALOG VÀ COMPONENT CHI TIẾT SẢN PHẨM ---
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ProductDetailComponent from "@/pages/ProductDetail"; 
 
 interface UserListing {
   id: string;
@@ -55,15 +56,36 @@ const convertListingToProduct = (listing: UserListing): Product => {
 };
 
 export default function Products() {
-  // Lấy thêm hàm addToCart từ useCart context để truyền vào ProductDetail pop-up
-  const { products, isLoading, addToCart } = useCart();
+  const { products, isLoading } = useCart();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
   const [searchParams] = useSearchParams();
 
-  // State quản lý sản phẩm đang được chọn để hiện Pop-up
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  // --- STATE QUẢN LÝ ĐÓNG MỞ POPUP XEM NHANH SẢN PHẨM ---
+  const [selectedPopupProductId, setSelectedPopupProductId] = useState<number | null>(null);
+
+  // Bắt sự kiện click toàn cục lên các thẻ ProductCard con để mở Popup thay vì chuyển trang
+  useEffect(() => {
+    const handleProductClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Tìm thẻ link hoặc thẻ div chứa đường dẫn chi tiết sản phẩm /product/
+      const anchor = target.closest('a[href^="/product/"]') as HTMLAnchorElement;
+      
+      if (anchor) {
+        e.preventDefault(); // Chặn hành vi chuyển trang mặc định của trình duyệt
+        const urlParts = anchor.pathname.split("/");
+        const productId = Number(urlParts[urlParts.length - 1]);
+        
+        if (!isNaN(productId)) {
+          setSelectedPopupProductId(productId); // Kích hoạt mở Popup sản phẩm
+        }
+      }
+    };
+
+    document.addEventListener("click", handleProductClick);
+    return () => document.removeEventListener("click", handleProductClick);
+  }, []);
 
   // Capture referral code from URL and store in localStorage
   useEffect(() => {
@@ -141,14 +163,11 @@ export default function Products() {
       )
     : sortedProducts;
 
-  // When searching, show all products (including unavailable). When not searching, hide unavailable
   const filteredProducts = searchQuery 
     ? searchMatchedProducts 
     : searchMatchedProducts.filter(isProductAvailable);
 
-  // --- CÁC NHÓM SẢN PHẨM ---
   const passGom = filteredProducts.filter(p => (p as any).isUserListing);
-  
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll" && !(p as any).isUserListing);
   const merch = filteredProducts.filter(p => p.category === "Merch" && !(p as any).isUserListing);
   const linhtinhxinhxinh = filteredProducts.filter(p => p.category === "Linh tinh xinh xinh" && !(p as any).isUserListing);
@@ -158,19 +177,6 @@ export default function Products() {
   const other = filteredProducts.filter(p => p.category === "Khác" && !(p as any).isUserListing);
 
   const isPageLoading = isLoading || loadingListings;
-
-  // Wrapper thêm sản phẩm vào giỏ hàng từ popup
-  const handleAddToCart = (
-    product: Product,
-    quantity: number,
-    selectedVariants: { [groupName: string]: string },
-    priceOverride?: number
-  ) => {
-    if (addToCart) {
-      // Gọi hàm addToCart gốc từ Context của bạn
-      addToCart(product, quantity, selectedVariants, priceOverride);
-    }
-  };
 
   if (isPageLoading) {
     return (
@@ -205,96 +211,79 @@ export default function Products() {
           </div>
         </div>
 
-        {/* 
-          Truyền prop onProductClick xuống các CategoryPreview để bắt sự kiện click sản phẩm 
-        */}
         <div className="space-y-16">
           {tiemInPurin.length > 0 && (
-            <CategoryPreview
-              title="Tiệm in Purin"
-              categorySlug="tiem-in-purin"
-              products={tiemInPurin}
-              onProductClick={setSelectedProduct}
-            />
+            <CategoryPreview title="Tiệm in Purin" categorySlug="pass-gom" products={tiemInPurin} />
           )}
-
           {outfitDoll.length > 0 && (
-            <CategoryPreview
-              title="Outfit & Doll"
-              categorySlug="outfit-doll"
-              products={outfitDoll}
-              onProductClick={setSelectedProduct}
-            />
+            <CategoryPreview title="Outfit & Doll" categorySlug="outfit-doll" products={outfitDoll} />
           )}
           {merch.length > 0 && (
-            <CategoryPreview
-              title="Merch"
-              categorySlug="merch"
-              products={merch}
-              onProductClick={setSelectedProduct}
-            />
+            <CategoryPreview title="Merch" categorySlug="merch" products={merch} />
           )}
           {linhtinhxinhxinh.length > 0 && (
-            <CategoryPreview
-              title="Linh tinh xinh xinh"
-              categorySlug="linh-tinh-xinh-xinh"
-              products={linhtinhxinhxinh}
-              onProductClick={setSelectedProduct}
-            />
+            <CategoryPreview title="Linh tinh xinh xinh" categorySlug="linh-tinh-xinh-xinh" products={linhtinhxinhxinh} />
           )}
           {packageitems.length > 0 && (
-            <CategoryPreview
-              title="Đồ gói"
-              categorySlug="package-items"
-              products={packageitems}
-              onProductClick={setSelectedProduct}
-            />
+            <CategoryPreview title="Đồ gói" categorySlug="package-items" products={packageitems} />
           )}
           {fashion.length > 0 && (
-            <CategoryPreview
-              title="Thời trang"
-              categorySlug="thoi-trang"
-              products={fashion}
-              onProductClick={setSelectedProduct}
-            />
+            <CategoryPreview title="Thời trang" categorySlug="thoi-trang" products={fashion} />
           )}
           {other.length > 0 && (
-            <CategoryPreview
-              title="Khác"
-              categorySlug="khac"
-              products={other}
-              onProductClick={setSelectedProduct}
-            />
+            <CategoryPreview title="Khác" categorySlug="khac" products={other} />
           )}
-
           {passGom.length > 0 && (
-            <CategoryPreview
-              title="Pass / Gom"
-              categorySlug="pass-gom"
-              products={passGom}
-              onProductClick={setSelectedProduct}
-            />
+            <CategoryPreview title="Pass / Gom" categorySlug="pass-gom" products={passGom} />
           )}
         </div>
-
-          {/* RENDER POP-UP CHI TIẾT SẢN PHẨM KHI ĐƯỢC CHỌN */}
-          {selectedProduct && (
-            <ProductDetail
-              product={selectedProduct}
-              onClose={() => setSelectedProduct(null)}
-              onAddToCart={handleAddToCart}
-            />
-          )}
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
-              Không tìm thấy sản phẩm nào
-              {searchQuery && ' khớp với từ khóa của bạn'}
+              Không tìm thấy sản phẩm nào {searchQuery && ' khớp với từ khóa của bạn'}
             </p>
           </div>
         )}
       </div>
+
+      {/* --- CỬA SỔ POPUP DIALOG HIỂN THỊ CHI TIẾT SẢN PHẨM KHÔNG RELOAD TRANG --- */}
+      <Dialog 
+        open={selectedPopupProductId !== null} 
+        onOpenChange={(isOpen) => {!isOpen && setSelectedPopupProductId(null)}}
+      >
+        <DialogContent className="w-[95vw] max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-xl">
+          {/* Nút đóng góc tùy chỉnh thủ công nếu cần */}
+          <button 
+            onClick={() => setSelectedPopupProductId(null)}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
+
+          {/* Render trực tiếp trang chi tiết sản phẩm dựa trên ID được hook vào Popup bằng cơ chế Hack Overriding useParams */}
+          {selectedPopupProductId && (
+            <div className="product-popup-container">
+              <HookProductParams productId={selectedPopupProductId}>
+                <ProductDetailComponent />
+              </HookProductParams>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
+}
+
+// Component phụ trợ thông minh giúp ép Inject tham số `id` ảo của react-router-dom vào ProductDetail mà không cần đổi URL thực tế
+function HookProductParams({ productId, children }: { productId: number; children: React.ReactNode }) {
+  React.useMemo(() => {
+    const ReactRouterDom = require("react-router-dom");
+    const originalUseParams = ReactRouterDom.useParams;
+    ReactRouterDom.useParams = () => ({ id: String(productId) });
+    return () => { ReactRouterDom.useParams = originalUseParams; };
+  }, [productId]);
+
+  return <>{children}</>;
 }
