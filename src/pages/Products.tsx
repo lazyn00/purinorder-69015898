@@ -8,6 +8,9 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+// Import thêm component ProductDetail để làm Pop-up
+import ProductDetail from "@/components/ProductDetail";
+
 interface UserListing {
   id: string;
   listing_code: string;
@@ -52,11 +55,15 @@ const convertListingToProduct = (listing: UserListing): Product => {
 };
 
 export default function Products() {
-  const { products, isLoading } = useCart();
+  // Lấy thêm hàm addToCart từ useCart context để truyền vào ProductDetail pop-up
+  const { products, isLoading, addToCart } = useCart();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
   const [searchParams] = useSearchParams();
+
+  // State quản lý sản phẩm đang được chọn để hiện Pop-up
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Capture referral code from URL and store in localStorage
   useEffect(() => {
@@ -111,7 +118,6 @@ export default function Products() {
     } else if (product.stock !== undefined && product.stock !== null) {
       hasStock = product.stock > 0;
     }
-    // stock null/undefined and no variant stock => out of stock
     return hasStock && notExpired;
   };
 
@@ -143,7 +149,6 @@ export default function Products() {
   // --- CÁC NHÓM SẢN PHẨM ---
   const passGom = filteredProducts.filter(p => (p as any).isUserListing);
   
-  // 1. THÊM LOGIC LỌC TIỆM IN PURIN
   const outfitDoll = filteredProducts.filter(p => p.category === "Outfit & Doll" && !(p as any).isUserListing);
   const merch = filteredProducts.filter(p => p.category === "Merch" && !(p as any).isUserListing);
   const linhtinhxinhxinh = filteredProducts.filter(p => p.category === "Linh tinh xinh xinh" && !(p as any).isUserListing);
@@ -153,6 +158,19 @@ export default function Products() {
   const other = filteredProducts.filter(p => p.category === "Khác" && !(p as any).isUserListing);
 
   const isPageLoading = isLoading || loadingListings;
+
+  // Wrapper thêm sản phẩm vào giỏ hàng từ popup
+  const handleAddToCart = (
+    product: Product,
+    quantity: number,
+    selectedVariants: { [groupName: string]: string },
+    priceOverride?: number
+  ) => {
+    if (addToCart) {
+      // Gọi hàm addToCart gốc từ Context của bạn
+      addToCart(product, quantity, selectedVariants, priceOverride);
+    }
+  };
 
   if (isPageLoading) {
     return (
@@ -187,14 +205,16 @@ export default function Products() {
           </div>
         </div>
 
+        {/* 
+          Truyền prop onProductClick xuống các CategoryPreview để bắt sự kiện click sản phẩm 
+        */}
         <div className="space-y-16">
-          
-          {/* 2. HIỂN THỊ TIỆM IN PURIN (Ưu tiên hiển thị đầu hoặc sau outfit) */}
           {tiemInPurin.length > 0 && (
             <CategoryPreview
               title="Tiệm in Purin"
               categorySlug="tiem-in-purin"
               products={tiemInPurin}
+              onProductClick={setSelectedProduct}
             />
           )}
 
@@ -203,6 +223,7 @@ export default function Products() {
               title="Outfit & Doll"
               categorySlug="outfit-doll"
               products={outfitDoll}
+              onProductClick={setSelectedProduct}
             />
           )}
           {merch.length > 0 && (
@@ -210,6 +231,7 @@ export default function Products() {
               title="Merch"
               categorySlug="merch"
               products={merch}
+              onProductClick={setSelectedProduct}
             />
           )}
           {linhtinhxinhxinh.length > 0 && (
@@ -217,6 +239,7 @@ export default function Products() {
               title="Linh tinh xinh xinh"
               categorySlug="linh-tinh-xinh-xinh"
               products={linhtinhxinhxinh}
+              onProductClick={setSelectedProduct}
             />
           )}
           {packageitems.length > 0 && (
@@ -224,6 +247,7 @@ export default function Products() {
               title="Đồ gói"
               categorySlug="package-items"
               products={packageitems}
+              onProductClick={setSelectedProduct}
             />
           )}
           {fashion.length > 0 && (
@@ -231,6 +255,7 @@ export default function Products() {
               title="Thời trang"
               categorySlug="thoi-trang"
               products={fashion}
+              onProductClick={setSelectedProduct}
             />
           )}
           {other.length > 0 && (
@@ -238,18 +263,28 @@ export default function Products() {
               title="Khác"
               categorySlug="khac"
               products={other}
+              onProductClick={setSelectedProduct}
             />
           )}
 
-          {/* Pass/Gom thường để cuối */}
           {passGom.length > 0 && (
             <CategoryPreview
               title="Pass / Gom"
               categorySlug="pass-gom"
               products={passGom}
+              onProductClick={setSelectedProduct}
             />
           )}
         </div>
+
+          {/* RENDER POP-UP CHI TIẾT SẢN PHẨM KHI ĐƯỢC CHỌN */}
+          {selectedProduct && (
+            <ProductDetail
+              product={selectedProduct}
+              onClose={() => setSelectedProduct(null)}
+              onAddToCart={handleAddToCart}
+            />
+          )}
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
