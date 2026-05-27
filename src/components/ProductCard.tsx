@@ -80,7 +80,6 @@ export function ProductCard({ product, onProductClick }: ProductCardProps) {
     // Chặn đứng hoàn toàn bùng nổ sự kiện nhảy trang của router nếu có hàm popup
     if (onProductClick) {
       e.preventDefault();
-      e.stopPropagation();
       const idToSend = product.isUserListing ? (product.listingId || "") : String(product.id);
       onProductClick(idToSend);
     } else {
