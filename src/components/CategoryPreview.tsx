@@ -14,9 +14,10 @@ interface CategoryPreviewProps {
   title: string;
   categorySlug: string;
   products: any[];
+  onProductClick?: (id: string) => void; // Khai báo prop nhận diện hàm popup từ trang cha
 }
 
-export function CategoryPreview({ title, categorySlug, products }: CategoryPreviewProps) {
+export default function CategoryPreview({ title, categorySlug, products, onProductClick }: CategoryPreviewProps) {
   // Hiển thị tối đa 50 sản phẩm trong danh sách đã được lọc
   const displayProducts = products.slice(0, 50);
 
@@ -45,7 +46,8 @@ export function CategoryPreview({ title, categorySlug, products }: CategoryPrevi
         <CarouselContent className="-ml-2 md:-ml-4">
           {displayProducts.map((product) => (
             <CarouselItem key={product.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6">
-              <ProductCard product={product} />
+              {/* Truyền tiếp hàm xử lý click xuống cho ProductCard */}
+              <ProductCard product={product} onProductClick={onProductClick} />
             </CarouselItem>
           ))}
         </CarouselContent>
