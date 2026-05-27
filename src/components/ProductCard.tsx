@@ -1,6 +1,4 @@
-// @/components/ProductCard.tsx
-
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
 type ProductVariant = {
@@ -37,11 +35,17 @@ const getMinPrice = (variants: ProductVariant[], defaultPrice: number): number =
   return minPrice;
 };
 
-export function ProductCard({ product }: { product: Product }) {
+interface ProductCardProps {
+  product: Product;
+  onProductClick?: (id: string) => void; // Hàm nhận diện mở popup
+}
+
+export function ProductCard({ product, onProductClick }: ProductCardProps) {
+  const navigate = useNavigate();
   const thumbnail = product.images[0] || "https://i.imgur.com/placeholder.png";
   
   const minPriceValue = getMinPrice(product.variants, product.price);
-const priceDisplay = minPriceValue === 0 ? "Liên hệ" : formatPrice(minPriceValue);
+  const priceDisplay = minPriceValue === 0 ? "Liên hệ" : formatPrice(minPriceValue);
 
   let availableStock: number | undefined;
   let isOutOfStock: boolean = false;
@@ -58,7 +62,6 @@ const priceDisplay = minPriceValue === 0 ? "Liên hệ" : formatPrice(minPriceVa
       availableStock = product.stock;
       isOutOfStock = availableStock <= 0;
     } else {
-      // Stock trống (null/undefined) và không có variant stock => coi như hết hàng
       availableStock = 0;
       isOutOfStock = true;
     }
@@ -72,9 +75,22 @@ const priceDisplay = minPriceValue === 0 ? "Liên hệ" : formatPrice(minPriceVa
   const productLink = product.isUserListing 
     ? `/listing/${product.listingId}`
     : `/product/${product.id}`;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Chặn đứng hoàn toàn bùng nổ sự kiện nhảy trang của router nếu có hàm popup
+    if (onProductClick) {
+      e.preventDefault();
+      e.stopPropagation();
+      const idToSend = product.isUserListing ? (product.listingId || "") : String(product.id);
+      onProductClick(idToSend);
+    } else {
+      // Cơ chế dự phòng nếu không ở trang quản lý tập trung: Tự chuyển hướng thủ công
+      navigate(productLink);
+    }
+  };
   
   return (
-    <Link to={productLink} className="group block">
+    <div onClick={handleCardClick} className="group block cursor-pointer text-left">
       <div className="overflow-hidden rounded-sm bg-card shadow-sm transition-shadow hover:shadow-md">
         
         <div className="relative aspect-square overflow-hidden">
@@ -93,10 +109,8 @@ const priceDisplay = minPriceValue === 0 ? "Liên hệ" : formatPrice(minPriceVa
           )}
           
           <div className="absolute top-1.5 left-1.5 flex items-start space-x-1"> 
-            {/* Tag Status: Đã chỉnh sửa để đồng bộ màu sắc */}
             {product.status && !isUnavailable && (
               <Badge 
-                // Sử dụng variant standard hoặc secondary thay vì custom color cứng
                 variant={product.isUserListing ? "secondary" : "secondary"} 
                 className="h-5 px-1.5 text-[10px] opacity-90 shadow-sm"
               >
@@ -131,6 +145,6 @@ const priceDisplay = minPriceValue === 0 ? "Liên hệ" : formatPrice(minPriceVa
         </div>
         
       </div>
-    </Link>
+    </div>
   );
 }
