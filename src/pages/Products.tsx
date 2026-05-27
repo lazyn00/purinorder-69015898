@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { useCart, Product } from "@/contexts/CartContext";
-import CategoryPreview from "@/components/CategoryPreview"; //  Đã sửa thành default import
+import CategoryPreview from "@/components/CategoryPreview"; // Đã sửa thành default import
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,26 +65,10 @@ export default function Products() {
   // --- STATE LƯU ID ĐỂ MỞ POPUP XEM SẢN PHẨM ---
   const [popupProductId, setPopupProductId] = useState<string | null>(null);
 
-  // Lắng nghe sự kiện click trên toàn bộ danh sách sản phẩm
-  useEffect(() => {
-    const handleProductCardClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // Kiểm tra nếu click trúng thẻ Link dẫn đến trang sản phẩm chi tiết
-      const productLink = target.closest('a[href^="/product/"]') as HTMLAnchorElement;
-      
-      if (productLink) {
-        e.preventDefault(); // Ngăn trình duyệt chuyển hướng URL làm reload trang
-        const segments = productLink.pathname.split("/");
-        const idStr = segments[segments.length - 1];
-        if (idStr) {
-          setPopupProductId(idStr); // Gán ID để mở Bung lụa cửa sổ Dialog Popup
-        }
-      }
-    };
-
-    document.addEventListener("click", handleProductCardClick);
-    return () => document.removeEventListener("click", handleProductCardClick);
-  }, []);
+  // --- HÀM HANDLER MỞ POPUP SẢN PHẨM ---
+  const handleProductClick = (id: string) => {
+    setPopupProductId(id);
+  };
 
   // Capture referral code from URL and store in localStorage
   useEffect(() => {
@@ -212,28 +196,28 @@ export default function Products() {
 
         <div className="space-y-16">
           {tiemInPurin.length > 0 && (
-            <CategoryPreview title="Tiệm in Purin" categorySlug="tiem-in-purin" products={tiemInPurin} />
+            <CategoryPreview title="Tiệm in Purin" categorySlug="tiem-in-purin" products={tiemInPurin} onProductClick={handleProductClick} />
           )}
           {outfitDoll.length > 0 && (
-            <CategoryPreview title="Outfit & Doll" categorySlug="outfit-doll" products={outfitDoll} />
+            <CategoryPreview title="Outfit & Doll" categorySlug="outfit-doll" products={outfitDoll} onProductClick={handleProductClick} />
           )}
           {merch.length > 0 && (
-            <CategoryPreview title="Merch" categorySlug="merch" products={merch} />
+            <CategoryPreview title="Merch" categorySlug="merch" products={merch} onProductClick={handleProductClick} />
           )}
           {linhtinhxinhxinh.length > 0 && (
-            <CategoryPreview title="Linh tinh xinh xinh" categorySlug="linh-tinh-xinh-xinh" products={linhtinhxinhxinh} />
+            <CategoryPreview title="Linh tinh xinh xinh" categorySlug="linh-tinh-xinh-xinh" products={linhtinhxinhxinh} onProductClick={handleProductClick} />
           )}
           {packageitems.length > 0 && (
-            <CategoryPreview title="Đồ gói" categorySlug="package-items" products={packageitems} />
+            <CategoryPreview title="Đồ gói" categorySlug="package-items" products={packageitems} onProductClick={handleProductClick} />
           )}
           {fashion.length > 0 && (
-            <CategoryPreview title="Thời trang" categorySlug="thoi-trang" products={fashion} />
+            <CategoryPreview title="Thời trang" categorySlug="thoi-trang" products={fashion} onProductClick={handleProductClick} />
           )}
           {other.length > 0 && (
-            <CategoryPreview title="Khác" categorySlug="khac" products={other} />
+            <CategoryPreview title="Khác" categorySlug="khac" products={other} onProductClick={handleProductClick} />
           )}
           {passGom.length > 0 && (
-            <CategoryPreview title="Pass / Gom" categorySlug="pass-gom" products={passGom} />
+            <CategoryPreview title="Pass / Gom" categorySlug="pass-gom" products={passGom} onProductClick={handleProductClick} />
           )}
         </div>
 
