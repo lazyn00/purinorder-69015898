@@ -5,12 +5,12 @@ import { LoadingPudding } from "@/components/LoadingPudding";
 import { useCart, Product } from "@/contexts/CartContext";
 import { CategoryPreview } from "@/components/CategoryPreview";
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams, useParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// --- IMPORT COMPONENT POPUP DIALOG VÀ COMPONENT CHI TIẾT SẢN PHẨM ---
+// --- IMPORT POPUP DIALOG VÀ FILE CHI TIẾT SẢN PHẨM ---
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import ProductDetailComponent from "@/pages/ProductDetail"; 
+import ProductDetail from "@/pages/ProductDetail"; 
 
 interface UserListing {
   id: string;
@@ -62,29 +62,28 @@ export default function Products() {
   const [loadingListings, setLoadingListings] = useState(true);
   const [searchParams] = useSearchParams();
 
-  // --- STATE QUẢN LÝ ĐÓNG MỞ POPUP XEM NHANH SẢN PHẨM ---
-  const [selectedPopupProductId, setSelectedPopupProductId] = useState<number | null>(null);
+  // --- STATE LƯU ID ĐỂ MỞ POPUP XEM SẢN PHẨM ---
+  const [popupProductId, setPopupProductId] = useState<string | null>(null);
 
-  // Bắt sự kiện click toàn cục lên các thẻ ProductCard con để mở Popup thay vì chuyển trang
+  // Lắng nghe sự kiện click trên toàn bộ danh sách sản phẩm
   useEffect(() => {
-    const handleProductClick = (e: MouseEvent) => {
+    const handleProductCardClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // Tìm thẻ link hoặc thẻ div chứa đường dẫn chi tiết sản phẩm /product/
-      const anchor = target.closest('a[href^="/product/"]') as HTMLAnchorElement;
+      // Kiểm tra nếu click trúng thẻ Link dẫn đến trang sản phẩm chi tiết
+      const productLink = target.closest('a[href^="/product/"]') as HTMLAnchorElement;
       
-      if (anchor) {
-        e.preventDefault(); // Chặn hành vi chuyển trang mặc định của trình duyệt
-        const urlParts = anchor.pathname.split("/");
-        const productId = Number(urlParts[urlParts.length - 1]);
-        
-        if (!isNaN(productId)) {
-          setSelectedPopupProductId(productId); // Kích hoạt mở Popup sản phẩm
+      if (productLink) {
+        e.preventDefault(); // Ngăn trình duyệt chuyển hướng URL làm reload trang
+        const segments = productLink.pathname.split("/");
+        const idStr = segments[segments.length - 1];
+        if (idStr) {
+          setPopupProductId(idStr); // Gán ID để mở Bung lụa cửa sổ Dialog Popup
         }
       }
     };
 
-    document.addEventListener("click", handleProductClick);
-    return () => document.removeEventListener("click", handleProductClick);
+    document.addEventListener("click", handleProductCardClick);
+    return () => document.removeEventListener("click", handleProductCardClick);
   }, []);
 
   // Capture referral code from URL and store in localStorage
@@ -213,7 +212,7 @@ export default function Products() {
 
         <div className="space-y-16">
           {tiemInPurin.length > 0 && (
-            <CategoryPreview title="Tiệm in Purin" categorySlug="pass-gom" products={tiemInPurin} />
+            <CategoryPreview title="Tiệm in Purin" categorySlug="tiem-in-purin" products={tiemInPurin} />
           )}
           {outfitDoll.length > 0 && (
             <CategoryPreview title="Outfit & Doll" categorySlug="outfit-doll" products={outfitDoll} />
@@ -247,43 +246,27 @@ export default function Products() {
         )}
       </div>
 
-      {/* --- CỬA SỔ POPUP DIALOG HIỂN THỊ CHI TIẾT SẢN PHẨM KHÔNG RELOAD TRANG --- */}
+      {/* --- CỬA SỔ POPUP DIALOG CHUẨN VITE KHÔNG LÀM NHẢY URL TRANG --- */}
       <Dialog 
-        open={selectedPopupProductId !== null} 
-        onOpenChange={(isOpen) => {!isOpen && setSelectedPopupProductId(null)}}
+        open={popupProductId !== null} 
+        onOpenChange={(isOpen) => {!isOpen && setPopupProductId(null)}}
       >
-        <DialogContent className="w-[95vw] max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-xl">
-          {/* Nút đóng góc tùy chỉnh thủ công nếu cần */}
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-3 sm:p-6 rounded-xl">
           <button 
-            onClick={() => setSelectedPopupProductId(null)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
+            onClick={() => setPopupProductId(null)}
+            className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 z-50"
           >
             <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
           </button>
 
-          {/* Render trực tiếp trang chi tiết sản phẩm dựa trên ID được hook vào Popup bằng cơ chế Hack Overriding useParams */}
-          {selectedPopupProductId && (
-            <div className="product-popup-container">
-              <HookProductParams productId={selectedPopupProductId}>
-                <ProductDetailComponent />
-              </HookProductParams>
+          {/* Dùng cổng Portal để nạp thẳng giao diện ProductDetail kèm ID custom */}
+          {popupProductId && (
+            <div className="pt-2">
+              <ProductDetail overrideId={popupProductId} />
             </div>
           )}
         </DialogContent>
       </Dialog>
     </Layout>
   );
-}
-
-// Component phụ trợ thông minh giúp ép Inject tham số `id` ảo của react-router-dom vào ProductDetail mà không cần đổi URL thực tế
-function HookProductParams({ productId, children }: { productId: number; children: React.ReactNode }) {
-  React.useMemo(() => {
-    const ReactRouterDom = require("react-router-dom");
-    const originalUseParams = ReactRouterDom.useParams;
-    ReactRouterDom.useParams = () => ({ id: String(productId) });
-    return () => { ReactRouterDom.useParams = originalUseParams; };
-  }, [productId]);
-
-  return <>{children}</>;
 }
