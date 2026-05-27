@@ -5,10 +5,14 @@ import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Filter, ArrowUpDown, Search, ArrowLeft } from "lucide-react";
+import { Filter, ArrowUpDown, Search, ArrowLeft, X } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+
+// --- IMPORT THÊM POPUP DIALOG VÀ COMPONENT CON PRODUCTDETAIL ---
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ProductDetail from "@/pages/ProductDetail";
 
 // Interface Product
 interface Product {
@@ -52,7 +56,7 @@ const CATEGORY_MAP: { [key: string]: string } = {
   "package-items": "Đồ gói",
   "fashion": "Thời trang",
   "khac": "Khác",
-  "tiem-in-purin": "Tiệm in Purin", // Đã thêm
+  "tiem-in-purin": "Tiệm in Purin",
 };
 
 const CATEGORY_TITLES: { [key: string]: string } = {
@@ -63,9 +67,8 @@ const CATEGORY_TITLES: { [key: string]: string } = {
   "fashion": "Thời trang",
   "khac": "Khác",
   "pass-gom": "Mua bán trao đổi",
-  "tiem-in-purin": "Tiệm in Purin", // Đã thêm
+  "tiem-in-purin": "Tiệm in Purin",
 };
-// ----------------------------------
 
 // Hàm chuyển đổi User Listing thành Product
 const convertListingToProduct = (listing: UserListing): Product => {
@@ -121,6 +124,14 @@ export default function CategoryPage() {
   const [userListings, setUserListings] = useState<UserListing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
 
+  // --- STATE LƯU ID ĐỂ ĐÓNG MỞ CỬA SỔ POPUP DIALOG ---
+  const [popupProductId, setPopupProductId] = useState<string | null>(null);
+
+  // --- HÀM HANDLER LẤY ID TỪ CARD TRUYỀN LÊN ĐỂ MỞ POPUP ---
+  const handleProductClick = (id: string) => {
+    setPopupProductId(id);
+  };
+
   const categoryName = category ? CATEGORY_MAP[category] : "";
   
   // Fetch User Listings từ Supabase
@@ -156,7 +167,6 @@ export default function CategoryPage() {
     if (category === 'pass-gom') {
         return p.isUserListing === true;
     }
-    // Lọc theo category thường VÀ loại trừ user listing
     return p.category === categoryName && !p.isUserListing;
   });
 
@@ -207,7 +217,6 @@ export default function CategoryPage() {
     setCurrentPage(1);
   };
 
-  // Check loading của cả 2 nguồn
   if (isContextLoading || loadingListings) {
     return (
       <Layout>
@@ -344,7 +353,8 @@ export default function CategoryPage() {
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {paginatedProducts.map((product) => (
-                <ProductCard key={product.id} product={product as any} />
+                // Gài hàm handler nhận lệnh click chặn nhảy trang sang popup
+                <ProductCard key={product.id} product={product as any} onProductClick={handleProductClick} />
               ))}
             </div>
 
@@ -378,6 +388,27 @@ export default function CategoryPage() {
           </div>
         )}
       </div>
+
+      {/* --- CỬA SỔ POPUP DIALOG ĐỒNG BỘ CHO TRANG DANH MỤC MỞ RỘNG --- */}
+      <Dialog 
+        open={popupProductId !== null} 
+        onOpenChange={(isOpen) => {!isOpen && setPopupProductId(null)}}
+      >
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-3 sm:p-6 rounded-xl z-[9999]">
+          <button 
+            onClick={() => setPopupProductId(null)}
+            className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 z-50"
+          >
+            <X className="h-4 w-4" />
+          </button>
+
+          {popupProductId && (
+            <div className="pt-2">
+              <ProductDetail overrideId={popupProductId} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
