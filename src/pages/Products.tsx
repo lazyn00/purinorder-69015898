@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { useCart, Product } from "@/contexts/CartContext";
-import { CategoryPreview } from "@/components/CategoryPreview";
+import CategoryPreview from "@/components/CategoryPreview"; //  Đã sửa thành default import
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
