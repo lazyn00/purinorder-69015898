@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Package, Search, ArrowUpDown, ChevronDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+
 interface StatusHistory {
   id: string;
   order_id: string;
@@ -106,6 +107,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
+
 function getItemThumbnail(item: any): string | null {
   const images = item.images || [];
   if (item.selectedVariant && item.variantImageMap) {
@@ -128,6 +130,7 @@ export default function TrackOrder() {
   const [statusHistoryMap, setStatusHistoryMap] = useState<Record<string, StatusHistory[]>>({});
 
   const { toast } = useToast();
+
 
   const filteredOrders = useMemo(() => {
     let result = [...orders];
@@ -181,6 +184,7 @@ export default function TrackOrder() {
     fetchStatusHistory();
   }, [orders]);
 
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone) {
@@ -213,8 +217,7 @@ export default function TrackOrder() {
 
   return (
     <Layout>
-      {/* ĐỔI THÀNH CONTAINER WIDTH MAX-W-6XL CHO DASHBOARD DỄ THỞ */}
-      <div className="container mx-auto px-3 sm:px-4 py-6 md:py-12 max-w-6xl">
+      <div className="container mx-auto px-3 sm:px-4 py-6 md:py-12 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
           <Package className="h-12 w-12 mx-auto mb-4 text-primary" />
@@ -223,7 +226,7 @@ export default function TrackOrder() {
         </div>
 
         {/* Search card */}
-        <Card className="mb-8 max-w-xl mx-auto rounded-2xl shadow-sm">
+        <Card className="mb-8 max-w-xl mx-auto">
           <CardContent className="pt-6">
             <form onSubmit={handleSearch} className="space-y-4">
               <div>
@@ -237,153 +240,40 @@ export default function TrackOrder() {
           </CardContent>
         </Card>
 
-        {/* --- KHỐI ĐỔI ĐOẠN CONTAINER DASHBOARD THEO YÊU CẦU --- */}
         {orders.length > 0 && (
-          <div className="space-y-6">
-
-            {/* Welcome dashboard */}
-            <div className="rounded-3xl border bg-gradient-to-br from-orange-50 via-white to-pink-50 p-6 shadow-sm">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Xin chào ✨
-                  </p>
-                  <h2 className="text-2xl font-bold">
-                    Purin Order Dashboard
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Theo dõi tiến độ đơn hàng và cập nhật mới nhất của bạn
-                  </p>
-                </div>
-
-                <div className="flex gap-3 flex-wrap">
-                  <div className="rounded-2xl bg-white border px-4 py-3 min-w-[110px]">
-                    <p className="text-xs text-muted-foreground">
-                      Tổng đơn
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {orders.length}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3 min-w-[110px]">
-                    <p className="text-xs text-amber-700">
-                      Đang xử lý
-                    </p>
-                    <p className="text-2xl font-bold text-amber-800">
-                      {(stats["Đang xử lý"] || 0) + 
-                       (stats["Đã đặt hàng"] || 0) + 
-                       (stats["Đang sản xuất"] || 0)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 min-w-[110px]">
-                    <p className="text-xs text-emerald-700">
-                      Hoàn thành
-                    </p>
-                    <p className="text-2xl font-bold text-emerald-800">
-                      {stats["Đã hoàn thành"] || 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="rounded-3xl border-0 bg-orange-50 shadow-sm">
-                <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground mb-1">
-                    🚚 Đang vận chuyển
-                  </p>
-                  <p className="text-3xl font-bold">
-                    {stats["Đang vận chuyển T-V"] || 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Đơn đang trên đường về VN
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl border-0 bg-pink-50 shadow-sm">
-                <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground mb-1">
-                    💰 Cần thanh toán
-                  </p>
-                  <p className="text-3xl font-bold">
-                    {
-                      orders.filter(
-                        o =>
-                          o.payment_status === "Chưa thanh toán" ||
-                          o.payment_status === "Đã cọc"
-                      ).length
-                    }
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Vui lòng kiểm tra thanh toán
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl border-0 bg-blue-50 shadow-sm">
-                <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground mb-1">
-                    📦 Tổng sản phẩm
-                  </p>
-                  <p className="text-3xl font-bold">
-                    {orders.reduce(
-                      (sum, order) => sum + (order.items?.length || 0),
-                      0
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Trong tất cả đơn hàng
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Updates section */}
-            <Card className="rounded-3xl">
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  📬 Cập nhật mới nhất
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {orders.slice(0, 3).map(order => (
-                  <div
-                    key={order.id}
-                    className="flex items-start gap-3 pb-4 border-b last:border-0"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      📦
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">
-                        #{order.order_number}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {order.order_progress}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(order.created_at).toLocaleDateString("vi-VN")}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Existing filters layout - Giữ nguyên bộ lọc cũ của bạn */}
+          <div className="space-y-4">
+            {/* Sticky search + stats bar */}
             <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm pb-3 pt-1 -mx-4 px-4 border-b border-border/50">
+              {/* Stats overview */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                <div className="bg-primary/10 rounded-full px-3 py-1 text-xs font-medium text-primary">
+                  📦 Tổng: {orders.length} đơn
+                </div>
+                {stats["Đang giao"] > 0 && (
+                  <div className="bg-orange-100 rounded-full px-3 py-1 text-xs font-medium text-orange-700">
+                    🚚 Đang giao: {stats["Đang giao"]}
+                  </div>
+                )}
+                {stats["Đã hoàn thành"] > 0 && (
+                  <div className="bg-emerald-100 rounded-full px-3 py-1 text-xs font-medium text-emerald-700">
+                    ✅ Hoàn thành: {stats["Đã hoàn thành"]}
+                  </div>
+                )}
+                {(stats["Đang xử lý"] || 0) + (stats["Đã đặt hàng"] || 0) + (stats["Đang sản xuất"] || 0) > 0 && (
+                  <div className="bg-blue-100 rounded-full px-3 py-1 text-xs font-medium text-blue-700">
+                    ⏳ Đang xử lý: {(stats["Đang xử lý"] || 0) + (stats["Đã đặt hàng"] || 0) + (stats["Đang sản xuất"] || 0)}
+                  </div>
+                )}
+              </div>
+
+              {/* Search + sort row */}
               <div className="flex gap-2 items-center">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Tìm theo sản phẩm..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="pl-9 h-9 rounded-xl" />
+                  <Input placeholder="Tìm theo sản phẩm..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="pl-9 h-9" />
                 </div>
                 <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "newest" | "oldest")}>
-                  <SelectTrigger className="w-28 h-9 rounded-xl">
+                  <SelectTrigger className="w-28 h-9">
                     <ArrowUpDown className="h-3 w-3 mr-1" />
                     <SelectValue />
                   </SelectTrigger>
@@ -394,6 +284,7 @@ export default function TrackOrder() {
                 </Select>
               </div>
 
+              {/* Tabs for filtering */}
               <div className="flex gap-1 mt-3 overflow-x-auto pb-1 scrollbar-hide">
                 {TAB_GROUPS.map(tab => {
                   const count = tab.value === "all" ? orders.length : (stats[tab.value] || 0);
@@ -415,7 +306,8 @@ export default function TrackOrder() {
               </div>
             </div>
 
-            <h2 className="text-lg font-semibold text-muted-foreground mt-4">
+            {/* Results header */}
+            <h2 className="text-lg font-semibold text-muted-foreground">
               {filteredOrders.length} đơn hàng {progressFilter !== "all" ? `• ${progressFilter}` : ""}
             </h2>
             
@@ -424,14 +316,12 @@ export default function TrackOrder() {
               {filteredOrders.map((order) => {
                 const itemCount = order.items?.length || 0;
                 
+                
                 return (
-                  /* ĐỔI CARD THÀNH PHONG CÁCH ROUNDED-3XL BORDER-0 SHADOW HOVER */
-                  <Card
-                    key={order.id}
-                    className="overflow-hidden rounded-3xl border-0 shadow-sm hover:shadow-md transition-all bg-white"
-                  >
+                  <Card key={order.id} className="overflow-hidden">
+                    {/* Summary row with thumbnails */}
                     <button onClick={() => navigate(`/order/${order.id}`)} className="w-full text-left">
-                      <CardHeader className="pb-2 pt-4 px-5">
+                      <CardHeader className="pb-2 pt-3 px-4">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <CardTitle className="text-sm font-semibold shrink-0">#{order.order_number || order.id.slice(0, 8)}</CardTitle>
@@ -447,9 +337,9 @@ export default function TrackOrder() {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="pb-4 pt-0 px-5">
-                        {/* ĐỔI HÀM THÀNH LAYOUT FLEX-COL MD:FLEX-ROW ĐỂ CO GIÃN ĐẸP MẮT */}
-                        <div className="flex flex-col md:flex-row md:items-center gap-4">
+                      <CardContent className="pb-3 pt-0 px-4">
+                        <div className="flex items-center gap-3">
+                          {/* Product thumbnails on summary */}
                           <div className="flex -space-x-2 shrink-0">
                             {order.items?.slice(0, 3).map((item: any, i: number) => {
                               const src = getItemThumbnail(item);
@@ -472,62 +362,23 @@ export default function TrackOrder() {
                               {order.items?.[0]?.name}{itemCount > 1 ? ` (+${itemCount - 1})` : ''}
                             </p>
                           </div>
-                          <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 border-t md:border-t-0 pt-2 md:pt-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border text-[10px] px-1.5 py-0`}>
                               {order.payment_status}
                             </Badge>
                             <span className="font-bold text-primary text-sm">{order.total_price.toLocaleString('vi-VN')}đ</span>
                           </div>
                         </div>
-
-                        {/* --- CHÈN THÊM TIẾN ĐỘ PROGRESS TIMELINE THEO YÊU CẦU --- */}
-                        <div className="mt-4 border-t pt-3">
-                          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                            {ORDER_PROGRESS_OPTIONS.slice(0, 6).map((step, idx) => {
-                              const currentIndex = ORDER_PROGRESS_OPTIONS.indexOf(order.order_progress);
-                              const active = idx <= currentIndex;
-
-                              return (
-                                <div key={step} className="flex items-center gap-2 shrink-0">
-                                  <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
-                                    ${
-                                      active
-                                        ? "bg-primary text-white ring-4 ring-primary/10"
-                                        : "bg-muted text-muted-foreground"
-                                    }`}
-                                  >
-                                    {idx + 1}
-                                  </div>
-
-                                  {idx < 5 && (
-                                    <div
-                                      className={`w-10 h-1 rounded-full transition-all ${
-                                        idx < currentIndex
-                                          ? "bg-primary"
-                                          : "bg-muted"
-                                      }`}
-                                    />
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-2 font-medium">
-                            Tiến độ hiện tại: <span className="text-primary font-bold">{order.order_progress}</span>
-                          </p>
-                        </div>
-                        {/* -------------------------------------------------------- */}
-
                       </CardContent>
                     </button>
+
                   </Card>
                 );
               })}
             </div>
 
             {filteredOrders.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground bg-white rounded-3xl">
+              <div className="text-center py-12 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Không tìm thấy đơn hàng phù hợp</p>
               </div>
