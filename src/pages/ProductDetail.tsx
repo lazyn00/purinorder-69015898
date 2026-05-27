@@ -52,8 +52,13 @@ const getTotalVariantsStock = (product: Product): number => {
   return product.variants.reduce((total, v) => total + (v.stock ?? 0), 0);
 };
 
-export default function ProductDetail() {
-  const { id } = useParams();
+interface ProductDetailProps {
+  overrideId?: string;
+}
+
+export default function ProductDetail({ overrideId }: ProductDetailProps) {
+  const { id: urlId } = useParams();
+  const id = overrideId || urlId; // Ưu tiên ID từ Popup trước, nếu không có mới lấy từ URL thanh địa chỉ
   const navigate = useNavigate();
   const { addToCart, products, isLoading } = useCart();
   const { toast } = useToast();
