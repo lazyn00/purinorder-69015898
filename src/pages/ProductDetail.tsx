@@ -369,7 +369,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
                 <Label className="text-xs font-semibold text-muted-foreground">{group.name}</Label>
                 <Select value={selectedOptions[group.name]} onValueChange={(value) => handleOptionChange(group.name, value)}>
                   <SelectTrigger className="w-full h-10"><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
-                  <SelectContent className="max-h-[250px]">
+                  <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
                     {group.options.map((option) => (
                       <SelectItem key={option} value={option} className="py-2.5 text-sm whitespace-normal">
                         <span className="leading-snug block">{option}</span>
@@ -384,7 +384,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
                 <Label className="text-xs font-semibold text-muted-foreground">Phân loại</Label>
                 <Select value={selectedVariant} onValueChange={handleVariantChange}>
                   <SelectTrigger className="w-full h-10"><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
-                  <SelectContent className="max-h-[250px]">
+                  <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
                       {product.variants.map((variant) => (
                         <SelectItem key={variant.name} value={variant.name} disabled={variant.stock !== undefined && variant.stock <= 0} className="py-2.5 text-sm whitespace-normal">
                             <div className="flex items-center gap-3">
