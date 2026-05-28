@@ -35,6 +35,7 @@ interface AggregatedItem {
   name: string;
   variant: string;
   image: string;
+  master: string; // ← Thêm trường quản lý Master tổng hợp
   totalQty: number;
   progress: { [key: string]: number };
   orderRefs: OrderRef[];
@@ -64,6 +65,7 @@ interface Props {
   allStatuses: string[];
   products: ProductData[];
   onProductUpdated?: () => void;
+  master?: string; // lọc từ ngoài truyền vào nếu cần
 }
 
 interface EditFields {
@@ -80,9 +82,10 @@ const FIELD_LABELS: { key: keyof EditFields; label: string }[] = [
   { key: "cong", label: "Công" },
 ];
 
-export default function ProductTrackingFiltered({ aggregated, uniqueNames, allStatuses, products, onProductUpdated }: Props) {
+export default function ProductTrackingFiltered({ aggregated, uniqueNames, allStatuses, products, onProductUpdated, master }: Props) {
   const [searchName, setSearchName] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [searchMaster, setSearchMaster] = useState(""); // ← Thêm state tìm kiếm master
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<EditFields>({ te: "", actual_rate: "", actual_can: "", cong: "" });
@@ -92,7 +95,8 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
   const filtered = aggregated.filter(item => {
     const matchName = !searchName || item.name.toLowerCase().includes(searchName.toLowerCase());
     const matchStatus = filterStatus === "all" || item.progress[filterStatus];
-    return matchName && matchStatus;
+    const matchMaster = !searchMaster || item.master.toLowerCase().includes(searchMaster.toLowerCase()); // Thêm lọc từ khóa master
+    return matchName && matchStatus && matchMaster;
   });
 
   const getProductData = (productId: number) => products.find(p => p.id === productId);
@@ -141,7 +145,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
     try {
       if (item.variant && product.variants) {
-        // Update variant-level fields
         const updatedVariants = product.variants.map((v: any) => {
           if (v.name === item.variant) {
             return {
@@ -162,7 +165,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
         if (error) throw error;
       } else {
-        // Update product-level fields
         const { error } = await supabase
           .from("products")
           .update({
@@ -188,7 +190,7 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -198,8 +200,20 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
             className="pl-9 h-9"
           />
         </div>
+        
+        {/* Ô ĐĂNG KÝ TÌM KIẾM THEO MASTER MỚI */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm master..."
+            value={searchMaster}
+            onChange={e => setSearchMaster(e.target.value)}
+            className="pl-9 h-9 w-full sm:w-44"
+          />
+        </div>
+
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[180px] h-9">
+          <SelectTrigger className="w-full sm:w-[180px] h-9">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -220,7 +234,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
         const product = getProductData(item.productId);
         const variant = item.variant ? getVariantData(product, item.variant) : null;
 
-        // Get display values: variant-level > product-level
         const displayTe = variant?.te ?? product?.te;
         const displayRate = variant?.actual_rate ?? product?.actual_rate;
         const displayCan = variant?.actual_can ?? product?.actual_can;
@@ -240,9 +253,10 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
                   <p className="font-medium truncate">{item.name}</p>
                   {isExpanded ? <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
                 </div>
-                {item.variant && (
-                  <p className="text-xs text-muted-foreground">Phân loại: {item.variant}</p>
-                )}
+                <div className="flex gap-2 text-xs text-muted-foreground mt-0.5">
+                  {item.variant && <span>Phân loại: {item.variant}</span>}
+                  {item.master && <Badge variant="secondary" className="text-[10px] py-0 px-1 bg-purple-50 text-purple-700">M: {item.master}</Badge>}
+                </div>
                 <p className="text-sm font-semibold text-primary mt-0.5">Tổng đặt: {item.totalQty}</p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {Object.entries(item.progress).map(([status, qty]) => (
@@ -256,7 +270,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
             {isExpanded && (
               <div className="border-t bg-muted/20 p-3 space-y-3">
-                {/* Product financial details */}
                 {product && (
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
@@ -346,7 +359,6 @@ export default function ProductTrackingFiltered({ aggregated, uniqueNames, allSt
 
                 <Separator />
 
-                {/* Orders containing this product */}
                 <div>
                   <p className="text-xs font-semibold mb-1.5">📦 Đơn hàng ({item.orderRefs.length})</p>
                   <div className="space-y-1.5 max-h-[250px] overflow-y-auto">
