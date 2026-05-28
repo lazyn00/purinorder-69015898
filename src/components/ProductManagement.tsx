@@ -318,7 +318,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         String(p.id).includes(searchTerm);
       const matchCategory = categoryFilter === "all" || p.category === categoryFilter;
       const matchStatus = statusFilter === "all" || p.status === statusFilter;
-      const matchMaster = masterFilter === "all" || p.master === masterFilter;
+      const matchMaster = masterFilter === "all" || (p.master?.toLowerCase().includes(masterFilter.toLowerCase()) ?? false);
       return matchSearch && matchCategory && matchStatus && matchMaster;
     });
 
@@ -723,15 +723,15 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
             </SelectContent>
           </Select>
           
-          <Select value={masterFilter} onValueChange={setMasterFilter}>
-            <SelectTrigger className="h-9 w-36">
-              <SelectValue placeholder="Master" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả Master</SelectItem>
-              {uniqueMasters.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="relative">
+  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+  <Input
+    placeholder="Tìm master..."
+    value={masterFilter === "all" ? "" : masterFilter}
+    onChange={e => setMasterFilter(e.target.value || "all")}
+    className="pl-8 h-9 w-36"
+  />
+</div>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={syncFromSheet} disabled={syncing} className="gap-1">
