@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, ArrowLeft, Share2, Eye, Store, ChevronRight } from "lucide-react";
+import { ShoppingCart, Minus, Plus, ArrowLeft, Share2, Eye, Store } from "lucide-react";
 import { LoadingPudding } from "@/components/LoadingPudding";
 import { OrderCountdown } from "@/components/OrderCountdown";
 import { useCart, Product } from "@/contexts/CartContext";
@@ -39,21 +39,24 @@ const slugify = (s: string) => {
     .slice(0, 100);
 };
 
-// --- ĐÃ ĐẬP ĐI XÂY LẠI: ĐỒNG BỘ 100% THEO KHO CHUNG (VÍ DỤ: 996) ---
+// --- ĐÃ ĐỔI THEO ĐÚNG LOGIC PHÂN BIỆT SỐ 0 VÀ NULL CỦA Ý ---
 const getVariantStock = (product: Product, variantName: string): number => {
   if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
   const variant = product.variants.find(v => v.name === variantName);
   
-  // Nếu phân loại bị trống kho (null/undefined/""), lấy luôn số kho chung của sản phẩm làm chuẩn
-  if (!variant || variant.stock === undefined || variant.stock === null || String(variant.stock).trim() === "") {
+  if (!variant) return product.stock ?? 0;
+  const s = variant.stock;
+  
+  // Trống (null / undefined / chuỗi rỗng) → Dùng stock chung
+  if (s === null || s === undefined || String(s).trim() === "") {
     return product.stock ?? 0;
   }
   
-  return Number(variant.stock);
+  // Điền số (kể cả số 0) → Dùng đúng số đó
+  return Number(s);
 };
 
 const getTotalVariantsStock = (product: Product): number => {
-  // Ưu tiên tuyệt đối: Nếu có kho tổng (ví dụ: 996), lấy luôn kho tổng hiển thị ra bên ngoài, không cộng dồn sai lệch
   if (product.stock !== undefined && product.stock !== null && product.stock > 0) {
     return product.stock;
   }
@@ -174,7 +177,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
         } else {
           setSelectedVariant("");
           setCurrentPrice(product.price);
-          setAvailableStock(product.stock ?? 0); // Ép hiển thị kho tổng thay vì trả về số 0 khi chưa map xong
+          setAvailableStock(product.stock ?? 0);
         }
     } else {
         setSelectedVariant("");
@@ -401,7 +404,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
                           const vStock = getVariantStock(product, variant.name);
                           const isOutOfStock = vStock <= 0;
                           return (
-                            <SelectItem key={variant.name} value={variant.name} className="py-2.5 text-sm whitespace-normal">
+                            <SelectItem key={variant.name} value={variant.name} disabled={isOutOfStock} className="py-2.5 text-sm whitespace-normal">
                               <div className="flex items-center gap-3">
                                 {product.variantImageMap?.[variant.name] !== undefined && (
                                   <img src={product.images[product.variantImageMap[variant.name]]} className="w-9 h-9 rounded object-cover shrink-0" />
