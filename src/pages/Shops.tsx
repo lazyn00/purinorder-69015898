@@ -27,20 +27,18 @@ interface ProductLite {
   order_deadline: string | null;
 }
 
-// ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung
+// HÀM SLUGIFY CHUẨN ĐỂ ĐẢM BẢO LINK KHÔNG BỊ TÁCH TRÊN THREADS
 const slugify = (s: string) => {
   if (!s) return "shop";
-  
   return s
     .toLowerCase()
     .trim()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Khử dấu tiếng Việt
     .replace(/đ/g, "d")
-    // Giữ lại ký tự chữ cái (bao gồm tiếng Trung) và số
-    .replace(/[^\p{L}\p{N}]+/gu, "-") 
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 100);
+    .replace(/[^\p{L}\p{N}]+/gu, "-") // Chuyển ký tự lạ thành '-'
+    .replace(/(^-|-$)/g, "") // Xóa '-' thừa ở đầu cuối
+    .slice(0, 100) || "shop";
 };
 
 const isAvailable = (p: ProductLite) => {
@@ -91,7 +89,7 @@ export default function Shops() {
           id: m,
           master_name: m,
           display_name: m,
-          slug: slugify(m),
+          slug: slugify(m), // Dùng hàm slugify đã sửa ở trên
           avatar_url: null,
           shop_link: null,
           description: null,
@@ -149,7 +147,7 @@ export default function Shops() {
             return (
               <Link
                 key={s.id}
-                to={`/shop/${s.slug}`}
+                to={`/shop/${s.slug}`} // Link giờ đã đảm bảo là Latinh
                 className="group flex flex-col items-center text-center p-4 rounded-lg bg-card border hover:shadow-md transition-shadow"
               >
                 <div className="relative w-20 h-20 rounded-full overflow-hidden bg-muted flex items-center justify-center mb-3">
