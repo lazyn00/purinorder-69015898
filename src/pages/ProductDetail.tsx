@@ -211,16 +211,25 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
       setTimeout(() => setHighlightVariant(false), 2000);
       return;
     }
-    // Chặn hết hàng
-if (availableStock !== undefined && availableStock <= 0) {
-  toast({ title: "Hết hàng", description: "Sản phẩm này đã hết hàng", variant: "destructive" });
-  return;
-}
 
-if (availableStock !== undefined && quantity > availableStock) {
-  toast({ title: "Không đủ hàng", description: `Chỉ còn ${availableStock} sản phẩm`, variant: "destructive" });
-  return;
-}
+    // --- KIỂM TRA BẢO VỆ CHẶN USER BYPASS KHI PHÂN LOẠI ĐÃ HẾT HÀNG ---
+    if (selectedVariant && product.variants) {
+      const variant = product.variants.find(v => v.name === selectedVariant);
+      if (variant && variant.stock !== undefined && variant.stock !== null && variant.stock <= 0) {
+        toast({ title: "Hết hàng", description: `${selectedVariant} đã hết hàng`, variant: "destructive" });
+        return;
+      }
+    }
+
+    if (availableStock !== undefined && availableStock <= 0) {
+      toast({ title: "Hết hàng", description: "Sản phẩm này đã hết hàng", variant: "destructive" });
+      return;
+    }
+
+    if (availableStock !== undefined && quantity > availableStock) {
+      toast({ title: "Không đủ hàng", description: `Chỉ còn ${availableStock} sản phẩm`, variant: "destructive" });
+      return;
+    }
 
     let finalPrice = currentPrice;
     if (selectedVariant && product.variants) {
@@ -281,10 +290,8 @@ if (availableStock !== undefined && quantity > availableStock) {
     );
   }
 
-  // Khối sườn cấu trúc nội dung hiển thị lõi của trang chi tiết
   const detailContent = (
     <div className="container mx-auto px-3 sm:px-5 py-4 md:py-4 max-w-6xl">
-      {/* Ẩn bớt nút Back rườm rà nếu sản phẩm đang được bung lụa trong ô Popup */}
       {!overrideId && (
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> <span className="text-sm">Quay lại</span>
@@ -369,7 +376,7 @@ if (availableStock !== undefined && quantity > availableStock) {
             <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
           </div>
 
-          <div ref={variantRef} className={`space-y-3 ${highlightVariant ? 'ring-2 ring-primary rounded-lg p-2 animate-pulse' : ''}`}>
+          <div className="space-y-3">
             {product.optionGroups?.map((group) => (
               <div key={group.name} className="space-y-1">
                 <Label className="text-xs font-semibold text-muted-foreground">{group.name}</Label>
@@ -391,14 +398,23 @@ if (availableStock !== undefined && quantity > availableStock) {
                 <Select value={selectedVariant} onValueChange={handleVariantChange}>
                   <SelectTrigger className="w-full h-10"><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
                   <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
-                      {product.variants.map((variant) => (
-                        <SelectItem key={variant.name} value={variant.name} disabled={variant.stock !== undefined && variant.stock <= 0} className="py-2.5 text-sm whitespace-normal">
+                      {/* --- RENDER SỬA ĐỔI Ô CHỌN BIẾN THỂ PHÂN LOẠI THEO YÊU CẦU --- */}
+                      {product.variants.map((variant) => {
+                        const isOutOfStock = variant.stock !== undefined && variant.stock !== null && variant.stock <= 0;
+                        return (
+                          <SelectItem key={variant.name} value={variant.name} disabled={isOutOfStock} className="py-2.5 text-sm whitespace-normal">
                             <div className="flex items-center gap-3">
-                                {product.variantImageMap?.[variant.name] !== undefined && <img src={product.images[product.variantImageMap[variant.name]]} className="w-9 h-9 rounded object-cover shrink-0" />}
-                                <span className="leading-snug block flex-1">{variant.name}</span>
+                              {product.variantImageMap?.[variant.name] !== undefined && (
+                                <img src={product.images[product.variantImageMap[variant.name]]} className="w-9 h-9 rounded object-cover shrink-0" />
+                              )}
+                              <span className="leading-snug block flex-1">{variant.name}</span>
+                              {isOutOfStock && (
+                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Hết</span>
+                              )}
                             </div>
-                        </SelectItem>
-                      ))}
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               </div>
@@ -439,7 +455,6 @@ if (availableStock !== undefined && quantity > availableStock) {
         </div>
       </div>
 
-      {/* Ẩn bớt mục liên quan nếu đang mở trên Popup hẹp để tránh rối mắt */}
       {!overrideId && product.master && (() => {
         const related = products.filter(p => p.id !== product.id && p.master === product.master && ['Sẵn', 'Đặt hàng', 'Order', 'Pre-order', 'Deal'].includes(p.status || ''));
         if (related.length === 0) return null;
@@ -461,11 +476,9 @@ if (availableStock !== undefined && quantity > availableStock) {
     </div>
   );
 
-  // Nếu có overrideId (mở bằng Popup) -> Trả về thẳng giao diện lõi, giấu Header/Footer trùng lặp
   if (overrideId) {
     return detailContent;
   }
 
-  // Nếu mở bằng Link thường -> Bọc Layout trang đầy đủ như cũ
   return <Layout>{detailContent}</Layout>;
 }
