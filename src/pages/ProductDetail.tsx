@@ -215,7 +215,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     // --- KIỂM TRA BẢO VỆ CHẶN USER BYPASS KHI PHÂN LOẠI ĐÃ HẾT HÀNG ---
     if (selectedVariant && product.variants) {
       const variant = product.variants.find(v => v.name === selectedVariant);
-      if (variant && variant.stock !== undefined && variant.stock !== null && variant.stock <= 0) {
+      if (variant && (variant.stock === null || variant.stock === undefined || variant.stock <= 0)) {
         toast({ title: "Hết hàng", description: `${selectedVariant} đã hết hàng`, variant: "destructive" });
         return;
       }
@@ -400,7 +400,8 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
                   <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
                       {/* --- RENDER SỬA ĐỔI Ô CHỌN BIẾN THỂ PHÂN LOẠI THEO YÊU CẦU --- */}
                       {product.variants.map((variant) => {
-                        const isOutOfStock = variant.stock !== undefined && variant.stock !== null && variant.stock <= 0;
+                        // Trống (null/undefined) hoặc = 0 đều coi là hết hàng
+const isOutOfStock = variant.stock === null || variant.stock === undefined || variant.stock <= 0;
                         return (
                           <SelectItem key={variant.name} value={variant.name} disabled={isOutOfStock} className="py-2.5 text-sm whitespace-normal">
                             <div className="flex items-center gap-3">
