@@ -123,7 +123,11 @@ export default function Products() {
     } else if (product.stock !== undefined && product.stock !== null) {
       hasStock = product.stock > 0;
     }
-    return hasStock && notExpired;
+    // stock null/undefined và không có variant stock => hết hàng
+if (!hasVariantStock && (product.stock === undefined || product.stock === null)) {
+  return false;
+}
+return hasStock && notExpired;
   };
 
   const sortedProducts = [...allProducts].sort((a, b) => {
