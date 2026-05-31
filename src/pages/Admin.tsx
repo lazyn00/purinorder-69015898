@@ -194,7 +194,6 @@ export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // --- 2. THUỘC TÍNH FIX KHỎI PHỤC VỊ TRÍ VÀ TAB ---
   const [activeTab, setActiveTab] = useState<string>(() => sessionStorage.getItem('admin_tab') || 'stats');
 
   useEffect(() => {
@@ -214,7 +213,6 @@ export default function Admin() {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-  // --------------------------------------------------
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<string>(() => localStorage.getItem('admin_user') || '');
@@ -603,7 +601,7 @@ export default function Admin() {
         description: "Không thể tải đơn hàng",
         variant: "destructive"
       });
-    } bits: {
+    } finally {
       setIsLoading(false);
     }
   };
@@ -1047,7 +1045,6 @@ ${generateEmailContent(order)}
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
-          /* --- 3. ĐỔI SANG DÙNG VALUE VÀ EVENT CONTROLLED ĐỂ LƯU TRẠNG THÁI TAB --- */
           <Tabs 
             value={activeTab} 
             onValueChange={(v) => {
@@ -1401,17 +1398,15 @@ ${generateEmailContent(order)}
                         
                         <TableCell className="font-medium sticky left-[50px] bg-background">
                           <div className="space-y-1">
-                            {/* --- 1. SỬA THÀNH BUTTON + NAVIGATE ĐỂ TRÁNH TRANH LOAD TRANG --- */}
                             <a 
-  href={`/admin/order/${order.id}`}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
->
+                              href={`/admin/order/${order.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                            >
                               #{order.order_number || order.id.slice(0, 8)}
                               <Eye className="h-3 w-3" />
                             </a>
-                            {/* --------------------------------------------------------------- */}
                             <div className="text-xs text-muted-foreground">
                               {new Date(order.created_at).toLocaleDateString('vi-VN')}
                             </div>
@@ -1789,6 +1784,7 @@ ${generateEmailContent(order)}
                       name: string; 
                       variant: string; 
                       image: string; 
+                      master: string; // ← Thêm định nghĩa kiểm soát kiểu dữ liệu ở đây
                       totalQty: number; 
                       progress: { [key: string]: number };
                       orderRefs: { orderId: string; orderNumber: string; qty: number; progress: string; deliveryName: string; }[];
@@ -1807,11 +1803,13 @@ ${generateEmailContent(order)}
                           existing.progress[order.order_progress] = (existing.progress[order.order_progress] || 0) + (item.quantity || 1);
                           existing.orderRefs.push(orderRef);
                         } else {
+                          // --- ĐÃ ĐỒNG BỘ: THÊM MASTER VÀO ĐỂ TRÁNH LỖI KHÔNG ĐỌC ĐƯỢC GIÁ TRỊ GÂY TRẮNG TRANG ---
                           itemMap.set(key, {
                             productId: item.id,
                             name: item.name,
                             variant: item.selectedVariant || '',
                             image: item.image || item.images?.[0] || '',
+                            master: item.master || '', // ← ĐÃ THÊM DÒNG NÀY ĐỂ SỬA LỖI
                             totalQty: item.quantity || 1,
                             progress: { [order.order_progress]: item.quantity || 1 },
                             orderRefs: [orderRef]
