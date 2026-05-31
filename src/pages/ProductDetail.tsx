@@ -1,483 +1,611 @@
-import React from "react";
-import { Layout } from "@/components/Layout";
+import { useState, useEffect, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import type { CarouselApi } from "@/components/ui/carousel";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { useReferralCapture } from "@/hooks/useReferralCapture";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, ArrowLeft, Share2, Eye, Store } from "lucide-react";
-import { LoadingPudding } from "@/components/LoadingPudding";
-import { OrderCountdown } from "@/components/OrderCountdown";
-import { useCart, Product } from "@/contexts/CartContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { ProductCard } from "@/components/ProductCard";
-import { ProductNotificationForm } from "@/components/ProductNotificationForm";
-import { MasterShippingProgress } from "@/components/MasterShippingProgress";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/contexts/CartContext";
+import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link, Layers } from "lucide-react";
+import { ProductExportButtons } from "./ProductExportButtons";
+import { InAppUploadNotice } from "./InAppBrowserBanner";
 
-const slugify = (s: string) => {
-  if (!s) return "shop";
-  return s
-    .toLowerCase()
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 100);
-};
+// --- IMPORT FORM THÊM SẢN PHẨM HÀNG LOẠT ---
+import BulkProductForm from "./BulkProductForm";
 
-// --- ĐÃ ĐỔI THEO ĐÚNG LOGIC PHÂN BIỆT SỐ 0 VÀ NULL CỦA Ý ---
-const getVariantStock = (product: Product, variantName: string): number => {
-  if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
-  const variant = product.variants.find(v => v.name === variantName);
-  
-  if (!variant) return product.stock ?? 0;
-  const s = variant.stock;
-  
-  // Trống (null / undefined / chuỗi rỗng) → Dùng stock chung
-  if (s === null || s === undefined || String(s).trim() === "") {
-    return product.stock ?? 0;
-  }
-  
-  // Điền số (kể cả số 0) → Dùng đúng số đó
-  return Number(s);
-};
+// --- IMPORT AWS SDK CHO CLOUDFLARE R2 ---
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-const getTotalVariantsStock = (product: Product): number => {
-  if (product.stock !== undefined && product.stock !== null && product.stock > 0) {
-    return product.stock;
-  }
-  if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
-  return product.variants.reduce((total, v) => total + (Number(v.stock) || 0), 0);
-};
-
-interface ProductDetailProps {
-  overrideId?: string;
+interface SupabaseProduct {
+  id: number;
+  name: string;
+  te: number | null;
+  rate: number | null;
+  r_v: number | null;
+  can_weight: number | null;
+  pack: number | null;
+  cong: number | null;
+  total: number | null;
+  price: number;
+  price_display: string | null;
+  deposit_allowed: boolean | null;
+  fees_included: boolean | null;
+  category: string | null;
+  subcategory: string | null;
+  artist: string | null;
+  status: string | null;
+  order_deadline: string | null;
+  images: any;
+  description: string | null;
+  size: string | null;
+  includes: string | null;
+  production_time: string | null;
+  master: string | null;
+  variants: any;
+  option_groups: any;
+  variant_image_map: any;
+  stock: number | null;
+  link_order: string | null;
+  proof: string | null;
+  actual_rate: number | null;
+  actual_can: number | null;
+  actual_pack: number | null;
+  chenh: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
-export default function ProductDetail({ overrideId }: ProductDetailProps) {
-  const { id: urlId } = useParams();
-  const id = overrideId || urlId; 
-  const navigate = useNavigate();
-  const { addToCart, products, isLoading } = useCart();
+type ProductFormData = Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at'>;
+
+const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
+const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
+
+const emptyForm: ProductFormData = {
+  name: "",
+  te: null,
+  rate: null,
+  r_v: null,
+  can_weight: null,
+  pack: null,
+  cong: null,
+  total: null,
+  price: 0,
+  price_display: "",
+  deposit_allowed: true,
+  fees_included: true,
+  category: "Merch",
+  subcategory: "",
+  artist: "",
+  status: "Order",
+  order_deadline: null,
+  images: [],
+  description: "",
+  size: null,
+  includes: null,
+  production_time: null,
+  master: null,
+  variants: [],
+  option_groups: [],
+  variant_image_map: {},
+  stock: null,
+  link_order: null,
+  proof: null,
+  actual_rate: null,
+  actual_can: null,
+  actual_pack: null,
+  chenh: null,
+};
+
+const getDeadlineStatus = (product: SupabaseProduct) => {
+  if (!product.order_deadline) return { label: "Không có hạn", color: "bg-gray-100 text-gray-700", priority: 2 };
+  const deadline = new Date(product.order_deadline);
+  const now = new Date();
+  const diffHours = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+  
+  if (diffHours < 0) return { label: "Hết hạn", color: "bg-red-100 text-red-700", priority: 4 };
+  if (diffHours < 48) return { label: "Sắp đóng order", color: "bg-orange-100 text-orange-700", priority: 0 };
+  return { label: "Còn hạn", color: "bg-green-100 text-green-700", priority: 1 };
+};
+
+const getAvailableStock = (product: SupabaseProduct): number => {
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const hasVariantStock = variants.some((v: any) => v?.stock !== undefined && v?.stock !== null);
+
+  if (hasVariantStock) {
+    return variants
+      .filter((v: any) => v?.stock !== undefined && v?.stock !== null)
+      .reduce((sum: number, v: any) => sum + Number(v.stock || 0), 0);
+  }
+
+  if (product.stock === null || product.stock === undefined) return 0;
+  return Number(product.stock || 0);
+};
+
+const getStockStatus = (product: SupabaseProduct) => {
+  const availableStock = getAvailableStock(product);
+  if (availableStock <= 0) return { label: "Hết hàng", color: "bg-red-100 text-red-700" };
+  if (availableStock <= 5) return { label: `Còn ${availableStock}`, color: "bg-orange-100 text-orange-700" };
+  return { label: `Còn ${availableStock}`, color: "bg-green-100 text-green-700" };
+};
+
+interface ProductManagementProps {
+  currentUser?: string;
+}
+
+export default function ProductManagement({ currentUser = "Admin" }: ProductManagementProps) {
+  const { refetchProducts } = useCart();
   const { toast } = useToast();
   
-  useReferralCapture();
+  const [dbProducts, setDbProducts] = useState<SupabaseProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [masterFilter, setMasterFilter] = useState("all");
   
-  const [quantity, setQuantity] = useState(1);
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
-  const [count, setCount] = useState(0);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [showBulkForm, setShowBulkForm] = useState(false);
+  const [originalId, setOriginalId] = useState<number | null>(null);
+  const [form, setForm] = useState<ProductFormData>({ ...emptyForm });
+  
+  // --- ĐÃ SỬA ĐỔI: CHO PHÉP TYPE NHẬN GIÁ TRỊ NULL CHO STOCK THEO CHUẨN CỦA Ý ---
+  const [variantInputs, setVariantInputs] = useState<{ name: string; price: number; stock?: number | null; te?: number | null }[]>([]);
+  const [optionGroupInputs, setOptionGroupInputs] = useState<{ name: string; options: string }[]>([]);
+  const [imageInputs, setImageInputs] = useState<string[]>([]);
 
-  const [product, setProduct] = useState<Product | undefined>(undefined);
-  const [currentPrice, setCurrentPrice] = useState(0);
-  const [selectedVariant, setSelectedVariant] = useState<string>(""); 
-  const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
-  const [isExpired, setIsExpired] = useState(false);
-  const [availableStock, setAvailableStock] = useState<number>(0);
-  const [viewCount, setViewCount] = useState(0);
-  const [highlightVariant, setHighlightVariant] = useState(false);
-  const variantRef = React.useRef<HTMLDivElement>(null);
+  const DRAFT_KEY = `product_draft_${currentUser}`;
+  
+  const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [syncingImages, setSyncingImages] = useState(false);
+
+  const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
+
+  const fetchDbProducts = async () => {
+    setLoading(true);
+    try {
+      let query: any = supabase.from('products').select('*').order('id', { ascending: false });
+      if (currentUser) query = query.eq('owner', currentUser);
+      const { data, error } = await query;
+      if (error) throw error;
+      setDbProducts((data as SupabaseProduct[]) || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast({ title: "Lỗi", description: "Không thể tải sản phẩm", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchDbProducts(); }, []);
 
   useEffect(() => {
-    setQuantity(1);
-    setSelectedVariant("");
-    setSelectedOptions({});
-    setCurrentPrice(0);
-    setAvailableStock(0);
-    setCurrent(0);
-    if (carouselApi) carouselApi.scrollTo(0);
-    setIsExpired(false);
-    setHighlightVariant(false);
+    const te = form.te || 0;
+    const rate = form.rate || 0;
+    const can = form.can_weight || 0;
+    const pack = form.pack || 0;
+    const cong = form.cong || 0;
     
-    if (!overrideId) {
-      window.scrollTo({ top: 0, behavior: 'instant' });
+    const rv = te * rate;
+    const total = rv + can + pack + cong;
+    
+    setForm(prev => ({ ...prev, r_v: rv || null, total: total || null }));
+  }, [form.te, form.rate, form.can_weight, form.pack, form.cong]);
+
+  useEffect(() => {
+    const te = form.te || 0;
+    const actualRate = form.actual_rate || form.rate || 0;
+    const actualCan = form.actual_can || form.can_weight || 0;
+    const actualPack = form.actual_pack || form.pack || 0;
+    const cong = form.cong || 0;
+    
+    const actualCost = (te * actualRate) + actualCan + actualPack + cong;
+    const chenh = form.price - actualCost;
+    
+    setForm(prev => ({ ...prev, chenh: chenh || null }));
+  }, [form.price, form.te, form.actual_rate, form.actual_can, form.actual_pack, form.rate, form.can_weight, form.pack, form.cong]);
+
+  const sortedProducts = useMemo(() => {
+    let filtered = dbProducts.filter(p => {
+      const matchSearch = searchTerm === "" ||
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.artist?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(p.id).includes(searchTerm);
+      const matchCategory = categoryFilter === "all" || p.category === categoryFilter;
+      const matchStatus = statusFilter === "all" || p.status === statusFilter;
+      const matchMaster = masterFilter === "all" || (p.master?.toLowerCase().includes(masterFilter.toLowerCase()) ?? false);
+      return matchSearch && matchCategory && matchStatus && matchMaster;
+    });
+
+    return filtered.sort((a, b) => {
+      const aOutOfStock = getAvailableStock(a) <= 0;
+      const bOutOfStock = getAvailableStock(b) <= 0;
+      const aHidden = a.status === "Ẩn";
+      const bHidden = b.status === "Ẩn";
+      const aPriority = aHidden ? 6 : aOutOfStock ? 5 : getDeadlineStatus(a).priority;
+      const bPriority = bHidden ? 6 : bOutOfStock ? 5 : getDeadlineStatus(b).priority;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return b.id - a.id;
+    });
+  }, [dbProducts, searchTerm, categoryFilter, statusFilter, masterFilter]);
+
+  const openAddForm = () => {
+    setEditingId(null);
+    setOriginalId(null);
+    setForm({ ...emptyForm });
+    setVariantInputs([]);
+    setOptionGroupInputs([]);
+    setImageInputs([""]);
+    setShowForm(true);
+  };
+
+  const openEditForm = (product: SupabaseProduct) => {
+    setEditingId(product.id);
+    setOriginalId(product.id);
+    
+    setForm({
+      name: product.name,
+      te: product.te,
+      rate: product.rate,
+      r_v: product.r_v,
+      can_weight: product.can_weight,
+      pack: product.pack,
+      cong: product.cong,
+      total: product.total,
+      price: product.price,
+      price_display: product.price_display,
+      deposit_allowed: product.deposit_allowed ?? true,
+      fees_included: product.fees_included ?? true,
+      category: product.category || "Merch",
+      subcategory: product.subcategory || "",
+      artist: product.artist || "",
+      status: product.status || "Order",
+      order_deadline: product.order_deadline,
+      images: product.images || [],
+      description: product.description || "",
+      size: product.size,
+      includes: product.includes,
+      production_time: product.production_time,
+      master: product.master,
+      variants: product.variants || [],
+      option_groups: product.option_groups || [],
+      variant_image_map: product.variant_image_map || {},
+      stock: product.stock,
+      link_order: product.link_order,
+      proof: product.proof,
+      actual_rate: product.actual_rate,
+      actual_can: product.actual_can,
+      actual_pack: product.actual_pack,
+      chenh: product.chenh,
+    });
+    
+    const imgs = Array.isArray(product.images) ? product.images as string[] : [];
+    setImageInputs(imgs.length > 0 ? imgs : [""]);
+    
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    setVariantInputs(variants.map((v: any) => ({ name: v.name || "", price: v.price || 0, stock: v.stock, te: v.te })));
+    
+    const optGroups = Array.isArray(product.option_groups) ? product.option_groups : [];
+    setOptionGroupInputs(optGroups.map((g: any) => ({ name: g.name || "", options: (g.options || []).join(", ") })));
+    
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast({ title: "Lỗi", description: "Tên sản phẩm không được để trống", variant: "destructive" });
+      return;
     }
-  }, [id, carouselApi, overrideId]);
 
-  useEffect(() => {
-    if (!isLoading && products.length > 0) {
-      const foundProduct = products.find(p => p.id == Number(id)); 
-      setProduct(foundProduct);
-    }
-  }, [isLoading, products, id]);
-
-  useEffect(() => {
-    if (!id) return;
-    const productId = Number(id);
-    const recordView = async () => {
-      await supabase.from('product_views').insert({ product_id: productId });
-    };
-    const fetchViewCount = async () => {
-      const { count: total } = await supabase
-        .from('product_views')
-        .select('*', { count: 'exact', head: true })
-        .eq('product_id', productId);
-      setViewCount(total || 0);
-    };
-    recordView();
-    fetchViewCount();
-  }, [id]);
-
-  useEffect(() => {
-    if (product) {
-      setCurrentPrice(product.price);
-      if (product.orderDeadline) {
-        const deadline = new Date(product.orderDeadline);
-        if (deadline < new Date()) setIsExpired(true);
-      } else if (product.status === "Sẵn") setIsExpired(false);
+    setSaving(true);
+    try {
+      const images = imageInputs.filter(url => url.trim() !== "");
       
-      if (product.optionGroups && product.optionGroups.length > 0) {
-        const initialOptions = product.optionGroups.reduce((acc, group) => {
-            acc[group.name] = "";
-            return acc;
-        }, {} as { [key: string]: string });
-        setSelectedOptions(initialOptions);
-        setAvailableStock(getTotalVariantsStock(product));
-      } else if (product.variants && product.variants.length === 1) {
-          const firstVariant = product.variants[0];
-          setSelectedVariant(firstVariant.name);
-          setCurrentPrice(firstVariant.price);
-          setAvailableStock(getVariantStock(product, firstVariant.name));
-      } else if (product.variants && product.variants.length > 1) {
-          setAvailableStock(getTotalVariantsStock(product));
-      } else {
-        setAvailableStock(product.stock ?? 0);
-      }
-    }
-  }, [product]);
+      // --- ĐÃ SỬA ĐỔI: THÊM MAP ĐỂ ĐẢM BẢO CHUỖI TRỐNG / UNDEFINED ĐỀU GÁN THÀNH NULL KHI LƯU ---
+      const variants = variantInputs
+        .filter(v => v.name.trim() !== "")
+        .map(v => ({
+          name: v.name,
+          price: v.price,
+          stock: (v.stock === undefined || v.stock === null || String(v.stock).trim() === "") ? null : Number(v.stock),
+          te: (v.te === undefined || v.te === null || String(v.te).trim() === "") ? null : Number(v.te)
+        }));
 
-  useEffect(() => {
-    if (!product || !product.optionGroups || product.optionGroups.length === 0) return;
-    const allOptionsSelected = Object.values(selectedOptions).every(val => val !== "");
-    if (allOptionsSelected) {
-        const constructedName = product.optionGroups.map(group => selectedOptions[group.name]).join("-");
-        const variant = product.variants.find(v => v.name === constructedName);
-        if (variant) {
-          setCurrentPrice(variant.price);
-          setSelectedVariant(variant.name);
-          setAvailableStock(getVariantStock(product, variant.name));
-          if (carouselApi && product.variantImageMap) {
-            const imageIndex = product.variantImageMap[variant.name];
-            if (imageIndex !== undefined) carouselApi.scrollTo(imageIndex);
-          }
+      const optionGroups = optionGroupInputs
+        .filter(g => g.name.trim() !== "")
+        .map(g => ({ name: g.name, options: g.options.split(",").map(o => o.trim()).filter(Boolean) }));
+
+      const saveData: any = {
+        name: form.name,
+        te: form.te,
+        rate: form.rate,
+        r_v: form.r_v,
+        can_weight: form.can_weight,
+        pack: form.pack,
+        cong: form.cong,
+        total: form.total,
+        price: form.price || 0,
+        price_display: form.price_display || `${(form.price || 0).toLocaleString('vi-VN')}đ`,
+        deposit_allowed: form.deposit_allowed,
+        fees_included: form.fees_included,
+        category: form.category,
+        subcategory: form.subcategory || null,
+        artist: form.artist || null,
+        status: form.status,
+        order_deadline: form.order_deadline || null,
+        images: images,
+        description: form.description || null,
+        size: form.size || null,
+        includes: form.includes || null,
+        production_time: form.production_time || null,
+        master: form.master || null,
+        variants: variants,
+        option_groups: optionGroups,
+        variant_image_map: form.variant_image_map || {},
+        stock: form.stock,
+        link_order: form.link_order || null,
+        proof: form.proof || null,
+        actual_rate: form.actual_rate,
+        actual_can: form.actual_can,
+        actual_pack: form.actual_pack,
+        chenh: form.chenh,
+      };
+
+      if (editingId) {
+        const isChangingId = editingId !== originalId;
+        if (isChangingId) {
+          const { error: insertError } = await supabase.from('products').insert({ ...saveData, id: editingId, owner: currentUser || 'Admin' } as any);
+          if (insertError) throw insertError;
+          const { error: deleteError } = await supabase.from('products').delete().eq('id', originalId);
+          if (deleteError) throw deleteError;
         } else {
-          setSelectedVariant("");
-          setCurrentPrice(product.price);
-          setAvailableStock(product.stock ?? 0);
+          const { error } = await supabase.from('products').update(saveData).eq('id', editingId);
+          if (error) throw error;
         }
-    } else {
-        setSelectedVariant("");
-        setAvailableStock(getTotalVariantsStock(product));
-    }
-  }, [selectedOptions, product, carouselApi]);
-
-  useEffect(() => {
-    if (!carouselApi) return;
-    setCount(carouselApi.scrollSnapList().length);
-    setCurrent(carouselApi.selectedScrollSnap() + 1);
-    carouselApi.on("select", () => setCurrent(carouselApi.selectedScrollSnap() + 1));
-  }, [carouselApi]);
-  
-  const handleVariantChange = (variantName: string) => {
-    setSelectedVariant(variantName);
-    const variant = product?.variants.find(v => v.name === variantName);
-    if (variant) setCurrentPrice(variant.price);
-    if (product) setAvailableStock(getVariantStock(product, variantName));
-    
-    if (carouselApi && product?.variantImageMap) {
-        const imageIndex = product.variantImageMap[variantName];
-        if (imageIndex !== undefined) carouselApi.scrollTo(imageIndex);
-    }
-  };
-
-  const handleOptionChange = (groupName: string, value: string) => {
-    setSelectedOptions(prev => ({ ...prev, [groupName]: value }));
-  };
-  
-  const handleAddToCart = () => {
-    if (!product) return; 
-    const hasVariants = product.variants && product.variants.length > 0;
-    const isReadyToAdd = !hasVariants || (hasVariants && selectedVariant);
-
-    if (!isReadyToAdd) {
-      toast({ title: "Vui lòng chọn phân loại", variant: "destructive" });
-      setHighlightVariant(true);
-      variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setTimeout(() => setHighlightVariant(false), 2000);
-      return;
-    }
-
-    const currentStock = selectedVariant ? getVariantStock(product, selectedVariant) : (product.stock ?? 0);
-    if (currentStock <= 0) {
-      toast({ title: "Hết hàng", description: `Phân loại này đã hết hàng, không thể đặt mua`, variant: "destructive" });
-      return;
-    }
-
-    if (quantity > currentStock) {
-      toast({ title: "Không đủ hàng", description: `Chỉ còn ${currentStock} sản phẩm trong kho`, variant: "destructive" });
-      return;
-    }
-
-    let finalPrice = currentPrice;
-    if (selectedVariant && product.variants) {
-      const variant = product.variants.find(v => v.name === selectedVariant);
-      if (variant && variant.price > 0) finalPrice = variant.price;
-    }
-    if (finalPrice === 0) finalPrice = product.price;
-
-    const productToAdd = { ...product, price: finalPrice, priceDisplay: `${finalPrice.toLocaleString('vi-VN')}đ` };
-    addToCart(productToAdd, quantity, selectedVariant || product.name);
-    toast({ title: "Đã thêm vào giỏ hàng!", description: `${product.name} x${quantity}` });
-  };
-
-  const incrementQuantity = () => setQuantity(prev => (availableStock !== undefined && prev + 1 > availableStock) ? prev : prev + 1);
-  const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
-
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/product/${id}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: product?.name, url: shareUrl }); } catch (error) {}
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      toast({ title: "Đã copy link" });
-    }
-  };
-
-  const renderPrice = () => {
-    if (selectedVariant) {
-      return currentPrice > 0 ? `${currentPrice.toLocaleString('vi-VN')}đ` : "Liên hệ";
-    }
-    if (product?.variants && product.variants.length > 0) {
-      if (product.variants.every(v => v.price === 0)) return "Liên hệ";
-      const prices = product.variants.map(v => v.price).filter(p => p > 0);
-      if (prices.length > 0) {
-        const minPrice = Math.min(...prices);
-        const maxPrice = Math.max(...prices);
-        if (minPrice === maxPrice) return `${minPrice.toLocaleString('vi-VN')}đ`;
-        return `Từ ${minPrice.toLocaleString('vi-VN')}đ`;
+      } else {
+        const maxId = dbProducts.length > 0 ? Math.max(...dbProducts.map(p => p.id)) : 0;
+        const { error } = await supabase.from('products').insert({ ...saveData, id: maxId + 1, owner: currentUser || 'Admin' } as any);
+        if (error) throw error;
       }
+
+      setShowForm(false);
+      fetchDbProducts();
+      refetchProducts();
+      toast({ title: "Đã lưu thành công" });
+    } catch (error: any) {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    return product?.price === 0 ? "Liên hệ" : `${product?.price.toLocaleString('vi-VN')}đ`;
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-12 flex justify-center h-[50vh]">
-        <LoadingPudding />
-      </div>
-    );
-  }
+  const deleteProduct = async (id: number) => {
+    if (!confirm(`Bạn có chắc muốn xóa sản phẩm #${id}?`)) return;
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) throw error;
+      setDbProducts(prev => prev.filter(p => p.id !== id));
+      refetchProducts();
+      toast({ title: "Đã xóa sản phẩm" });
+    } catch {
+      toast({ title: "Lỗi", description: "Không thể xóa sản phẩm", variant: "destructive" });
+    }
+  };
 
-  if (!product) {
-    return (
-      <div className="container mx-auto py-12 text-center">
-        <h1 className="text-xl font-bold mb-4">Không tìm thấy sản phẩm</h1>
-        <Button onClick={() => navigate("/products")}>Quay lại</Button>
-      </div>
-    );
-  }
+  const duplicateProduct = (product: SupabaseProduct) => {
+    setEditingId(null);
+    setOriginalId(null);
+    setForm({ ...product, name: `${product.name} (Copy)` });
+    const imgs = Array.isArray(product.images) ? product.images as string[] : [];
+    setImageInputs(imgs.length > 0 ? imgs : [""]);
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    setVariantInputs(variants.map((v: any) => ({ name: v.name || "", price: v.price || 0, stock: v.stock, te: v.te })));
+    const optGroups = Array.isArray(product.option_groups) ? product.option_groups : [];
+    setOptionGroupInputs(optGroups.map((g: any) => ({ name: g.name || "", options: (g.options || []).join(", ") })));
+    setShowForm(true);
+  };
+
+  const toggleHideProduct = async (product: SupabaseProduct) => {
+    const newStatus = product.status === "Ẩn" ? "Sẵn" : "Ẩn";
+    try {
+      const { error } = await supabase.from('products').update({ status: newStatus }).eq('id', product.id);
+      if (error) throw error;
+      setDbProducts(prev => prev.map(p => p.id === product.id ? { ...p, status: newStatus } : p));
+      refetchProducts();
+    } catch {
+      toast({ title: "Lỗi", description: "Không thể cập nhật trạng thái", variant: "destructive" });
+    }
+  };
+
+  const updateNum = (field: keyof ProductFormData, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value === "" ? null : Number(value) }));
+  };
 
   return (
-    <Layout>
-      <div className="container mx-auto px-3 sm:px-5 py-4 md:py-4 max-w-6xl">
-        {!overrideId && (
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" /> <span className="text-sm">Quay lại</span>
-          </Button>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8 lg:gap-12">
-          {/* CỘT ẢNH */}
-          <div className="space-y-4">
-            <div className="relative group">
-                <Carousel className="w-full" setApi={setCarouselApi}>
-                <CarouselContent>
-                    {product.images.map((image, index) => (
-                      <CarouselItem key={index}>
-                        <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
-                            <img src={image} alt={`${product.name}`} className="w-auto h-auto max-w-full max-h-[320px] md:max-h-[380px] object-contain" />
-                        </div>
-                      </CarouselItem>
-                    ))}
-                </CarouselContent>
-                {product.images.length > 1 && (
-                    <>
-                    <CarouselPrevious className="left-2 opacity-70 h-8 w-8" />
-                    <CarouselNext className="right-2 opacity-70 h-8 w-8" />
-                    </>
-                )}
-                </Carousel>
-                {count > 0 && (
-                    <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
-                        {current}/{count}
-                    </div>
-                )}
-            </div>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Tìm ID, tên, artist..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 h-9 w-48" />
           </div>
-
-          {/* CỘT THÔNG TIN */}
-          <div className="space-y-4 md:space-y-5">
-            <div className="space-y-2">
-              <div className="flex justify-between items-start gap-4">
-                 <div className="space-y-1">
-                    {product.status && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 mb-1">{product.status}</Badge>}
-                    <h1 className="text-xl md:text-2xl font-bold leading-tight text-foreground">{product.name}</h1>
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm pt-1">
-                      <div className="flex items-center gap-1"><Eye className="h-4 w-4" /> <span>{viewCount}</span></div>
-                      {product.master && (
-                        <Link to={`/shop/${slugify(product.master)}`} className="inline-flex items-center gap-1 text-primary hover:underline font-medium">
-                          <Store className="h-4 w-4" /> <span>{product.master}</span>
-                        </Link>
-                      )}
-                    </div>
-                 </div>
-                 <Button variant="ghost" size="icon" onClick={handleShare} className="h-9 w-9 text-muted-foreground flex-shrink-0 border">
-                    <Share2 className="h-4 w-4" />
-                 </Button>
-              </div>
-            </div>
-
-            {product.master && <MasterShippingProgress masterName={product.master} />}
-
-            <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
-              <div className="flex items-baseline gap-2">
-                  <p className={`text-2xl md:text-3xl font-extrabold ${availableStock <= 0 ? 'text-muted-foreground line-through' : 'text-primary'}`}>
-                    {renderPrice()}
-                  </p>
-                  {availableStock <= 0 && (
-                    <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">
-                      Hết hàng
-                    </span>
-                  )}
-              </div>
-              {product.orderDeadline && availableStock > 0 && (
-                <div className="mt-2">
-                  <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />
-                </div>
-              )}
-            </div>
-            
-            <div className="border rounded-lg divide-y divide-border/60">
-              <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Mô tả</span><span className="text-sm text-foreground/90 whitespace-pre-line">{product.description || "—"}</span></div>
-              <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Kích thước</span><span className="text-sm text-foreground/90">{product.size || "—"}</span></div>
-              <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Bao gồm</span><span className="text-sm text-foreground/90">{product.includes || "—"}</span></div>
-              <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
-            </div>
-
-            <div className="space-y-3" ref={variantRef}>
-              {product.optionGroups?.map((group) => (
-                <div key={group.name} className="space-y-1">
-                  <Label className="text-xs font-semibold text-muted-foreground">{group.name}</Label>
-                  <Select value={selectedOptions[group.name]} onValueChange={(value) => handleOptionChange(group.name, value)}>
-                    <SelectTrigger className={`w-full h-10 ${highlightVariant && !selectedOptions[group.name] ? 'border-red-500 animate-pulse bg-red-50/50' : ''}`}><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
-                    <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
-                      {group.options.map((option) => (
-                        <SelectItem key={option} value={option} className="py-2.5 text-sm whitespace-normal">
-                          <span className="leading-snug block">{option}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
-              {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-muted-foreground">Phân loại</Label>
-                  <Select value={selectedVariant} onValueChange={handleVariantChange}>
-                    <SelectTrigger className={`w-full h-10 ${highlightVariant && !selectedVariant ? 'border-red-500 animate-pulse bg-red-50/50' : ''}`}><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
-                    <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
-                        {product.variants.map((variant) => {
-                          const vStock = getVariantStock(product, variant.name);
-                          const isOutOfStock = vStock <= 0;
-                          return (
-                            <SelectItem key={variant.name} value={variant.name} disabled={isOutOfStock} className="py-2.5 text-sm whitespace-normal">
-                              <div className="flex items-center gap-3">
-                                {product.variantImageMap?.[variant.name] !== undefined && (
-                                  <img src={product.images[product.variantImageMap[variant.name]]} className="w-9 h-9 rounded object-cover shrink-0" />
-                                )}
-                                <span className="leading-snug block flex-1">{variant.name}</span>
-                                {isOutOfStock && (
-                                  <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Hết</span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between border-t pt-4">
-              <Label className="text-sm font-semibold text-muted-foreground">Số lượng mua</Label>
-              <div className="flex items-center gap-4">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500 font-bold">Hết hàng</span>}
-                </span>
-                <div className="flex items-center border rounded-md h-9 bg-background">
-                    <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1 || availableStock <= 0} className="h-full"><Minus className="h-3 w-3" /></Button>
-                    <Input type="number" value={availableStock <= 0 ? 0 : quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0 font-bold" />
-                    <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={quantity >= availableStock || availableStock <= 0} className="h-full"><Plus className="h-3 w-3" /></Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-1">
-              <Button 
-                onClick={handleAddToCart} 
-                className="w-full shadow-lg h-11 text-sm font-bold text-white uppercase tracking-wide bg-primary hover:bg-primary/90" 
-                size="lg" 
-                disabled={isExpired || availableStock <= 0}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" /> 
-                {isExpired ? "Đã hết hạn order" : availableStock <= 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
-              </Button>
-              
-              {!overrideId && (
-                <Button variant="outline" className="w-full h-11 text-xs font-bold border-dashed border-primary/40 text-primary hover:bg-primary/5 uppercase tracking-wide" onClick={() => navigate("/products")}>
-                  Tiếp tục mua hàng
-                </Button>
-              )}
-              
-              {(isExpired || availableStock <= 0) && <ProductNotificationForm productId={product.id} productName={product.name} />}
-            </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="h-9 w-40"><SelectValue placeholder="Danh mục" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả DM</SelectItem>
+              {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-32"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả TT</SelectItem>
+              {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Tìm master..." value={masterFilter === "all" ? "" : masterFilter} onChange={e => setMasterFilter(e.target.value || "all")} className="pl-8 h-9 w-36" />
           </div>
         </div>
+        
+        <div className="flex gap-2 flex-wrap">
+          <Button size="sm" onClick={() => setShowBulkForm(true)} variant="outline" className="gap-1"><Layers className="h-4 w-4" /> Thêm nhiều SP</Button>
+          <Button size="sm" onClick={openAddForm} className="gap-1"><Plus className="h-4 w-4" /> Thêm SP</Button>
+        </div>
+      </div>
 
-        {!overrideId && product.master && (() => {
-          const related = products.filter(p => p.id !== product.id && p.master === product.master && ['Sẵn', 'Đặt hàng', 'Order', 'Pre-order', 'Deal'].includes(p.status || ''));
-          if (related.length === 0) return null;
-          return (
-            <div className="mt-12 pt-6 border-t">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-foreground">Sản phẩm liên quan</h2>
-                <Link to={`/shop/${slugify(product.master)}`} className="text-xs font-bold text-primary hover:underline">Xem tất cả</Link>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">ID</TableHead>
+              <TableHead className="w-16">Ảnh</TableHead>
+              <TableHead>Tên</TableHead>
+              <TableHead className="text-right w-24">Giá</TableHead>
+              <TableHead className="w-20">Tồn kho</TableHead>
+              <TableHead className="w-28">Hạn order</TableHead>
+              <TableHead className="w-20">Loại</TableHead>
+              <TableHead className="w-20 text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedProducts.map(product => (
+              <TableRow key={product.id}>
+                <TableCell className="font-mono text-xs">{product.id}</TableCell>
+                <TableCell>
+                  {product.images?.[0] ? <img src={product.images[0]} className="w-10 h-10 object-cover rounded" /> : <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">N/A</div>}
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-1">
+                    <p className="font-medium text-sm line-clamp-1">{product.name}</p>
+                    <div className="flex gap-1 flex-wrap">
+                      {product.category && <Badge variant="outline" className="text-[10px] px-1 py-0">{product.category}</Badge>}
+                      {product.master && <Badge variant="secondary" className="text-[10px] bg-purple-50 text-purple-700 px-1 py-0">M: {product.master}</Badge>}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-medium text-sm">{product.price.toLocaleString('vi-VN')}đ</TableCell>
+                <TableCell><Badge variant="secondary" className="text-[10px]">{getStockStatus(product).label}</Badge></TableCell>
+                <TableCell><Badge variant="secondary" className="text-[10px]">{getDeadlineStatus(product).label}</Badge></TableCell>
+                <TableCell><Badge variant="secondary" className="text-[10px]">{product.status || "—"}</Badge></TableCell>
+                <TableCell className="text-right">
+                  <div className="flex gap-1 justify-end items-center">
+                    <ProductExportButtons product={product as any} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateProduct(product)}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleHideProduct(product)}>{product.status === "Ẩn" ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}</Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditForm(product)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteProduct(product.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editingId ? `Chỉnh sửa sản phẩm #${editingId}` : "Thêm sản phẩm mới"}</DialogTitle></DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Label>Tên sản phẩm *</Label>
+                <Input value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
               </div>
-              <div className="relative">
-                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x scroll-smooth -mx-5 px-5 md:mx-0 md:px-0">
-                  {related.map(p => <div key={p.id} className="shrink-0 w-[150px] md:w-[220px] snap-start"><ProductCard product={p} /></div>)}
-                </div>
-                <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
+              <div>
+                <Label>Danh mục</Label>
+                <Select value={form.category || ""} onValueChange={v => setForm(prev => ({ ...prev, category: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Master</Label>
+                <Input value={form.master || ""} onChange={e => setForm(prev => ({ ...prev, master: e.target.value }))} />
               </div>
             </div>
-          );
-        })()}
-      </div>
-    </Layout>
+
+            <div>
+              <h3 className="font-medium mb-2">Chi phí sản phẩm chung</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+                <div><Label className="text-xs">Tệ</Label><Input type="number" value={form.te ?? ""} onChange={e => updateNum('te', e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Rate</Label><Input type="number" value={form.rate ?? ""} onChange={e => updateNum('rate', e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">R-V</Label><Input type="number" value={form.r_v ?? ""} readOnly className="h-8 text-sm bg-muted" /></div>
+                <div><Label className="text-xs">Cân</Label><Input type="number" value={form.can_weight ?? ""} onChange={e => updateNum('can_weight', e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Pack</Label><Input type="number" value={form.pack ?? ""} onChange={e => updateNum('pack', e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Công</Label><Input type="number" value={form.cong ?? ""} onChange={e => updateNum('cong', e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Tổng phí</Label><Input type="number" value={form.total ?? ""} readOnly className="h-8 text-sm bg-muted" /></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div><Label className="text-xs">Giá bán *</Label><Input type="number" value={form.price || ""} onChange={e => setForm(prev => ({ ...prev, price: Number(e.target.value) || 0 }))} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">Tồn kho</Label><Input type="number" value={form.stock ?? ""} onChange={e => updateNum('stock', e.target.value)} className="h-8 text-sm" /></div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Phân loại chi tiết sản phẩm (Variants)</Label>
+                <Button variant="outline" size="sm" onClick={() => setVariantInputs(prev => [...prev, { name: "", price: form.price || 0, stock: null, te: null }])}><Plus className="h-3 w-3 mr-1" /> Thêm phân loại</Button>
+              </div>
+              <div className="space-y-2">
+                {variantInputs.map((v, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <Input placeholder="Tên phân loại" value={v.name} onChange={e => { const n = [...variantInputs]; n[idx].name = e.target.value; setVariantInputs(n); }} className="h-8 text-sm flex-1" />
+                    <Input type="number" placeholder="Giá bán VNĐ" value={v.price || ""} onChange={e => { const n = [...variantInputs]; n[idx].price = Number(e.target.value) || 0; setVariantInputs(n); }} className="h-8 text-sm w-28" />
+                    
+                    {/* --- ĐÃ SỬA ĐỔI: TRẢ VỀ GIÁ TRỊ NULL THAY VÌ UNDEFINED KHI Ô NHẬP TRỐNG THEO LOGIC MỚI --- */}
+                    <Input 
+                      type="number" 
+                      placeholder="Kho" 
+                      value={v.stock ?? ""} 
+                      onChange={e => { 
+                        const n = [...variantInputs]; 
+                        n[idx] = { ...n[idx], stock: e.target.value === "" ? null : Number(e.target.value) }; 
+                        setVariantInputs(n); 
+                      }} 
+                      className="h-8 text-sm w-16" 
+                    />
+                    
+                    <Input 
+                      type="number" 
+                      placeholder="Giá Tệ (Ẩn)" 
+                      value={v.te ?? ""} 
+                      onChange={e => { 
+                        const n = [...variantInputs]; 
+                        n[idx] = { ...n[idx], te: e.target.value === "" ? null : parseFloat(e.target.value) }; 
+                        setVariantInputs(n); 
+                      }} 
+                      className="h-8 text-sm w-20 bg-orange-50 text-orange-800 border-orange-200" 
+                      title="Ghi nhận giá tệ riêng biệt cho phân loại" 
+                    />
+                    
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setVariantInputs(prev => prev.filter((_, i) => i !== idx))}><X className="h-3 w-3" /></Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
+              <Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />} Lưu thay đổi</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <BulkProductForm open={showBulkForm} onClose={() => { setShowBulkForm(false); fetchDbProducts(); }} currentUser={currentUser} />
+    </div>
   );
 }
