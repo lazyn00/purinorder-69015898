@@ -523,6 +523,10 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     }
   };
 
+  const updateNum = (field: keyof ProductFormData, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value === "" ? null : Number(value) }));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -593,6 +597,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
                 <TableCell><Badge variant="secondary" className="text-[10px]">{product.status || "—"}</Badge></TableCell>
                 <TableCell className="text-right">
                   <div className="flex gap-1 justify-end items-center">
+                    <ProductExportButtons product={product as any} />
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateProduct(product)}><Copy className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleHideProduct(product)}>{product.status === "Ẩn" ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}</Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditForm(product)}><Pencil className="h-3.5 w-3.5" /></Button>
