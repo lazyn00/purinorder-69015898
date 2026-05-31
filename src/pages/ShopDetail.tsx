@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -59,7 +59,7 @@ interface ShopDetailProps {
 }
 
 export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
-  const { slug: urlSlug } = useParams<{ slug: string }>();
+  const { slug: urlSlug } = useParams<{ slug: string; }>();
   const { products, isLoading } = useCart();
   const navigate = useNavigate();
   
@@ -221,9 +221,7 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
         {available.length === 0 ? <p className="text-sm text-muted-foreground">Hiện chưa có sản phẩm nào.</p> : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {available.map((p: any) => (
-              <div key={p.id} onClick={() => setPopupProductId(String(p.id))} className="cursor-pointer">
-                <ProductCard product={p} />
-              </div>
+              <ProductCard key={p.id} product={p} onProductClick={setPopupProductId} />
             ))}
           </div>
         )}
@@ -236,9 +234,7 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
             <CollapsibleContent className="mt-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {hidden.map((p: any) => (
-                  <div key={p.id} onClick={() => setPopupProductId(String(p.id))} className="cursor-pointer">
-                    <ProductCard product={p} />
-                  </div>
+                  <ProductCard key={p.id} product={p} onProductClick={setPopupProductId} />
                 ))}
               </div>
             </CollapsibleContent>
