@@ -39,12 +39,20 @@ const slugify = (s: string) => {
     .slice(0, 100);
 };
 
-// --- 1. ĐỔI LẠI HÀM GETVARIANTSTOCK THEO ĐÚNG LOGIC BAN ĐẦU ---
+// --- LOGIC PHÂN BIỆT SỐ 0 VÀ NULL/TRỐNG CHUẨN THEO BẢN CŨ ---
 const getVariantStock = (product: Product, variantName: string): number | undefined => {
   if (!product.variants || product.variants.length === 0) return product.stock;
   const variant = product.variants.find(v => v.name === variantName);
   if (variant && variant.stock !== undefined && variant.stock !== null) return variant.stock;
   return product.stock;
+};
+
+const getTotalVariantsStock = (product: Product): number => {
+  if (product.stock !== undefined && product.stock !== null && product.stock > 0) {
+    return product.stock;
+  }
+  if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
+  return product.variants.reduce((total, v) => total + (Number(v.stock) || 0), 0);
 };
 
 interface ProductDetailProps {
@@ -71,7 +79,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
   
-  // --- 2. ĐỔI STATE VỀ NUMBER | UNDEFINED (MẶC ĐỊNH UNDEFINED) ---
+  // Trạng thái Kho: undefined = chưa chọn (cho mua), 0 = hết hàng thật (khóa), số dương = còn hàng
   const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
   
   const [viewCount, setViewCount] = useState(0);
@@ -132,8 +140,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
             return acc;
         }, {} as { [key: string]: string });
         setSelectedOptions(initialOptions);
-        
-        // --- 3. NHIỀU VARIANTS CHƯA CHỌN → ĐỂ UNDEFINED KHÔNG HIỆN KHO ---
         setAvailableStock(undefined);
       } else if (product.variants && product.variants.length === 1) {
           const firstVariant = product.variants[0];
@@ -141,7 +147,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
           setCurrentPrice(firstVariant.price);
           setAvailableStock(getVariantStock(product, firstVariant.name));
       } else if (product.variants && product.variants.length > 1) {
-          // --- 3. NHIỀU VARIANTS CHƯA CHỌN → ĐỂ UNDEFINED KHÔNG HIỆN KHO ---
           setAvailableStock(undefined);
       } else {
         setAvailableStock(product.stock);
@@ -343,7 +348,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
 
             <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
               <div className="flex items-baseline gap-2">
-                  {/* --- 5. SỬA BADGE GIÁ: CHỈ GẠCH KHI HẾT HẠN ORDER --- */}
                   <p className={`text-2xl md:text-3xl font-extrabold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
                     {renderPrice()}
                   </p>
@@ -354,7 +358,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
                   )}
               </div>
               
-              {/* --- 6. COUNTDOWN CHỈ ẨN KHI AVAILABLESTOCK === 0 --- */}
               {product.orderDeadline && availableStock !== 0 && (
                 <div className="mt-2">
                   <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />
@@ -369,45 +372,51 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
               <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
             </div>
 
+            {/* --- ĐÃ CHỈNH SỬA: SỬA LẠI TOÀN BỘ PHẦN SELECT ĐỂ KHÔNG BỊ TRÙNG LẶP LAYOUT (PORTAL FIX) --- */}
             <div className="space-y-3" ref={variantRef}>
               {product.optionGroups?.map((group) => (
                 <div key={group.name} className="space-y-1">
                   <Label className="text-xs font-semibold text-muted-foreground">{group.name}</Label>
                   <Select value={selectedOptions[group.name]} onValueChange={(value) => handleOptionChange(group.name, value)}>
-                    <SelectTrigger className={`w-full h-10 ${highlightVariant && !selectedOptions[group.name] ? 'border-red-500 bg-red-50/50' : ''}`}><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
-                    <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
+                    <SelectTrigger className={`w-full h-10 ${highlightVariant && !selectedOptions[group.name] ? 'border-red-500 bg-red-50/50' : ''}`}>
+                      <SelectValue placeholder={`Chọn ${group.name}`} />
+                    </SelectTrigger>
+                    <SelectContent>
                       {group.options.map((option) => (
-                        <SelectItem key={option} value={option} className="py-2.5 text-sm whitespace-normal">
-                          <span className="leading-snug block">{option}</span>
+                        <SelectItem key={option} value={option} className="py-2 text-sm">
+                          {option}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               ))}
+              
               {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-muted-foreground">Phân loại</Label>
                   <Select value={selectedVariant} onValueChange={handleVariantChange}>
-                    <SelectTrigger className={`w-full h-10 ${highlightVariant && !selectedVariant ? 'border-red-500 bg-red-50/50' : ''}`}><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
-                    <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
-                        {product.variants.map((variant) => {
-                          const vStock = getVariantStock(product, variant.name);
-                          const isOutOfStock = vStock !== undefined && vStock <= 0;
-                          return (
-                            <SelectItem key={variant.name} value={variant.name} disabled={isOutOfStock} className="py-2.5 text-sm whitespace-normal">
-                              <div className="flex items-center gap-3">
-                                {product.variantImageMap?.[variant.name] !== undefined && (
-                                  <img src={product.images[product.variantImageMap[variant.name]]} className="w-9 h-9 rounded object-cover shrink-0" />
-                                )}
-                                <span className="leading-snug block flex-1">{variant.name}</span>
-                                {isOutOfStock && (
-                                  <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Hết</span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
+                    <SelectTrigger className={`w-full h-10 ${highlightVariant && !selectedVariant ? 'border-red-500 bg-red-50/50' : ''}`}>
+                      <SelectValue placeholder="Chọn phân loại" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {product.variants.map((variant) => {
+                        const vStock = getVariantStock(product, variant.name);
+                        const isOutOfStock = vStock !== undefined && vStock <= 0;
+                        return (
+                          <SelectItem key={variant.name} value={variant.name} disabled={isOutOfStock} className="py-2 text-sm">
+                            <div className="flex items-center gap-3">
+                              {product.variantImageMap?.[variant.name] !== undefined && (
+                                <img src={product.images[product.variantImageMap[variant.name]]} className="w-8 h-8 rounded object-cover shrink-0" />
+                              )}
+                              <span className="flex-1 text-left">{variant.name}</span>
+                              {isOutOfStock && (
+                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Hết</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -429,7 +438,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
             </div>
 
             <div className="space-y-2 pt-1">
-              {/* --- 4. SỬA ĐIỀU KIỆN DISABLE BUTTON VÀ HIỆN CHỮ THEO ĐÚNG LOGIC MỚI --- */}
               <Button 
                 onClick={handleAddToCart} 
                 className="w-full shadow-lg h-11 text-sm font-bold text-white uppercase tracking-wide bg-primary hover:bg-primary/90" 
