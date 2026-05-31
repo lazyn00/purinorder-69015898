@@ -39,27 +39,43 @@ const slugify = (s: string) => {
     .slice(0, 100);
 };
 
-const getVariantStock = (product: Product, variantName: string): number | undefined => {
-    if (!product.variants || product.variants.length === 0) return product.stock;
-    const variant = product.variants.find(v => v.name === variantName);
-    if (variant && variant.stock !== undefined) return variant.stock;
-    return product.stock;
+// --- HÀM TÍNH TOÁN KHO BIẾN THỂ THEO LOGIC MỚI ---
+const getVariantStock = (product: Product, variantName: string): number => {
+  // Quy tắc 3: Nếu trong danh sách có BẤT KỲ phân loại nào cố định = 0, ép tất cả các phân loại khác về 0
+  const hasAnyExplicitZero = product.variants?.some(v => v.stock !== undefined && v.stock !== null && Number(v.stock) === 0);
+  if (hasAnyExplicitZero) return 0;
+
+  if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
+  const variant = product.variants.find(v => v.name === variantName);
+  
+  // Quy tắc 1: Nếu stock phân loại bỏ trống (null/undefined), tính theo stock chung của sản phẩm
+  if (!variant || variant.stock === undefined || variant.stock === null) {
+    return product.stock ?? 0;
+  }
+  
+  return Number(variant.stock);
 };
 
+// --- HÀM TÍNH TOÁN TỔNG KHO ĐỂ HIỂN THỊ KHI CHƯA CHỌN PHÂN LOẠI ---
 const getTotalVariantsStock = (product: Product): number => {
+  const hasAnyExplicitZero = product.variants?.some(v => v.stock !== undefined && v.stock !== null && Number(v.stock) === 0);
+  if (hasAnyExplicitZero) return 0;
+
   if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
+  
+  // Nếu có phân loại dùng chung kho (bỏ trống stock), lấy kho chung làm đại diện chính
+  const hasSharedStock = product.variants.some(v => v.stock === undefined || v.stock === null);
+  if (hasSharedStock) return product.stock ?? 0;
+
   return product.variants.reduce((total, v) => total + (v.stock ?? 0), 0);
 };
 
-// Khai báo interface để nhận overrideId từ cửa sổ Popup trang cha truyền vào
 interface ProductDetailProps {
   overrideId?: string;
 }
 
 export default function ProductDetail({ overrideId }: ProductDetailProps) {
   const { id: urlId } = useParams();
-  
-  // Ưu tiên sử dụng ID từ popup truyền xuống trước, nếu không có mới lấy trên thanh URL
   const id = overrideId || urlId; 
   const navigate = useNavigate();
   const { addToCart, products, isLoading } = useCart();
@@ -77,7 +93,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
   const [selectedVariant, setSelectedVariant] = useState<string>(""); 
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
-  const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
+  const [availableStock, setAvailableStock] = useState<number>(0);
   const [viewCount, setViewCount] = useState(0);
   const [highlightVariant, setHighlightVariant] = useState(false);
   const variantRef = React.useRef<HTMLDivElement>(null);
@@ -87,13 +103,12 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     setSelectedVariant("");
     setSelectedOptions({});
     setCurrentPrice(0);
-    setAvailableStock(undefined);
+    setAvailableStock(0);
     setCurrent(0);
     if (carouselApi) carouselApi.scrollTo(0);
     setIsExpired(false);
     setHighlightVariant(false);
     
-    // Chỉ cuộn mượt lên đầu trang nếu người dùng click xem link trực tiếp độc lập
     if (!overrideId) {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -142,7 +157,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
           const firstVariant = product.variants[0];
           setSelectedVariant(firstVariant.name);
           setCurrentPrice(firstVariant.price);
-          setAvailableStock(getVariantStock(product, firstVariant.name) ?? 0);
+          setAvailableStock(getVariantStock(product, firstVariant.name));
       } else if (product.variants && product.variants.length > 1) {
           setAvailableStock(getTotalVariantsStock(product));
       } else {
@@ -160,7 +175,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
         if (variant) {
           setCurrentPrice(variant.price);
           setSelectedVariant(variant.name);
-          setAvailableStock(getVariantStock(product, variant.name) ?? 0);
+          setAvailableStock(getVariantStock(product, variant.name));
           if (carouselApi && product.variantImageMap) {
             const imageIndex = product.variantImageMap[variant.name];
             if (imageIndex !== undefined) carouselApi.scrollTo(imageIndex);
@@ -187,7 +202,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     setSelectedVariant(variantName);
     const variant = product?.variants.find(v => v.name === variantName);
     if (variant) setCurrentPrice(variant.price);
-    if (product) setAvailableStock(getVariantStock(product, variantName) ?? 0);
+    if (product) setAvailableStock(getVariantStock(product, variantName));
     
     if (carouselApi && product?.variantImageMap) {
         const imageIndex = product.variantImageMap[variantName];
@@ -212,22 +227,15 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
       return;
     }
 
-    // --- KIỂM TRA BẢO VỆ CHẶN USER BYPASS KHI PHÂN LOẠI ĐÃ HẾT HÀNG ---
-    if (selectedVariant && product.variants) {
-      const variant = product.variants.find(v => v.name === selectedVariant);
-      if (variant && (variant.stock === null || variant.stock === undefined || variant.stock <= 0)) {
-        toast({ title: "Hết hàng", description: `${selectedVariant} đã hết hàng`, variant: "destructive" });
-        return;
-      }
-    }
-
-    if (availableStock !== undefined && availableStock <= 0) {
-      toast({ title: "Hết hàng", description: "Sản phẩm này đã hết hàng", variant: "destructive" });
+    // Kiểm tra an toàn chặn mua khi phân loại hiện tại hết hàng hoặc domino sập kho
+    const currentStock = selectedVariant ? getVariantStock(product, selectedVariant) : (product.stock ?? 0);
+    if (currentStock <= 0) {
+      toast({ title: "Hết hàng", description: `Phân loại này đã hết hàng, không thể đặt mua`, variant: "destructive" });
       return;
     }
 
-    if (availableStock !== undefined && quantity > availableStock) {
-      toast({ title: "Không đủ hàng", description: `Chỉ còn ${availableStock} sản phẩm`, variant: "destructive" });
+    if (quantity > currentStock) {
+      toast({ title: "Không đủ hàng", description: `Chỉ còn ${currentStock} sản phẩm trong kho`, variant: "destructive" });
       return;
     }
 
@@ -353,16 +361,16 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
 
           <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
             <div className="flex items-baseline gap-2">
-                <p className={`text-2xl md:text-3xl font-extrabold ${(isExpired || availableStock === 0) ? 'text-muted-foreground line-through' : 'text-primary'}`}>
+                <p className={`text-2xl md:text-3xl font-extrabold ${(isExpired || availableStock <= 0) ? 'text-muted-foreground line-through' : 'text-primary'}`}>
                   {renderPrice()}
                 </p>
-                {(isExpired || availableStock === 0) && (
+                {(isExpired || availableStock <= 0) && (
                   <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">
-                    {availableStock === 0 ? "Hết hàng" : "Hết hạn"}
+                    Hết hàng
                   </span>
                 )}
             </div>
-            {product.orderDeadline && availableStock !== 0 && (
+            {product.orderDeadline && availableStock > 0 && (
               <div className="mt-2">
                 <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />
               </div>
@@ -376,7 +384,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
             <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
           </div>
 
-          <div className="space-y-3">
+          <div ref={variantRef} className={`space-y-3 ${highlightVariant ? 'ring-2 ring-primary rounded-lg p-2 animate-pulse' : ''}`}>
             {product.optionGroups?.map((group) => (
               <div key={group.name} className="space-y-1">
                 <Label className="text-xs font-semibold text-muted-foreground">{group.name}</Label>
@@ -398,10 +406,10 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
                 <Select value={selectedVariant} onValueChange={handleVariantChange}>
                   <SelectTrigger className="w-full h-10"><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
                   <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
-                      {/* --- RENDER SỬA ĐỔI Ô CHỌN BIẾN THỂ PHÂN LOẠI THEO YÊU CẦU --- */}
                       {product.variants.map((variant) => {
-                        // Trống (null/undefined) hoặc = 0 đều coi là hết hàng
-const isOutOfStock = variant.stock === null || variant.stock === undefined || variant.stock <= 0;
+                        // Tính toán stock động của từng phân loại để render nhãn "Hết" chính xác
+                        const vStock = getVariantStock(product, variant.name);
+                        const isOutOfStock = vStock <= 0;
                         return (
                           <SelectItem key={variant.name} value={variant.name} disabled={isOutOfStock} className="py-2.5 text-sm whitespace-normal">
                             <div className="flex items-center gap-3">
@@ -425,11 +433,13 @@ const isOutOfStock = variant.stock === null || variant.stock === undefined || va
           <div className="flex items-center justify-between border-t pt-4">
             <Label className="text-sm font-semibold text-muted-foreground">Số lượng mua</Label>
             <div className="flex items-center gap-4">
-              {availableStock !== undefined && <span className="text-xs font-medium text-muted-foreground">{availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500">Hết hàng</span>}</span>}
+              <span className="text-xs font-medium text-muted-foreground">
+                {availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500 font-bold">Hết hàng</span>}
+              </span>
               <div className="flex items-center border rounded-md h-9 bg-background">
-                  <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1 || availableStock === 0} className="h-full"><Minus className="h-3 w-3" /></Button>
-                  <Input type="number" value={availableStock === 0 ? 0 : quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0 font-bold" />
-                  <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={availableStock !== undefined && (quantity >= availableStock || availableStock === 0)} className="h-full"><Plus className="h-3 w-3" /></Button>
+                  <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1 || availableStock <= 0} className="h-full"><Minus className="h-3 w-3" /></Button>
+                  <Input type="number" value={availableStock <= 0 ? 0 : quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0 font-bold" />
+                  <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={quantity >= availableStock || availableStock <= 0} className="h-full"><Plus className="h-3 w-3" /></Button>
               </div>
             </div>
           </div>
@@ -439,10 +449,10 @@ const isOutOfStock = variant.stock === null || variant.stock === undefined || va
               onClick={handleAddToCart} 
               className="w-full shadow-lg h-11 text-sm font-bold text-white uppercase tracking-wide" 
               size="lg" 
-              disabled={isExpired || availableStock === 0 || (availableStock !== undefined && availableStock <= 0)}
+              disabled={isExpired || availableStock <= 0}
             >
               <ShoppingCart className="h-4 w-4 mr-2" /> 
-              {isExpired ? "Đã hết hạn order" : (availableStock === 0 || (availableStock !== undefined && availableStock <= 0)) ? "Hết hàng" : "Thêm vào giỏ hàng"}
+              {isExpired ? "Đã hết hạn order" : availableStock <= 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
             </Button>
             
             {!overrideId && (
@@ -451,7 +461,7 @@ const isOutOfStock = variant.stock === null || variant.stock === undefined || va
               </Button>
             )}
             
-            {(isExpired || availableStock === 0 || (availableStock !== undefined && availableStock <= 0)) && <ProductNotificationForm productId={product.id} productName={product.name} />}
+            {(isExpired || availableStock <= 0) && <ProductNotificationForm productId={product.id} productName={product.name} />}
           </div>
         </div>
       </div>
