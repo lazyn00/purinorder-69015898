@@ -65,14 +65,12 @@ const mapSupabaseProduct = (p: any): Product => {
     try { images = JSON.parse(images); } catch { images = []; }
   }
 
-  // --- ĐÃ CHỈNH SỬA: CHUẨN HÓA LOGIC LẤY STOCK PHÂN LOẠI THEO ĐÚNG Ý BẠN ---
+  // --- CHUẨN HÓA LOGIC LẤY STOCK PHÂN LOẠI: Trống thì lấy kho chung, nhập 0 lấy 0 ---
   const normalizedVariants = (Array.isArray(variants) ? variants : []).map((v: any) => {
-    // Kiểm tra xem ô tồn kho của phân loại có bị bỏ trống trên hệ thống hay không
     const isStockEmpty = v.stock === null || v.stock === undefined || String(v.stock).trim() === "";
     return {
       name: v.name,
       price: Number(v.price) || 0,
-      // Quy tắc cốt lõi: Nếu để trống thì lấy bằng kho chung (p.stock), nếu điền số (kể cả số 0) thì lấy chính nó
       stock: isStockEmpty ? (p.stock ?? 0) : Number(v.stock)
     };
   });
@@ -86,7 +84,7 @@ const mapSupabaseProduct = (p: any): Product => {
     category: p.category || '',
     subcategory: p.subcategory || '',
     artist: p.artist || '',
-    variants: normalizedVariants, // Nạp mảng biến thể đã chuẩn hóa kho hàng vào đây
+    variants: normalizedVariants, // ✅ Đã cập nhật nạp mảng đã lọc chuẩn hóa
     optionGroups: optionGroups,
     variantImageMap: variantImageMap,
     feesIncluded: p.fees_included ?? true,
@@ -143,6 +141,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchProducts();
 
+    // Subscribe to realtime changes on products table for live stock updates
     const channel = supabase
       .channel('products-realtime')
       .on(
