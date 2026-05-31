@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Loader2,
-  Copy, X, Save, Layers, Upload, ImageIcon
+  Copy, X, Save, Layers, Upload, GripVertical
 } from "lucide-react";
-import { InAppUploadNotice } from "./InAppBrowserBanner";
 
 // --- IMPORT AWS SDK CHO CLOUDFLARE R2 ĐỂ UPLOAD TRONG BULK ADD ---
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -23,10 +22,11 @@ const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh
 const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
 
 interface BulkVariantItem {
+  id: string; // Thêm local id để hỗ trợ kéo thả phân loại ổn định
   name: string;
   price: number;
   stock?: number;
-  te?: number; // Trường ghi nhận giá tệ ẩn cho từng phân loại
+  te?: number; 
 }
 
 interface BulkProductItem {
@@ -47,8 +47,8 @@ interface BulkProductItem {
   order_deadline: string;
   description: string;
   images: string; 
-  variants: BulkVariantItem[]; // Mảng object phân loại chi tiết
-  variant_image_map: { [key: string]: number }; // Bản đồ gán ảnh cho phân loại hàng loạt
+  variants: BulkVariantItem[]; 
+  variant_image_map: { [key: string]: number }; 
   size: string;
   includes: string;
   production_time: string;
@@ -148,7 +148,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
         ...item, 
         _id: Math.random().toString(36).slice(2), 
         name: item.name + " (Copy)", 
-        variants: [...item.variants],
+        variants: item.variants.map(v => ({ ...v, id: Math.random().toString(36).slice(2) })),
         variant_image_map: { ...item.variant_image_map }
       };
       const next = [...prev];
@@ -238,7 +238,10 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
 
       for (const item of valid) {
         const images = parseImages(item.images);
-        const variants = item.variants.filter(v => v.name.trim() !== "");
+        // Loại bỏ trường ID tạm khi lưu xuống DB
+        const variants = item.variants
+          .filter(v => v.name.trim() !== "")
+          .map(({ name, price, stock, te }) => ({ name, price, stock, te }));
 
         const saveData: any = {
           id: nextId,
@@ -335,15 +338,47 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
           </div>
         </div>
 
+        {/* List đơn sản phẩm */}
         <div className="overflow-y-auto flex-1 px-4 py-3 space-y-3 bg-muted/10">
           {items.map((item, idx) => (
             <div
               key={item._id}
+              draggable
+              onDragStart={(e) => {
+                // Kiểm tra chỉ cho phép kéo khi nắm trúng thanh Grip
+                if ((e.target as HTMLElement).closest(".product-grip")) {
+                  e.dataTransfer.setData("text/plain", `prod-${idx}`);
+                  e.currentTarget.classList.add("opacity-40");
+                } else {
+                  e.preventDefault();
+                }
+              }}
+              onDragEnd={(e) => e.currentTarget.classList.remove("opacity-40")}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const rawData = e.dataTransfer.getData("text/plain");
+                if (!rawData.startsWith("prod-")) return;
+                const fromIdx = Number(rawData.split("-")[1]);
+                if (fromIdx === idx) return;
+
+                setItems(prev => {
+                  const arr = [...prev];
+                  const [moved] = arr.splice(fromIdx, 1);
+                  arr.splice(idx, 0, moved);
+                  return arr;
+                });
+              }}
               className={`border bg-background rounded-lg overflow-hidden shadow-sm transition-all ${
                 item.name.trim() ? "border-border" : "border-dashed border-muted-foreground/30"
               }`}
             >
+              {/* Row header */}
               <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 border-b">
+                {/* THANH GRIP KÉO THẢ THỨ TỰ ĐƠN SẢN PHẨM */}
+                <div className="product-grip cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded shrink-0">
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                </div>
                 <span className="text-xs text-muted-foreground font-mono w-5 shrink-0">{idx + 1}</span>
 
                 <Input
@@ -390,6 +425,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                 </button>
               </div>
 
+              {/* Expanded details */}
               {item.expanded && (
                 <div className="px-4 py-4 space-y-4 bg-background">
                   {/* Cấu trúc quản lý chi phí tài chính */}
@@ -486,10 +522,10 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                     </div>
                   </div>
 
-                  {/* Danh sách Phân loại biến thể chi tiết */}
+                  {/* KÉO THẢ THỨ TỰ PHÂN LOẠI BIẾN THỂ */}
                   <div className="border rounded-lg p-3 bg-muted/10 space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-muted-foreground">🎨 Danh sách Phân loại biến thể chi tiết</Label>
+                      <Label className="text-xs font-bold text-muted-foreground">🎨 Danh sách Phân loại biến thể chi tiết (Kéo thả xếp thứ tự)</Label>
                       <Button
                         type="button"
                         variant="outline"
@@ -497,7 +533,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                         className="h-7 text-xs"
                         onClick={() => {
                           const currentVariants = [...item.variants];
-                          currentVariants.push({ name: "", price: item.price || 0, stock: undefined, te: undefined });
+                          currentVariants.push({ id: Math.random().toString(36).slice(2), name: "", price: item.price || 0, stock: undefined, te: undefined });
                           update(item._id, 'variants', currentVariants);
                         }}
                       >
@@ -508,7 +544,38 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                     {item.variants.length > 0 ? (
                       <div className="space-y-1.5">
                         {item.variants.map((v, vIdx) => (
-                          <div key={vIdx} className="flex gap-2 items-center bg-background p-1.5 rounded border shadow-none">
+                          <div 
+                            key={v.id || vIdx} 
+                            draggable
+                            onDragStart={(e) => {
+                              if ((e.target as HTMLElement).closest(".variant-grip")) {
+                                e.dataTransfer.setData("text/plain", `var-${item._id}-${vIdx}`);
+                                e.currentTarget.classList.add("opacity-40");
+                              } else {
+                                e.preventDefault();
+                              }
+                            }}
+                            onDragEnd={(e) => e.currentTarget.classList.remove("opacity-40")}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const rawData = e.dataTransfer.getData("text/plain");
+                              if (!rawData.startsWith(`var-${item._id}-`)) return; // Chỉ cho phép đổi thứ tự trong cùng 1 sản phẩm
+                              const fromIdx = Number(rawData.split("-")[2]);
+                              if (fromIdx === vIdx) return;
+
+                              const newVariants = [...item.variants];
+                              const [moved] = newVariants.splice(fromIdx, 1);
+                              newVariants.splice(vIdx, 0, moved);
+                              update(item._id, 'variants', newVariants);
+                            }}
+                            className="flex gap-2 items-center bg-background p-1.5 rounded border shadow-none transition-all"
+                          >
+                            {/* THANH GRIP KÉO THẢ BIẾN THỂ */}
+                            <div className="variant-grip cursor-grab active:cursor-grabbing p-1 text-muted-foreground/60 hover:text-foreground rounded">
+                              <GripVertical className="h-3.5 w-3.5" />
+                            </div>
+
                             <Input
                               placeholder="Tên phân loại (VD: Thỏ hồng)"
                               value={v.name}
@@ -551,7 +618,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                                 update(item._id, 'variants', newVariants);
                               }}
                               className="h-7 text-xs w-20 bg-orange-50/50 text-orange-700 border-orange-200 focus-visible:ring-orange-400"
-                              title="Ghi nhận giá tệ riêng biệt cho phân loại"
+                              title="Ghi nhận giá tệ riêng biệt cho phân loại (không hiển thị ra ngoài khách)"
                             />
                             <Button
                               type="button"
@@ -573,7 +640,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                     )}
                   </div>
 
-                  {/* --- KHỐI BỔ SUNG: GÁN ẢNH CHO PHÂN LOẠI HÀNG LOẠT --- */}
+                  {/* Gán ảnh cho phân loại biến thể */}
                   {item.variants.filter(v => v.name.trim()).length > 0 && parseImages(item.images).length > 0 && (
                     <div className="border rounded-lg p-3 bg-background space-y-2">
                       <Label className="text-xs font-bold text-muted-foreground">🖼️ Gán ảnh cho phân loại biến thể</Label>
@@ -589,7 +656,6 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                               <div className="flex gap-1.5 flex-wrap">
                                 {validImages.map(({ url, i }) => (
                                   <button
-                                    key={i}
                                     type="button"
                                     onClick={() => {
                                       const newMap = { ...currentMap, [v.name]: i };
@@ -630,14 +696,42 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                     <Textarea value={item.description} onChange={e => update(item._id, 'description', e.target.value)} rows={2} className="text-xs mt-1" />
                   </div>
                   
+                  {/* PREVIEW ẢNH - HỖ TRỢ KÉO THẢ THỨ TỰ TỪNG ẢNH BẰNG CHUỖI TEXT URL */}
                   {parseImages(item.images).length > 0 && (
-                    <div className="flex gap-1.5 overflow-x-auto pt-1 pb-1">
-                      {parseImages(item.images).map((imgUrl, i) => (
-                        <div key={i} className="relative group shrink-0 border rounded overflow-hidden w-10 h-10 bg-muted">
-                          <img src={imgUrl} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
-                          <span className="absolute bottom-0 right-0 bg-black/60 text-[8px] text-white px-0.5 font-mono">#{i + 1}</span>
-                        </div>
-                      ))}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Thứ tự hình ảnh hiển thị (Kéo thả các ô ảnh để đổi vị trí sắp xếp):</Label>
+                      <div className="flex gap-2 overflow-x-auto pt-1 pb-1 scrollbar-hide">
+                        {parseImages(item.images).map((imgUrl, i) => (
+                          <div 
+                            key={i} 
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", `img-${item._id}-${i}`);
+                              e.currentTarget.classList.add("ring-2", "ring-primary");
+                            }}
+                            onDragEnd={(e) => e.currentTarget.classList.remove("ring-2", "ring-primary")}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const rawData = e.dataTransfer.getData("text/plain");
+                              if (!rawData.startsWith(`img-${item._id}-`)) return; // Chỉ kéo thả ảnh trong cùng 1 sản phẩm
+                              const fromIdx = Number(rawData.split("-")[2]);
+                              if (fromIdx === i) return;
+
+                              const imgList = parseImages(item.images);
+                              const [movedImg] = imgList.splice(fromIdx, 1);
+                              imgList.splice(i, 0, movedImg);
+                              
+                              // Cập nhật lại chuỗi nối bằng dấu phẩy
+                              update(item._id, 'images', imgList.join(", "));
+                            }}
+                            className="relative group shrink-0 border rounded overflow-hidden w-12 h-12 bg-muted cursor-move hover:border-foreground/40 transition-all select-none"
+                          >
+                            <img src={imgUrl} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
+                            <span className="absolute bottom-0 right-0 bg-black/60 text-[8px] text-white px-1 font-mono rounded-tl font-bold">#{i + 1}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
