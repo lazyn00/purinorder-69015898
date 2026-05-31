@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 
+// ĐỒNG BỘ: Hàm slugify hỗ trợ tiếng Trung để URL không bị lỗi trên Social
 const slugify = (s: string) => {
   if (!s) return "shop";
   return s
@@ -39,7 +40,6 @@ const slugify = (s: string) => {
     .slice(0, 100);
 };
 
-// --- LOGIC PHÂN BIỆT RẠCH RÒI: TRỐNG = KHO CHUNG, ĐIỀN 0 = HẾT HÀNG ---
 const getVariantStock = (product: Product, variantName: string): number | undefined => {
   if (!product.variants || product.variants.length === 0) return product.stock;
   const variant = product.variants.find(v => v.name === variantName);
@@ -47,24 +47,19 @@ const getVariantStock = (product: Product, variantName: string): number | undefi
   if (!variant) return product.stock;
   const s = variant.stock;
 
-  // Nếu để trống (null/undefined/chuỗi rỗng) → Fallback về dùng stock chung
   if (s === null || s === undefined || String(s).trim() === "") {
     return product.stock;
   }
-  
-  // Điền số (kể cả số 0) → Dùng đúng số đó
   return Number(s);
 };
 
-// Khai báo interface để nhận overrideId từ cửa sổ Popup trang cha truyền vào
 interface ProductDetailProps {
   overrideId?: string;
+  onProductClick?: (id: string) => void; // Hỗ trợ nếu ProductCard cần gọi ngược lại
 }
 
-export default function ProductDetail({ overrideId }: ProductDetailProps) {
+export default function ProductDetail({ overrideId, onProductClick }: ProductDetailProps) {
   const { id: urlId } = useParams();
-  
-  // Ưu tiên sử dụng ID từ popup truyền xuống trước, nếu không có mới lấy trên thanh URL
   const id = overrideId || urlId; 
   const navigate = useNavigate();
   const { addToCart, products, isLoading } = useCart();
@@ -82,10 +77,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
   const [selectedVariant, setSelectedVariant] = useState<string>(""); 
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [isExpired, setIsExpired] = useState(false);
-  
-  // Trạng thái Kho hàng động: undefined = Chưa chọn phân loại, 0 = Hết hàng thực tế, Số dương = Còn hàng
   const [availableStock, setAvailableStock] = useState<number | undefined>(undefined);
-  
   const [viewCount, setViewCount] = useState(0);
   const [highlightVariant, setHighlightVariant] = useState(false);
   const variantRef = React.useRef<HTMLDivElement>(null);
@@ -101,7 +93,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     setIsExpired(false);
     setHighlightVariant(false);
     
-    // Chỉ cuộn mượt lên đầu trang nếu người dùng click xem link trực tiếp độc lập ngoài trang chủ
     if (!overrideId) {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -117,9 +108,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
   useEffect(() => {
     if (!id) return;
     const productId = Number(id);
-    const recordView = async () => {
-      await supabase.from('product_views').insert({ product_id: productId });
-    };
+    const recordView = async () => { await supabase.from('product_views').insert({ product_id: productId }); };
     const fetchViewCount = async () => {
       const { count: total } = await supabase
         .from('product_views')
@@ -145,7 +134,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
             return acc;
         }, {} as { [key: string]: string });
         setSelectedOptions(initialOptions);
-        setAvailableStock(undefined); // Chưa chọn tùy chọn -> Để trống để không nhảy chữ hết hàng bậy
+        setAvailableStock(undefined);
       } else if (product.variants && product.variants.length === 1) {
           const firstVariant = product.variants[0];
           setSelectedVariant(firstVariant.name);
@@ -272,13 +261,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     return product?.price === 0 ? "Liên hệ" : `${product?.price.toLocaleString('vi-VN')}đ`;
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-12 flex justify-center h-[50vh]">
-        <LoadingPudding />
-      </div>
-    );
-  }
+  if (isLoading) return <div className="container mx-auto py-12 flex justify-center h-[50vh]"><LoadingPudding /></div>;
 
   if (!product) {
     return (
@@ -289,7 +272,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     );
   }
 
-  // Khối sườn cấu trúc nội dung hiển thị lõi của trang chi tiết
   const detailContent = (
     <div className="container mx-auto px-3 sm:px-5 py-4 md:py-4 max-w-6xl">
       {!overrideId && (
@@ -299,7 +281,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8 lg:gap-12">
-        {/* CỘT ẢNH */}
         <div className="space-y-4">
           <div className="relative group">
               <Carousel className="w-full" setApi={setCarouselApi}>
@@ -327,7 +308,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
           </div>
         </div>
 
-        {/* CỘT THÔNG TIN */}
         <div className="space-y-4 md:space-y-5">
           <div className="space-y-2">
             <div className="flex justify-between items-start gap-4">
@@ -353,20 +333,15 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
 
           <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
             <div className="flex items-baseline gap-2">
-                {/* Badge giá: Chỉ gạch ngang khi hết hạn order, không gạch ngang khi hết hàng phân loại lẻ */}
                 <p className={`text-2xl md:text-3xl font-extrabold ${isExpired ? 'text-muted-foreground line-through' : 'text-primary'}`}>
                   {renderPrice()}
                 </p>
                 {availableStock === 0 && (
-                  <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">
-                    Hết hàng
-                  </span>
+                  <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">Hết hàng</span>
                 )}
             </div>
             {product.orderDeadline && availableStock !== 0 && (
-              <div className="mt-2">
-                <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />
-              </div>
+              <div className="mt-2"><OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} /></div>
             )}
           </div>
           
@@ -413,9 +388,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
                                 <img src={product.images[product.variantImageMap[variant.name]]} className="w-9 h-9 rounded object-cover shrink-0" />
                               )}
                               <span className="leading-snug block flex-1">{variant.name}</span>
-                              {isOutOfStock && (
-                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Hết</span>
-                              )}
+                              {isOutOfStock && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Hết</span>}
                             </div>
                           </SelectItem>
                         );
@@ -475,7 +448,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
               <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x scroll-smooth -mx-5 px-5 md:mx-0 md:px-0">
                 {related.map(p => <div key={p.id} className="shrink-0 w-[150px] md:w-[220px] snap-start"><ProductCard product={p} /></div>)}
               </div>
-              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
             </div>
           </div>
         );
@@ -483,11 +455,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     </div>
   );
 
-  // Trả về luồng xử lý sạch: Nếu đang mở bằng Popup trong Admin -> Trả thẳng giao diện lõi không bọc Layout mới
-  if (overrideId) {
-    return detailContent;
-  }
-
-  // Ngược lại nếu đang xem độc lập -> Bọc Layout trang chủ tiêu chuẩn
+  if (overrideId) return detailContent;
   return <Layout>{detailContent}</Layout>;
 }
