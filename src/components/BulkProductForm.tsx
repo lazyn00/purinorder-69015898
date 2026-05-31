@@ -47,7 +47,7 @@ interface BulkProductItem {
   order_deadline: string;
   description: string;
   images: string; 
-  variants: BulkVariantItem[]; // Chuyển đổi thành mảng object phân loại chi tiết
+  variants: BulkVariantItem[]; // Mảng object phân loại biến thể chi tiết
   size: string;
   includes: string;
   production_time: string;
@@ -384,7 +384,6 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
 
               {item.expanded && (
                 <div className="px-4 py-4 space-y-4 bg-background">
-                  {/* --- KHỐI BỔ SUNG: HOÀN THIỆN ĐẦY ĐỦ Ô CHI PHÍ TÀI CHÍNH TỰ ĐỘNG --- */}
                   <div className="bg-muted/30 p-3 rounded-lg border space-y-2">
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">📊 Quản lý cấu trúc chi phí dòng sản phẩm</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
@@ -478,7 +477,6 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                     </div>
                   </div>
 
-                  {/* --- KHỐI BỔ SUNG: PHÂN LOẠI CHI TIẾT DẠNG ROW DYNAMIC CÓ GIÁ TỆ ẨN --- */}
                   <div className="border rounded-lg p-3 bg-muted/10 space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-bold text-muted-foreground">🎨 Danh sách Phân loại biến thể chi tiết</Label>
@@ -533,7 +531,6 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                               }}
                               className="h-7 text-xs w-16"
                             />
-                            {/* Ô nhập Giá tệ ghi nhận ẩn cho phân loại theo yêu cầu */}
                             <Input
                               type="number"
                               placeholder="Giá Tệ (Ẩn)"
