@@ -13,9 +13,12 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
-import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link } from "lucide-react";
+import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link, Layers } from "lucide-react";
 import { ProductExportButtons } from "./ProductExportButtons";
 import { InAppUploadNotice } from "./InAppBrowserBanner";
+
+// --- BƯỚC 1: IMPORT FORM THÊM SẢN PHẨM HÀNG LOẠT ---
+import BulkProductForm from "./BulkProductForm";
 
 // --- IMPORT AWS SDK CHO CLOUDFLARE R2 ---
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -151,7 +154,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   
-  // --- CHỖ THỬ 1: THÊM STATE ĐỂ GIỮ CHÂN ORIGINAL ID GỐC ---
+  // --- BƯỚC 2: STATE QUẢN LÝ HIỂN THỊ FORM BULK ADD ---
+  const [showBulkForm, setShowBulkForm] = useState(false);
+  
   const [originalId, setOriginalId] = useState<number | null>(null);
   
   const [form, setForm] = useState<ProductFormData>({ ...emptyForm });
@@ -336,7 +341,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
 
   const openAddForm = () => {
     setEditingId(null);
-    setOriginalId(null); // Clear ID gốc khi add mới
+    setOriginalId(null);
     const draft = localStorage.getItem(DRAFT_KEY);
     if (draft) {
       try {
@@ -360,8 +365,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
 
   const openEditForm = (product: SupabaseProduct) => {
     setEditingId(product.id);
-    
-    // --- CHỖ THỬ 2: KHỞI TẠO VÀ LƯU GIỮ ID BAN ĐẦU CỦA SẢN PHẨM ---
     setOriginalId(product.id);
     
     setForm({
@@ -463,17 +466,14 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       };
 
       if (editingId) {
-        // --- CHỖ THỬ 3: SỬA LOGIC UPDATE/RE-INSERT KHI ĐỔI PRIMARY KEY ID ---
         const isChangingId = editingId !== originalId;
         
         if (isChangingId) {
-          // BƯỚC A: Thêm dòng mới mang thông tin cũ gộp ID mới tinh
           const { error: insertError } = await supabase
             .from('products')
             .insert({ ...saveData, id: editingId, owner: currentUser || 'Admin' } as any);
           if (insertError) throw insertError;
 
-          // BƯỚC B: Gỡ bỏ dòng cũ mang ID cũ ra khỏi Database
           const { error: deleteError } = await supabase
             .from('products')
             .delete()
@@ -482,7 +482,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
 
           toast({ title: "Đã cập nhật", description: `Đã đổi ID sản phẩm công khai: #${originalId} → #${editingId}` });
         } else {
-          // Nếu không thay đổi ID số thì chạy update thông tin như thường lệ
           const { error } = await supabase
             .from('products')
             .update(saveData)
@@ -491,7 +490,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           toast({ title: "Đã cập nhật", description: `Sản phẩm #${editingId} đã được lưu thành công` });
         }
       } else {
-        // Tạo mới tự động cộng dồn số ID lớn nhất
         const maxId = dbProducts.length > 0 ? Math.max(...dbProducts.map(p => p.id)) : 0;
         const nextId = maxId + 1;
         
@@ -641,7 +639,8 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     } catch (error: any) {
       console.error("R2 Upload Error:", error);
       toast({ title: "Lỗi upload R2", description: error.message, variant: "destructive" });
-    } finally {
+    } Platform browser notification context handles finally loop block safely...
+    finally {
       setUploadingImage(false);
       e.target.value = "";
     }
@@ -724,15 +723,17 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           </Select>
           
           <div className="relative">
-  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-  <Input
-    placeholder="Tìm master..."
-    value={masterFilter === "all" ? "" : masterFilter}
-    onChange={e => setMasterFilter(e.target.value || "all")}
-    className="pl-8 h-9 w-36"
-  />
-</div>
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm master..."
+              value={masterFilter === "all" ? "" : masterFilter}
+              onChange={e => setMasterFilter(e.target.value || "all")}
+              className="pl-8 h-9 w-36"
+            />
+          </div>
         </div>
+        
+        {/* --- BƯỚC 3: THÊM NÚT "THÊM NHIỀU SP" VÀO CẠNH NÚT THÊM SP TRUYỀN THỐNG --- */}
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={syncFromSheet} disabled={syncing} className="gap-1">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
@@ -744,6 +745,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           <Button variant="outline" size="sm" onClick={syncAllImagesToStorage} disabled={syncingImages} className="gap-1">
             {syncingImages ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
             {syncingImages ? "Đang sync ảnh..." : "Sync ảnh"}
+          </Button>
+          <Button size="sm" onClick={() => setShowBulkForm(true)} variant="outline" className="gap-1">
+            <Layers className="h-4 w-4" /> Thêm nhiều SP
           </Button>
           <Button size="sm" onClick={openAddForm} className="gap-1">
             <Plus className="h-4 w-4" /> Thêm SP
@@ -886,8 +890,6 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* --- CHỖ SỬA 2: ĐỒNG BỘ HIỂN THỊ Ô SỬA ID TRONG DIALOG --- */}
               {editingId && (
                 <div className="md:col-span-2 bg-muted/30 p-3 rounded-lg border border-dashed">
                   <Label className="text-xs font-bold text-primary">ID sản phẩm (Chỉnh sửa số để sắp xếp)</Label>
@@ -1308,6 +1310,16 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* --- BƯỚC 4: THÊM DIALOG COMPONENT CHÈN KHO HÀNG HÀNG LOẠT --- */}
+      <BulkProductForm
+        open={showBulkForm}
+        onClose={() => {
+          setShowBulkForm(false);
+          fetchDbProducts();
+        }}
+        currentUser={currentUser}
+      />
     </div>
   );
 }
