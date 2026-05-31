@@ -639,7 +639,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     } catch (error: any) {
       console.error("R2 Upload Error:", error);
       toast({ title: "Lỗi upload R2", description: error.message, variant: "destructive" });
-    } Platform browser notification context handles finally loop block safely...
+    }
     finally {
       setUploadingImage(false);
       e.target.value = "";
