@@ -211,10 +211,16 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
       setTimeout(() => setHighlightVariant(false), 2000);
       return;
     }
-    if (availableStock !== undefined && quantity > availableStock) {
-      toast({ title: "Không đủ hàng", description: `Chỉ còn ${availableStock} sản phẩm`, variant: "destructive" });
-      return;
-    }
+    // Chặn hết hàng
+if (availableStock !== undefined && availableStock <= 0) {
+  toast({ title: "Hết hàng", description: "Sản phẩm này đã hết hàng", variant: "destructive" });
+  return;
+}
+
+if (availableStock !== undefined && quantity > availableStock) {
+  toast({ title: "Không đủ hàng", description: `Chỉ còn ${availableStock} sản phẩm`, variant: "destructive" });
+  return;
+}
 
     let finalPrice = currentPrice;
     if (selectedVariant && product.variants) {
