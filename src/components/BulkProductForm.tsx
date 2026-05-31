@@ -12,8 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Loader2,
-  Copy, X, Save, Layers
+  Copy, X, Save, Layers, Upload, ImageIcon
 } from "lucide-react";
+import { InAppUploadNotice } from "./InAppBrowserBanner";
+
+// --- IMPORT AWS SDK CHO CLOUDFLARE R2 ĐỂ UPLOAD TRONG BULK ADD ---
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
 const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
@@ -37,6 +41,7 @@ interface BulkProductItem {
   deposit_allowed: boolean;
   fees_included: boolean;
   expanded: boolean;
+  uploading?: boolean; // Tracking loading riêng cho từng sản phẩm khi up ảnh
 }
 
 const makeEmpty = (): BulkProductItem => ({
@@ -100,6 +105,66 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
     setItems(prev => prev.map(it => it._id === id ? { ...it, expanded: !it.expanded } : it));
   };
 
+  // --- LOGIC XỬ LÝ UPLOAD ẢNH LÊN R2 CHO TỪNG DÒNG SẢN PHẨM HÀNG LOẠT ---
+  const handleBulkImageUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Bật hiệu ứng xoay loading riêng cho sản phẩm này
+    setItems(prev => prev.map(it => it._id === id ? { ...it, uploading: true } : it));
+
+    try {
+      const newUrls: string[] = [];
+
+      const r2Client = new S3Client({
+        region: "auto",
+        endpoint: import.meta.env.VITE_R2_ENDPOINT,
+        credentials: {
+          accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY,
+          secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
+        },
+      });
+
+      for (const file of Array.from(files)) {
+        const timestamp = Date.now();
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `upload-${timestamp}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+        const arrayBuffer = await file.arrayBuffer();
+        const fileContent = new Uint8Array(arrayBuffer);
+
+        await r2Client.send(new PutObjectCommand({
+          Bucket: "product-images",
+          Key: fileName,
+          Body: fileContent,
+          ContentType: file.type,
+        }));
+
+        const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
+        newUrls.push(publicUrl);
+      }
+
+      // Đọc lại giá trị images cũ, nối thêm các link R2 mới vừa up bằng dấu phẩy
+      setItems(prev => prev.map(it => {
+        if (it._id === id) {
+          const oldImages = it.images.trim();
+          const addedString = newUrls.join(", ");
+          const finalImages = oldImages ? `${oldImages}, ${addedString}` : addedString;
+          return { ...it, images: finalImages, uploading: false };
+        }
+        return it;
+      }));
+
+      toast({ title: "Đã tải lên R2", description: `Đã thêm ${newUrls.length} ảnh vào sản phẩm` });
+    } catch (error: any) {
+      console.error("Bulk R2 Upload Error:", error);
+      toast({ title: "Lỗi tải ảnh", description: error.message, variant: "destructive" });
+      setItems(prev => prev.map(it => it._id === id ? { ...it, uploading: false } : it));
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   // Parse variants string "Tên:Giá:Kho, Tên2:Giá2" → array
   const parseVariants = (str: string) => {
     if (!str.trim()) return [];
@@ -123,16 +188,11 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
       return;
     }
 
+    const maxId = await fetchMaxId();
+
     setSaving(true);
     try {
-      // Get max ID
-      const { data: existing } = await supabase
-        .from('products')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
-      let nextId = ((existing?.[0] as any)?.id || 0) + 1;
-
+      let nextId = maxId + 1;
       let successCount = 0;
       const errors: string[] = [];
 
@@ -192,6 +252,15 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
     } finally {
       setSaving(false);
     }
+  };
+
+  const fetchMaxId = async () => {
+    const { data: existing } = await supabase
+      .from('products')
+      .select('id')
+      .order('id', { ascending: false })
+      .limit(1);
+    return ((existing?.[0] as any)?.id || 0);
   };
 
   const validCount = items.filter(it => it.name.trim()).length;
@@ -359,15 +428,36 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                         className="h-8 text-sm mt-1"
                       />
                     </div>
+                    
+                    {/* --- THIẾT KẾ LẠI Ô INPUT ẢNH: KÈM NÚT BẤM TẢI LÊN R2 TRỰC TIẾP --- */}
                     <div className="sm:col-span-2">
-                      <Label className="text-xs text-muted-foreground">
-                        Ảnh <span className="text-muted-foreground/60">(phân cách bằng dấu phẩy)</span>
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">
+                          Ảnh <span className="text-muted-foreground/60">(phân cách bằng dấu phẩy)</span>
+                        </Label>
+                        
+                        <label className="cursor-pointer">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            multiple 
+                            className="hidden" 
+                            onChange={(e) => handleBulkImageUpload(item._id, e)} 
+                            disabled={item.uploading} 
+                          />
+                          <span className="inline-flex items-center gap-1 text-[11px] text-primary font-semibold hover:underline bg-primary/5 px-2 py-0.5 rounded cursor-pointer">
+                            {item.uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                            {item.uploading ? "Đang tải..." : "Tải nhiều ảnh lên R2"}
+                          </span>
+                        </label>
+                      </div>
+                      
                       <Input
                         value={item.images}
                         onChange={e => update(item._id, 'images', e.target.value)}
-                        placeholder="https://..., https://..."
+                        placeholder="Dán link ảnh hoặc bấm nút bên trên để tải từ máy lên..."
                         className="h-8 text-sm mt-1"
+                        disabled={item.uploading}
                       />
                     </div>
                   </div>
@@ -424,6 +514,21 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                       <Label htmlFor={`fee-${item._id}`} className="text-xs cursor-pointer">Đã gồm phí</Label>
                     </div>
                   </div>
+                  
+                  {/* Preview ảnh nhỏ đã tải lên để kiểm tra nhanh */}
+                  {parseImages(item.images).length > 0 && (
+                    <div className="flex gap-1.5 overflow-x-auto pt-1 pb-1 scrollbar-hide">
+                      {parseImages(item.images).map((imgUrl, i) => (
+                        <img 
+                          key={i} 
+                          src={imgUrl} 
+                          alt="" 
+                          className="w-10 h-10 object-cover rounded border bg-muted" 
+                          onError={e => (e.currentTarget.style.display = 'none')}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
