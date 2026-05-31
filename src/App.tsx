@@ -30,7 +30,6 @@ if (!isPurin) {
   });
 }
 
-// Set title và favicon theo tenant (cả 2 shop)
 document.title = tenant.shopName;
 
 const faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement
