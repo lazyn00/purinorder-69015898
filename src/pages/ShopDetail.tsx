@@ -50,25 +50,32 @@ const isAvailable = (p: any) => {
   return hasStock && notExpired;
 };
 
-export default function ShopDetail() {
-  const { slug: rawSlug } = useParams<{ slug: string }>();
+// --- KHAI BÁO INTERFACE NHẬN OVERRIDESLUG KHI MỞ BẰNG DIALOG POPUP ---
+interface ShopDetailProps {
+  overrideSlug?: string;
+}
+
+export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
+  const { slug: urlSlug } = useParams<{ slug: string }>();
   const { products, isLoading } = useCart();
   const navigate = useNavigate();
   
+  // Ưu tiên sử dụng slug từ popup truyền xuống trước, nếu không có mới lấy trên thanh URL
+  const slug = overrideSlug || urlSlug;
   const [shopFromDB, setShopFromDB] = useState<MasterShop | null>(null);
   const [shopLoading, setShopLoading] = useState(true);
   const [showHidden, setShowHidden] = useState(false);
 
   // 1. Làm sạch Slug từ URL (Xử lý an toàn cho tiếng Trung)
   const currentSlug = useMemo(() => {
-    if (!rawSlug) return "";
+    if (!slug) return "";
     try {
-      const decoded = decodeURIComponent(rawSlug);
+      const decoded = decodeURIComponent(slug);
       return decoded.split('/').filter(Boolean).pop() || "";
     } catch (e) {
-      return rawSlug.split('/').filter(Boolean).pop() || "";
+      return slug.split('/').filter(Boolean).pop() || "";
     }
-  }, [rawSlug]);
+  }, [slug]);
 
   // 2. Tìm Master Name từ danh sách sản phẩm
   const resolvedMasterName = useMemo(() => {
@@ -138,24 +145,26 @@ export default function ShopDetail() {
   const hidden = masterProducts.filter((p: any) => !isAvailable(p));
 
   if (isLoading) {
+    if (overrideSlug) return <div className="flex justify-center items-center h-[30vh]"><LoadingPudding /></div>;
     return <Layout><div className="flex justify-center items-center h-[50vh]"><LoadingPudding /></div></Layout>;
   }
 
   if (!finalShop && !shopLoading) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 text-center">
-          <p className="text-muted-foreground mb-4">Không tìm thấy shop: {currentSlug}</p>
-          <Button variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>
-        </div>
-      </Layout>
+    const errorFallback = (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <p className="text-muted-foreground mb-4">Không tìm thấy shop: {currentSlug}</p>
+        {!overrideSlug && <Button variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>}
+      </div>
     );
+    if (overrideSlug) return errorFallback;
+    return <Layout>{errorFallback}</Layout>;
   }
 
-  return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        {/* NÚT QUAY LẠI THÔNG MINH (-1) */}
+  // Khối sườn cốt lõi cấu trúc nội dung trang danh sách shop
+  const shopContent = (
+    <div className="container mx-auto px-4 py-4">
+      {/* Ẩn bớt nút Quay lại nếu shop đang được nhúng gọn trong Popup Dialog */}
+      {!overrideSlug && (
         <Button 
           variant="ghost" 
           onClick={() => navigate(-1)} 
@@ -163,60 +172,75 @@ export default function ShopDetail() {
         >
           <ArrowLeft className="h-4 w-4" /> Quay lại
         </Button>
+      )}
 
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-6 rounded-lg bg-card border mb-8">
-          <div className="w-24 h-24 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
-            {finalShop?.avatar_url ? (
-              <img src={finalShop.avatar_url} alt={finalShop.display_name} className="w-full h-full object-cover" />
-            ) : (
-              <Store className="h-10 w-10 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-6 rounded-lg bg-card border mb-8">
+        <div className="w-24 h-24 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+          {finalShop?.avatar_url ? (
+            <img src={finalShop.avatar_url} alt={finalShop.display_name} className="w-full h-full object-cover" />
+          ) : (
+            <Store className="h-10 w-10 text-muted-foreground" />
+          )}
+        </div>
+        <div className="flex-1 text-center sm:text-left min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold break-words">{finalShop?.display_name}</h1>
+          {finalShop?.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{finalShop.description}</p>}
+          <p className="text-sm text-muted-foreground mt-3">{available.length} đang order · {hidden.length} đã ẩn</p>
+          <div className="mt-3 flex gap-2 flex-wrap justify-center sm:justify-start">
+            {finalShop && available.length > 0 && (
+              <MasterShopPosterExport shop={finalShop as any} products={available as any} />
             )}
           </div>
-          <div className="flex-1 text-center sm:text-left min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold break-words">{finalShop?.display_name}</h1>
-            {finalShop?.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{finalShop.description}</p>}
-            <p className="text-sm text-muted-foreground mt-3">{available.length} đang order · {hidden.length} đã ẩn</p>
-            <div className="mt-3 flex gap-2 flex-wrap justify-center sm:justify-start">
-              {finalShop && available.length > 0 && (
-                <MasterShopPosterExport shop={finalShop as any} products={available as any} />
-              )}
-            </div>
-          </div>
         </div>
+      </div>
 
-        {resolvedMasterName && (
-          <div className="mb-6">
-            <MasterShippingProgress masterName={resolvedMasterName} />
+      {resolvedMasterName && (
+        <div className="mb-6">
+          <MasterShippingProgress masterName={resolvedMasterName} />
+        </div>
+      )}
+
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Đang order ({available.length})</h2>
+        {available.length === 0 ? <p className="text-sm text-muted-foreground">Hiện chưa có sản phẩm nào.</p> : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {available.map((p: any) => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
+      </section>
 
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Đang order ({available.length})</h2>
-          {available.length === 0 ? <p className="text-sm text-muted-foreground">Hiện chưa có sản phẩm nào.</p> : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {available.map((p: any) => <ProductCard key={p.id} product={p} />)}
-            </div>
-          )}
-        </section>
+      {hidden.length > 0 && (
+        <Collapsible open={showHidden} onOpenChange={setShowHidden}>
+          <div className="border-t pt-6">
+            <ThemeCollapsibleButton hiddenCount={hidden.length} showHidden={showHidden} />
+            <CollapsibleContent className="mt-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {hidden.map((p: any) => <ProductCard key={p.id} product={p} />)}
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+      )}
+    </div>
+  );
 
-        {hidden.length > 0 && (
-          <Collapsible open={showHidden} onOpenChange={setShowHidden}>
-            <div className="border-t pt-6">
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between">
-                  <span className="font-medium">Sản phẩm đã ẩn ({hidden.length})</span>
-                  {showHidden ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {hidden.map((p: any) => <ProductCard key={p.id} product={p} />)}
-                </div>
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
-        )}
-      </div>
-    </Layout>
+  // LUỒNG XỬ LÝ SẠCH: Nếu đang gọi từ Popup Dialog Admin -> Trả về thẳng code lõi, không bọc Layout trùng lặp
+  if (overrideSlug) {
+    return shopContent;
+  }
+
+  // Ngược lại nếu xem link độc lập ngoài trang khách -> Bọc Layout tiêu chuẩn
+  return <Layout>{shopContent}</Layout>;
+}
+
+// Component con hỗ trợ hiển thị nút Collapsible an toàn tránh re-render sai cấu trúc
+function ThemeCollapsibleButton({ hiddenCount, showHidden }: { hiddenCount: number; showHidden: boolean }) {
+  return (
+    <CollapsibleTrigger asChild>
+      <Button variant="ghost" className="w-full justify-between">
+        <span className="font-medium">Sản phẩm đã ẩn ({hiddenCount})</span>
+        {showHidden ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </Button>
+    </CollapsibleTrigger>
   );
 }
