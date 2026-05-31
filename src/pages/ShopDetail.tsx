@@ -11,6 +11,11 @@ import { useCart } from "@/contexts/CartContext";
 import { MasterShopPosterExport } from "@/components/MasterShopPosterExport";
 import { MasterShippingProgress } from "@/components/MasterShippingProgress";
 
+// Imports cho Popup
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { X } from "lucide-react";
+import ProductDetail from "@/pages/ProductDetail";
+
 interface MasterShop {
   master_name: string;
   display_name: string;
@@ -20,7 +25,6 @@ interface MasterShop {
   description: string | null;
 }
 
-// HÀM SLUGIFY CHUẨN NHẤT (Hỗ trợ đa ngôn ngữ/tiếng Trung)
 const slugify = (s: string) => {
   if (!s) return "shop";
   return s
@@ -50,7 +54,6 @@ const isAvailable = (p: any) => {
   return hasStock && notExpired;
 };
 
-// --- KHAI BÁO INTERFACE NHẬN OVERRIDESLUG KHI MỞ BẰNG DIALOG POPUP ---
 interface ShopDetailProps {
   overrideSlug?: string;
 }
@@ -60,13 +63,13 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
   const { products, isLoading } = useCart();
   const navigate = useNavigate();
   
-  // Ưu tiên sử dụng slug từ popup truyền xuống trước, nếu không có mới lấy trên thanh URL
-  const slug = overrideSlug || urlSlug;
   const [shopFromDB, setShopFromDB] = useState<MasterShop | null>(null);
   const [shopLoading, setShopLoading] = useState(true);
   const [showHidden, setShowHidden] = useState(false);
+  const [popupProductId, setPopupProductId] = useState<string | null>(null);
 
-  // 1. Làm sạch Slug từ URL (Xử lý an toàn cho tiếng Trung)
+  const slug = overrideSlug || urlSlug;
+
   const currentSlug = useMemo(() => {
     if (!slug) return "";
     try {
@@ -77,7 +80,6 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
     }
   }, [slug]);
 
-  // 2. Tìm Master Name từ danh sách sản phẩm
   const resolvedMasterName = useMemo(() => {
     if (!currentSlug || isLoading) return null;
     
@@ -90,7 +92,6 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
     return found ? (found as any).master : null;
   }, [currentSlug, products, isLoading]);
 
-  // 3. Lấy thông tin Shop từ Database
   useEffect(() => {
     const fetchShop = async () => {
       if (!currentSlug) return;
@@ -120,7 +121,6 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
     }
   }, [currentSlug, resolvedMasterName, isLoading]);
 
-  // 4. Tổng hợp thông tin hiển thị
   const finalShop = useMemo(() => {
     if (shopFromDB) return shopFromDB;
     if (resolvedMasterName) {
@@ -144,6 +144,24 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
   const available = masterProducts.filter(isAvailable);
   const hidden = masterProducts.filter((p: any) => !isAvailable(p));
 
+  const productPopup = (
+    <Dialog open={popupProductId !== null} onOpenChange={(open) => { if (!open) setPopupProductId(null); }}>
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-3 sm:p-6 rounded-xl">
+        <button
+          onClick={() => setPopupProductId(null)}
+          className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 z-50"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        {popupProductId && (
+          <div className="pt-2">
+            <ProductDetail overrideId={popupProductId} />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
   if (isLoading) {
     if (overrideSlug) return <div className="flex justify-center items-center h-[30vh]"><LoadingPudding /></div>;
     return <Layout><div className="flex justify-center items-center h-[50vh]"><LoadingPudding /></div></Layout>;
@@ -160,10 +178,8 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
     return <Layout>{errorFallback}</Layout>;
   }
 
-  // Khối sườn cốt lõi cấu trúc nội dung trang danh sách shop
   const shopContent = (
     <div className="container mx-auto px-4 py-4">
-      {/* Ẩn bớt nút Quay lại nếu shop đang được nhúng gọn trong Popup Dialog */}
       {!overrideSlug && (
         <Button 
           variant="ghost" 
@@ -204,7 +220,11 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
         <h2 className="text-xl font-semibold mb-4">Đang order ({available.length})</h2>
         {available.length === 0 ? <p className="text-sm text-muted-foreground">Hiện chưa có sản phẩm nào.</p> : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {available.map((p: any) => <ProductCard key={p.id} product={p} />)}
+            {available.map((p: any) => (
+              <div key={p.id} onClick={() => setPopupProductId(String(p.id))} className="cursor-pointer">
+                <ProductCard product={p} />
+              </div>
+            ))}
           </div>
         )}
       </section>
@@ -215,7 +235,11 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
             <ThemeCollapsibleButton hiddenCount={hidden.length} showHidden={showHidden} />
             <CollapsibleContent className="mt-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {hidden.map((p: any) => <ProductCard key={p.id} product={p} />)}
+                {hidden.map((p: any) => (
+                  <div key={p.id} onClick={() => setPopupProductId(String(p.id))} className="cursor-pointer">
+                    <ProductCard product={p} />
+                  </div>
+                ))}
               </div>
             </CollapsibleContent>
           </div>
@@ -224,16 +248,13 @@ export default function ShopDetail({ overrideSlug }: ShopDetailProps) {
     </div>
   );
 
-  // LUỒNG XỬ LÝ SẠCH: Nếu đang gọi từ Popup Dialog Admin -> Trả về thẳng code lõi, không bọc Layout trùng lặp
   if (overrideSlug) {
-    return shopContent;
+    return <>{shopContent}{productPopup}</>;
   }
 
-  // Ngược lại nếu xem link độc lập ngoài trang khách -> Bọc Layout tiêu chuẩn
-  return <Layout>{shopContent}</Layout>;
+  return <Layout>{shopContent}{productPopup}</Layout>;
 }
 
-// Component con hỗ trợ hiển thị nút Collapsible an toàn tránh re-render sai cấu trúc
 function ThemeCollapsibleButton({ hiddenCount, showHidden }: { hiddenCount: number; showHidden: boolean }) {
   return (
     <CollapsibleTrigger asChild>
