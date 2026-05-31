@@ -17,7 +17,7 @@ import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, Ey
 import { ProductExportButtons } from "./ProductExportButtons";
 import { InAppUploadNotice } from "./InAppBrowserBanner";
 
-// --- IMPORT FORM THÊM SẢN PHẨM HÀNG LOẠT ---
+// --- BƯỚC 1: IMPORT FORM THÊM SẢN PHẨM HÀNG LOẠT ---
 import BulkProductForm from "./BulkProductForm";
 
 // --- IMPORT AWS SDK CHO CLOUDFLARE R2 ---
@@ -153,11 +153,15 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  
+  // --- BƯỚC 2: STATE QUẢN LÝ HIỂN THỊ FORM BULK ADD ---
   const [showBulkForm, setShowBulkForm] = useState(false);
+  
   const [originalId, setOriginalId] = useState<number | null>(null);
+  
   const [form, setForm] = useState<ProductFormData>({ ...emptyForm });
   
-  const [variantInputs, setVariantInputs] = useState<{ name: string; price: number; stock?: number; te?: number }[]>([]);
+  const [variantInputs, setVariantInputs] = useState<{ name: string; price: number; stock?: number }[]>([]);
   const [optionGroupInputs, setOptionGroupInputs] = useState<{ name: string; options: string }[]>([]);
   const [imageInputs, setImageInputs] = useState<string[]>([]);
 
@@ -169,6 +173,11 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [syncingImages, setSyncingImages] = useState(false);
 
   const GAS_PRODUCTS_URL = "https://script.google.com/macros/s/AKfycbzRmnozhdbiATR3APhnQvMQi4fIdDs6Fvr15gsfQO6sd7UoF8cs9yAOpMO2j1Re7P9V8A/exec";
+
+  const uniqueMasters = useMemo(() => {
+    const masters = dbProducts.map(p => p.master).filter(Boolean) as string[];
+    return [...new Set(masters)].sort();
+  }, [dbProducts]);
 
   const fetchDbProducts = async () => {
     setLoading(true);
@@ -235,7 +244,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           status: p.status || 'Sẵn',
           order_deadline: p.orderDeadline || null,
           stock: p.stock ?? null,
-          production_time: p.production_time || null,
+          production_time: p.productionTime || p.production_time || null,
           size: p.size || null,
           includes: p.includes || null,
           cong: p.cong ?? null,
@@ -280,7 +289,11 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     const rv = te * rate;
     const total = rv + can + pack + cong;
     
-    setForm(prev => ({ ...prev, r_v: rv || null, total: total || null }));
+    setForm(prev => ({
+      ...prev,
+      r_v: rv || null,
+      total: total || null,
+    }));
   }, [form.te, form.rate, form.can_weight, form.pack, form.cong]);
 
   useEffect(() => {
@@ -295,6 +308,12 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     
     setForm(prev => ({ ...prev, chenh: chenh || null }));
   }, [form.price, form.te, form.actual_rate, form.actual_can, form.actual_pack, form.rate, form.can_weight, form.pack, form.cong]);
+
+  useEffect(() => {
+    if (!showForm || editingId) return;
+    const draft = { form, variantInputs, imageInputs, optionGroupInputs };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [form, variantInputs, imageInputs, optionGroupInputs, showForm, editingId]);
 
   const sortedProducts = useMemo(() => {
     let filtered = dbProducts.filter(p => {
@@ -323,6 +342,20 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const openAddForm = () => {
     setEditingId(null);
     setOriginalId(null);
+    const draft = localStorage.getItem(DRAFT_KEY);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        if (confirm("Có nháp chưa lưu, bạn muốn tiếp tục không?")) {
+          setForm(parsed.form || { ...emptyForm });
+          setVariantInputs(parsed.variantInputs || []);
+          setImageInputs(parsed.imageInputs || [""]);
+          setOptionGroupInputs(parsed.optionGroupInputs || []);
+          setShowForm(true);
+          return;
+        }
+      } catch {}
+    }
     setForm({ ...emptyForm });
     setVariantInputs([]);
     setOptionGroupInputs([]);
@@ -374,7 +407,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setImageInputs(imgs.length > 0 ? imgs : [""]);
     
     const variants = Array.isArray(product.variants) ? product.variants : [];
-    setVariantInputs(variants.map((v: any) => ({ name: v.name || "", price: v.price || 0, stock: v.stock, te: v.te })));
+    setVariantInputs(variants.map((v: any) => ({ name: v.name || "", price: v.price || 0, stock: v.stock })));
     
     const optGroups = Array.isArray(product.option_groups) ? product.option_groups : [];
     setOptionGroupInputs(optGroups.map((g: any) => ({ name: g.name || "", options: (g.options || []).join(", ") })));
@@ -434,27 +467,48 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
 
       if (editingId) {
         const isChangingId = editingId !== originalId;
+        
         if (isChangingId) {
-          const { error: insertError } = await supabase.from('products').insert({ ...saveData, id: editingId, owner: currentUser || 'Admin' } as any);
+          const { error: insertError } = await supabase
+            .from('products')
+            .insert({ ...saveData, id: editingId, owner: currentUser || 'Admin' } as any);
           if (insertError) throw insertError;
-          const { error: deleteError } = await supabase.from('products').delete().eq('id', originalId);
+
+          const { error: deleteError } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', originalId);
           if (deleteError) throw deleteError;
+
+          toast({ title: "Đã cập nhật", description: `Đã đổi ID sản phẩm công khai: #${originalId} → #${editingId}` });
         } else {
-          const { error } = await supabase.from('products').update(saveData).eq('id', editingId);
+          const { error } = await supabase
+            .from('products')
+            .update(saveData)
+            .eq('id', editingId);
           if (error) throw error;
+          toast({ title: "Đã cập nhật", description: `Sản phẩm #${editingId} đã được lưu thành công` });
         }
       } else {
         const maxId = dbProducts.length > 0 ? Math.max(...dbProducts.map(p => p.id)) : 0;
-        const { error } = await supabase.from('products').insert({ ...saveData, id: maxId + 1, owner: currentUser || 'Admin' } as any);
+        const nextId = maxId + 1;
+        
+        const { error } = await supabase
+          .from('products')
+          .insert({ ...saveData, id: nextId, owner: currentUser || 'Admin' } as any);
+          
         if (error) throw error;
+        toast({ title: "Đã thêm", description: `Sản phẩm #${nextId} đã được tạo` });
       }
 
       setShowForm(false);
+      localStorage.removeItem(DRAFT_KEY);
+
       fetchDbProducts();
       refetchProducts();
-      toast({ title: "Đã lưu thành công" });
     } catch (error: any) {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      console.error('Error saving product:', error);
+      toast({ title: "Lỗi hệ thống", description: error.message || "Không thể lưu thay đổi", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -467,23 +521,64 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       if (error) throw error;
       setDbProducts(prev => prev.filter(p => p.id !== id));
       refetchProducts();
-      toast({ title: "Đã xóa sản phẩm" });
-    } catch {
+      toast({ title: "Đã xóa", description: `Sản phẩm #${id} đã bị xóa` });
+    } catch (error) {
       toast({ title: "Lỗi", description: "Không thể xóa sản phẩm", variant: "destructive" });
     }
+  };
+
+  const applyUniformPrice = () => {
+    if (variantInputs.length === 0) return;
+    const price = variantInputs[0].price;
+    setVariantInputs(prev => prev.map(v => ({ ...v, price })));
   };
 
   const duplicateProduct = (product: SupabaseProduct) => {
     setEditingId(null);
     setOriginalId(null);
-    setForm({ ...product, name: `${product.name} (Copy)` });
+    setForm({
+      name: `${product.name} (Copy)`,
+      te: product.te,
+      rate: product.rate,
+      r_v: product.r_v,
+      can_weight: product.can_weight,
+      pack: product.pack,
+      cong: product.cong,
+      total: product.total,
+      price: product.price,
+      price_display: product.price_display,
+      deposit_allowed: product.deposit_allowed ?? true,
+      fees_included: product.fees_included ?? true,
+      category: product.category || "Merch",
+      subcategory: product.subcategory || "",
+      artist: product.artist || "",
+      status: product.status || "Order",
+      order_deadline: product.order_deadline,
+      images: product.images || [],
+      description: product.description || "",
+      size: product.size,
+      includes: product.includes,
+      production_time: product.production_time,
+      master: product.master,
+      variants: product.variants || [],
+      option_groups: product.option_groups || [],
+      variant_image_map: product.variant_image_map || {},
+      stock: product.stock,
+      link_order: product.link_order,
+      proof: product.proof,
+      actual_rate: product.actual_rate,
+      actual_can: product.actual_can,
+      actual_pack: product.actual_pack,
+      chenh: product.chenh,
+    });
     const imgs = Array.isArray(product.images) ? product.images as string[] : [];
     setImageInputs(imgs.length > 0 ? imgs : [""]);
     const variants = Array.isArray(product.variants) ? product.variants : [];
-    setVariantInputs(variants.map((v: any) => ({ name: v.name || "", price: v.price || 0, stock: v.stock, te: v.te })));
+    setVariantInputs(variants.map((v: any) => ({ name: v.name || "", price: v.price || 0, stock: v.stock })));
     const optGroups = Array.isArray(product.option_groups) ? product.option_groups : [];
     setOptionGroupInputs(optGroups.map((g: any) => ({ name: g.name || "", options: (g.options || []).join(", ") })));
     setShowForm(true);
+    toast({ title: "Đã sao chép", description: `Đang tạo bản sao của "${product.name}"` });
   };
 
   const toggleHideProduct = async (product: SupabaseProduct) => {
@@ -493,6 +588,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       if (error) throw error;
       setDbProducts(prev => prev.map(p => p.id === product.id ? { ...p, status: newStatus } : p));
       refetchProducts();
+      toast({ title: newStatus === "Ẩn" ? "Đã ẩn" : "Đã hiện", description: `Sản phẩm #${product.id} ${newStatus === "Ẩn" ? "đã bị ẩn" : "đã hiện lại"}` });
     } catch {
       toast({ title: "Lỗi", description: "Không thể cập nhật trạng thái", variant: "destructive" });
     }
@@ -502,24 +598,80 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploadingImage(true);
+    
     try {
       const newUrls: string[] = [];
+
       const r2Client = new S3Client({
         region: "auto",
         endpoint: import.meta.env.VITE_R2_ENDPOINT,
-        credentials: { accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY, secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY },
+        credentials: {
+          accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY,
+          secretAccessKey: import.meta.env.VITE_R2_SECRET_KEY,
+        },
       });
+
       for (const file of Array.from(files)) {
-        const fileName = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${file.name.split('.').pop() || 'jpg'}`;
+        const timestamp = Date.now();
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `upload-${timestamp}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        
         const arrayBuffer = await file.arrayBuffer();
-        await r2Client.send(new PutObjectCommand({ Bucket: "product-images", Key: fileName, Body: new Uint8Array(arrayBuffer), ContentType: file.type }));
-        newUrls.push(`${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`);
+        const fileContent = new Uint8Array(arrayBuffer);
+
+        await r2Client.send(new PutObjectCommand({
+          Bucket: "product-images", 
+          Key: fileName,
+          Body: fileContent,
+          ContentType: file.type,
+        }));
+
+        const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
+        newUrls.push(publicUrl);
       }
-      setImageInputs(prev => [...prev.filter(u => u.trim()), ...newUrls, ""]);
+
+      setImageInputs(prev => {
+        const cleaned = prev.filter(u => u.trim() !== "");
+        return [...cleaned, ...newUrls, ""];
+      });
+
+      toast({ title: "Đã tải lên R2", description: `${newUrls.length} ảnh đã được upload thành công` });
     } catch (error: any) {
-      toast({ title: "Lỗi upload", description: error.message, variant: "destructive" });
-    } finally {
+      console.error("R2 Upload Error:", error);
+      toast({ title: "Lỗi upload R2", description: error.message, variant: "destructive" });
+    }
+    finally {
       setUploadingImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const syncAllImagesToStorage = async () => {
+    setSyncingImages(true);
+    try {
+      const productsWithExternal = dbProducts.filter(p => {
+        const imgs = Array.isArray(p.images) ? p.images as string[] : [];
+        return imgs.some(url => !url.includes('supabase.co/storage'));
+      });
+      if (productsWithExternal.length === 0) {
+        toast({ title: "Hoàn tất", description: "Tất cả ảnh đã nằm trên storage" });
+        setSyncingImages(false);
+        return;
+      }
+      let synced = 0;
+      for (const product of productsWithExternal) {
+        const { error } = await supabase.functions.invoke('sync-images-to-storage', {
+          body: { imageUrls: product.images, productId: product.id, productName: product.name }
+        });
+        if (!error) synced++;
+      }
+      toast({ title: "Đồng bộ ảnh hoàn tất", description: `${synced}/${productsWithExternal.length} sản phẩm đã được sync` });
+      fetchDbProducts();
+      refetchProducts();
+    } catch (error: any) {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    } finally {
+      setSyncingImages(false);
     }
   };
 
@@ -527,47 +679,102 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setForm(prev => ({ ...prev, [field]: value === "" ? null : Number(value) }));
   };
 
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-12 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Tìm ID, tên, artist..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 h-9 w-48" />
+            <Input
+              placeholder="Tìm ID, tên, artist..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-8 h-9 w-48"
+            />
           </div>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="h-9 w-40"><SelectValue placeholder="Danh mục" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-40">
+              <SelectValue placeholder="Danh mục" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả DM</SelectItem>
               {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 w-32"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-32">
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả TT</SelectItem>
               {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
+          
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Tìm master..." value={masterFilter === "all" ? "" : masterFilter} onChange={e => setMasterFilter(e.target.value || "all")} className="pl-8 h-9 w-36" />
+            <Input
+              placeholder="Tìm master..."
+              value={masterFilter === "all" ? "" : masterFilter}
+              onChange={e => setMasterFilter(e.target.value || "all")}
+              className="pl-8 h-9 w-36"
+            />
           </div>
         </div>
         
+        {/* --- BƯỚC 3: THÊM NÚT "THÊM NHIỀU SP" VÀO CẠNH NÚT THÊM SP TRUYỀN THỐNG --- */}
         <div className="flex gap-2 flex-wrap">
-          <Button size="sm" onClick={() => setShowBulkForm(true)} variant="outline" className="gap-1"><Layers className="h-4 w-4" /> Thêm nhiều SP</Button>
-          <Button size="sm" onClick={openAddForm} className="gap-1"><Plus className="h-4 w-4" /> Thêm SP</Button>
+          <Button variant="outline" size="sm" onClick={syncFromSheet} disabled={syncing} className="gap-1">
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {syncing ? "Đang đồng bộ..." : "Sync từ Sheet"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchDbProducts} className="gap-1">
+            <RefreshCw className="h-4 w-4" /> Tải lại
+          </Button>
+          <Button variant="outline" size="sm" onClick={syncAllImagesToStorage} disabled={syncingImages} className="gap-1">
+            {syncingImages ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            {syncingImages ? "Đang sync ảnh..." : "Sync ảnh"}
+          </Button>
+          <Button size="sm" onClick={() => setShowBulkForm(true)} variant="outline" className="gap-1">
+            <Layers className="h-4 w-4" /> Thêm nhiều SP
+          </Button>
+          <Button size="sm" onClick={openAddForm} className="gap-1">
+            <Plus className="h-4 w-4" /> Thêm SP
+          </Button>
         </div>
       </div>
 
+      {syncing && (
+        <div className="space-y-1">
+          <Progress value={syncProgress} />
+          <p className="text-xs text-muted-foreground text-center">{syncProgress}%</p>
+        </div>
+      )}
+
+      <p className="text-sm text-muted-foreground">
+        Hiển thị {sortedProducts.length} / {dbProducts.length} sản phẩm
+      </p>
+
+      {/* Products Table */}
       <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <Trash2 className="hidden" />
               <TableHead className="w-16">ID</TableHead>
               <TableHead className="w-16">Ảnh</TableHead>
-              <TableHead>Tên</TableHead>
+              <TableHead className="min-w-[200px]">Tên</TableHead>
               <TableHead className="text-right w-24">Giá</TableHead>
               <TableHead className="w-20">Tồn kho</TableHead>
               <TableHead className="w-28">Hạn order</TableHead>
@@ -576,45 +783,126 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedProducts.map(product => (
-              <TableRow key={product.id}>
-                <TableCell className="font-mono text-xs">{product.id}</TableCell>
-                <TableCell>
-                  {product.images?.[0] ? <img src={product.images[0]} className="w-10 h-10 object-cover rounded" /> : <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">N/A</div>}
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <p className="font-medium text-sm line-clamp-1">{product.name}</p>
-                    <div className="flex gap-1 flex-wrap">
-                      {product.category && <Badge variant="outline" className="text-[10px] px-1 py-0">{product.category}</Badge>}
-                      {product.master && <Badge variant="secondary" className="text-[10px] bg-purple-50 text-purple-700 px-1 py-0">M: {product.master}</Badge>}
+            {sortedProducts.map(product => {
+              const deadlineStatus = getDeadlineStatus(product);
+              const stockStatus = getStockStatus(product);
+              const isOutOfStock = getAvailableStock(product) <= 0;
+              const coverImage = Array.isArray(product.images) && product.images.length > 0 
+                ? product.images[0] as string : null;
+              
+              return (
+                <TableRow key={product.id} className={deadlineStatus.priority === 4 || product.status === "Ẩn" || isOutOfStock ? "opacity-50" : ""}>
+                  <TableCell className="font-mono text-xs">{product.id}</TableCell>
+                  <TableCell>
+                    {coverImage ? (
+                      <img src={coverImage} alt="" className="w-10 h-10 object-cover rounded" />
+                    ) : (
+                      <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">N/A</div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <p className="font-medium text-sm line-clamp-1">{product.name}</p>
+                      <div className="flex gap-1 flex-wrap">
+                        {product.category && <Badge variant="outline" className="text-[10px] px-1 py-0">{product.category}</Badge>}
+                        {product.artist && <span className="text-[10px] text-muted-foreground">{product.artist}</span>}
+                        {product.master && <Badge variant="secondary" className="text-[10px] bg-purple-50 text-purple-700 dark:bg-purple-950/30 px-1 py-0">M: {product.master}</Badge>}
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium text-sm">{product.price.toLocaleString('vi-VN')}đ</TableCell>
-                <TableCell><Badge variant="secondary" className="text-[10px]">{getStockStatus(product).label}</Badge></TableCell>
-                <TableCell><Badge variant="secondary" className="text-[10px]">{getDeadlineStatus(product).label}</Badge></TableCell>
-                <TableCell><Badge variant="secondary" className="text-[10px]">{product.status || "—"}</Badge></TableCell>
-                <TableCell className="text-right">
-                  <div className="flex gap-1 justify-end items-center">
-                    <ProductExportButtons product={product as any} />
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateProduct(product)}><Copy className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleHideProduct(product)}>{product.status === "Ẩn" ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}</Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditForm(product)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteProduct(product.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                  </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-sm">
+                    {product.price.toLocaleString('vi-VN')}đ
+                  </TableCell>
+                  <TableCell>
+                    {stockStatus ? (
+                      <Badge variant="secondary" className={`text-[10px] ${stockStatus.color}`}>{stockStatus.label}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className={`text-[10px] ${deadlineStatus.color}`}>
+                      {deadlineStatus.label}
+                    </Badge>
+                    {product.order_deadline && deadlineStatus.priority < 4 && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(product.order_deadline).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                      </p>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-[10px]">{product.status || "—"}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end items-center flex-wrap">
+                      <ProductExportButtons product={product as any} />
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Copy link sản phẩm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/product/${product.id}`);
+                          toast({ title: "Đã copy link!" });
+                        }}
+                      >
+                        <Link className="h-3.5 w-3.5" />
+                      </Button>
+                      
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => duplicateProduct(product)} title="Sao chép">
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleHideProduct(product)} title={product.status === "Ẩn" ? "Hiện lại" : "Ẩn"}>
+                        {product.status === "Ẩn" ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditForm(product)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteProduct(product.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {sortedProducts.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  Không có sản phẩm nào
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>
 
+      {/* Add/Edit Product Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingId ? `Chỉnh sửa sản phẩm #${editingId}` : "Thêm sản phẩm mới"}</DialogTitle></DialogHeader>
+        <DialogContent
+          className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>{editingId ? `Chỉnh sửa sản phẩm #${editingId}` : "Thêm sản phẩm mới"}</DialogTitle>
+          </DialogHeader>
+          
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {editingId && (
+                <div className="md:col-span-2 bg-muted/30 p-3 rounded-lg border border-dashed">
+                  <Label className="text-xs font-bold text-primary">ID sản phẩm (Chỉnh sửa số để sắp xếp)</Label>
+                  <Input
+                    type="number"
+                    value={editingId}
+                    onChange={e => setEditingId(Number(e.target.value) || editingId)}
+                    className="h-8 text-sm mt-1 w-full sm:w-48 font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">💡 ID lớn hơn sẽ được tự động xếp lên trước trên trang chủ shop.</p>
+                </div>
+              )}
+              
               <div className="md:col-span-2">
                 <Label>Tên sản phẩm *</Label>
                 <Input value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
@@ -623,60 +911,415 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
                 <Label>Danh mục</Label>
                 <Select value={form.category || ""} onValueChange={v => setForm(prev => ({ ...prev, category: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Danh mục phụ</Label>
+                <Input value={form.subcategory || ""} onChange={e => setForm(prev => ({ ...prev, subcategory: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Artist</Label>
+                <Input value={form.artist || ""} onChange={e => setForm(prev => ({ ...prev, artist: e.target.value }))} />
               </div>
               <div>
                 <Label>Master</Label>
                 <Input value={form.master || ""} onChange={e => setForm(prev => ({ ...prev, master: e.target.value }))} />
               </div>
+              <div>
+                <Label>Trạng thái</Label>
+                <Select value={form.status || "Order"} onValueChange={v => setForm(prev => ({ ...prev, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Hạn order</Label>
+                <div className="flex gap-2 items-center">
+                  <Input 
+                    type="datetime-local" 
+                    value={form.order_deadline ? new Date(form.order_deadline).toISOString().slice(0, 16) : ""} 
+                    onChange={e => setForm(prev => ({ ...prev, order_deadline: e.target.value ? new Date(e.target.value).toISOString() : null }))} 
+                    className="h-8 text-sm"
+                  />
+                  {form.order_deadline && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setForm(prev => ({ ...prev, order_deadline: null }))}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div>
-              <h3 className="font-medium mb-2">Chi phí sản phẩm chung</h3>
+              <h3 className="font-medium mb-2">Chi phí</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-                <div><Label className="text-xs">Tệ</Label><Input type="number" value={form.te ?? ""} onChange={e => updateNum('te', e.target.value)} className="h-8 text-sm" /></div>
-                <div><Label className="text-xs">Rate</Label><Input type="number" value={form.rate ?? ""} onChange={e => updateNum('rate', e.target.value)} className="h-8 text-sm" /></div>
-                <div><Label className="text-xs">R-V</Label><Input type="number" value={form.r_v ?? ""} readOnly className="h-8 text-sm bg-muted" /></div>
-                <div><Label className="text-xs">Cân</Label><Input type="number" value={form.can_weight ?? ""} onChange={e => updateNum('can_weight', e.target.value)} className="h-8 text-sm" /></div>
-                <div><Label className="text-xs">Pack</Label><Input type="number" value={form.pack ?? ""} onChange={e => updateNum('pack', e.target.value)} className="h-8 text-sm" /></div>
-                <div><Label className="text-xs">Công</Label><Input type="number" value={form.cong ?? ""} onChange={e => updateNum('cong', e.target.value)} className="h-8 text-sm" /></div>
-                <div><Label className="text-xs">Tổng phí</Label><Input type="number" value={form.total ?? ""} readOnly className="h-8 text-sm bg-muted" /></div>
+                <div>
+                  <Label className="text-xs">Tệ</Label>
+                  <Input type="number" value={form.te ?? ""} onChange={e => updateNum('te', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Rate</Label>
+                  <Input type="number" value={form.rate ?? ""} onChange={e => updateNum('rate', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">R-V (auto)</Label>
+                  <Input type="number" value={form.r_v ?? ""} readOnly className="h-8 text-sm bg-muted" />
+                </div>
+                <div>
+                  <Label className="text-xs">Cân</Label>
+                  <Input type="number" value={form.can_weight ?? ""} onChange={e => updateNum('can_weight', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Pack</Label>
+                  <Input type="number" value={form.pack ?? ""} onChange={e => updateNum('pack', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Công</Label>
+                  <Input type="number" value={form.cong ?? ""} onChange={e => updateNum('cong', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Tổng (auto)</Label>
+                  <Input type="number" value={form.total ?? ""} readOnly className="h-8 text-sm bg-muted" />
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div><Label className="text-xs">Giá bán *</Label><Input type="number" value={form.price || ""} onChange={e => setForm(prev => ({ ...prev, price: Number(e.target.value) || 0 }))} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Tồn kho</Label><Input type="number" value={form.stock ?? ""} onChange={e => updateNum('stock', e.target.value)} className="h-8 text-sm" /></div>
+              <div>
+                <Label className="text-xs">Giá bán *</Label>
+                <Input type="number" value={form.price || ""} onChange={e => setForm(prev => ({ ...prev, price: Number(e.target.value) || 0 }))} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Hiển thị giá</Label>
+                <Input value={form.price_display || ""} onChange={e => setForm(prev => ({ ...prev, price_display: e.target.value }))} placeholder="VD: 150.000đ" className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Tồn kho</Label>
+                <Input type="number" value={form.stock ?? ""} onChange={e => updateNum('stock', e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div className="flex items-end gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch checked={form.deposit_allowed ?? true} onCheckedChange={v => setForm(prev => ({ ...prev, deposit_allowed: v }))} />
+                  <Label className="text-xs">Cho cọc</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={form.fees_included ?? true} onCheckedChange={v => setForm(prev => ({ ...prev, fees_included: v }))} />
+                  <Label className="text-xs">Đã gồm phí</Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Mô tả (mỗi dòng = 1 bullet point)</Label>
+                <Textarea value={form.description || ""} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))} rows={4} />
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Kích thước</Label>
+                  <Input value={form.size || ""} onChange={e => setForm(prev => ({ ...prev, size: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Bao gồm</Label>
+                  <Input value={form.includes || ""} onChange={e => setForm(prev => ({ ...prev, includes: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Thời gian sản xuất</Label>
+                  <Input value={form.production_time || ""} onChange={e => setForm(prev => ({ ...prev, production_time: e.target.value }))} className="h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Link order</Label>
+                <Input value={form.link_order || ""} onChange={e => setForm(prev => ({ ...prev, link_order: e.target.value }))} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Proof</Label>
+                <Input value={form.proof || ""} onChange={e => setForm(prev => ({ ...prev, proof: e.target.value }))} className="h-8 text-sm" />
+              </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Phân loại chi tiết sản phẩm (Variants)</Label>
-                <Button variant="outline" size="sm" onClick={() => setVariantInputs(prev => [...prev, { name: "", price: form.price || 0, stock: undefined, te: undefined }])}><Plus className="h-3 w-3 mr-1" /> Thêm phân loại</Button>
+                <Label>Hình ảnh (kéo thả để sắp xếp)</Label>
+                <div className="flex gap-2">
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                    <Button variant="outline" size="sm" asChild disabled={uploadingImage}>
+                      <span>
+                        {uploadingImage ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                        Tải ảnh lên R2
+                      </span>
+                    </Button>
+                  </label>
+                  <Button variant="outline" size="sm" onClick={() => setImageInputs(prev => [...prev, ""])}>
+                    <Plus className="h-3 w-3 mr-1" /> Thêm URL
+                  </Button>
+                </div>
               </div>
+              <InAppUploadNotice />
               <div className="space-y-2">
-                {variantInputs.map((v, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
-                    <Input placeholder="Tên phân loại" value={v.name} onChange={e => { const n = [...variantInputs]; n[idx].name = e.target.value; setVariantInputs(n); }} className="h-8 text-sm flex-1" />
-                    <Input type="number" placeholder="Giá bán VNĐ" value={v.price || ""} onChange={e => { const n = [...variantInputs]; n[idx].price = Number(e.target.value) || 0; setVariantInputs(n); }} className="h-8 text-sm w-28" />
-                    <Input type="number" placeholder="Kho" value={v.stock ?? ""} onChange={e => { const n = [...variantInputs]; n[idx].stock = e.target.value === "" ? undefined : Number(e.target.value); setVariantInputs(n); }} className="h-8 text-sm w-16" />
-                    <Input type="number" placeholder="Giá Tệ (Ẩn)" value={v.te ?? ""} onChange={e => { const n = [...variantInputs]; n[idx].te = e.target.value === "" ? undefined : parseFloat(e.target.value); setVariantInputs(n); }} className="h-8 text-sm w-20 bg-orange-50 text-orange-800 border-orange-200" title="Ghi nhận giá tệ riêng biệt cho phân loại" />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setVariantInputs(prev => prev.filter((_, i) => i !== idx))}><X className="h-3 w-3" /></Button>
+                {imageInputs.map((url, idx) => (
+                  <div
+                    key={idx}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", `img-${idx}`);
+                      e.currentTarget.classList.add("opacity-50");
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.classList.remove("opacity-50");
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add("bg-accent/50");
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove("bg-accent/50");
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("bg-accent/50");
+                      const data = e.dataTransfer.getData("text/plain");
+                      if (!data.startsWith("img-")) return;
+                      const fromIdx = Number(data.slice(4));
+                      if (fromIdx === idx) return;
+                      setImageInputs(prev => {
+                        const newArr = [...prev];
+                        const [moved] = newArr.splice(fromIdx, 1);
+                        newArr.splice(idx, 0, moved);
+                        return newArr;
+                      });
+                    }}
+                    className="flex gap-2 items-center rounded-md p-1 transition-colors cursor-grab active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-xs text-muted-foreground w-5 shrink-0">{idx + 1}</span>
+                    {url && (
+                      <img src={url} alt="" className="w-8 h-8 object-cover rounded shrink-0" onError={e => (e.currentTarget.style.display = 'none')} />
+                    )}
+                    <Input
+                      value={url}
+                      onChange={e => {
+                        const newImages = [...imageInputs];
+                        newImages[idx] = e.target.value;
+                        setImageInputs(newImages);
+                      }}
+                      placeholder="https://..."
+                      className="h-8 text-sm"
+                    />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setImageInputs(prev => prev.filter((_, i) => i !== idx))}>
+                      <X className="h-3 w-3" />
+                    </Button>
                   </div>
                 ))}
               </div>
             </div>
 
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Phân loại (Variants)</Label>
+                <div className="flex gap-2">
+                  {variantInputs.length > 1 && (
+                    <Button variant="outline" size="sm" onClick={applyUniformPrice}>
+                      <Copy className="h-3 w-3 mr-1" /> Đồng giá
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => setVariantInputs(prev => [...prev, { name: "", price: form.price || 0 }])}>
+                    <Plus className="h-3 w-3 mr-1" /> Thêm
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {variantInputs.map((v, idx) => (
+                  <div
+                    key={idx}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", `v-${idx}`);
+                      e.currentTarget.classList.add("opacity-50");
+                    }}
+                    onDragEnd={(e) => e.currentTarget.classList.remove("opacity-50")}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-accent/50"); }}
+                    onDragLeave={(e) => e.currentTarget.classList.remove("bg-accent/50")}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("bg-accent/50");
+                      const data = e.dataTransfer.getData("text/plain");
+                      if (!data.startsWith("v-")) return;
+                      const fromIdx = Number(data.slice(2));
+                      if (fromIdx === idx) return;
+                      setVariantInputs(prev => {
+                        const arr = [...prev];
+                        const [m] = arr.splice(fromIdx, 1);
+                        arr.splice(idx, 0, m);
+                        return arr;
+                      });
+                    }}
+                    className="flex gap-2 items-center rounded-md p-1 transition-colors cursor-grab active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Input
+                      placeholder="Tên phân loại"
+                      value={v.name}
+                      onChange={e => {
+                        const n = [...variantInputs];
+                        n[idx] = { ...n[idx], name: e.target.value };
+                        setVariantInputs(n);
+                      }}
+                      className="h-8 text-sm flex-1 min-w-0"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Giá"
+                      value={v.price || ""}
+                      onChange={e => {
+                        const n = [...variantInputs];
+                        n[idx] = { ...n[idx], price: Number(e.target.value) || 0 };
+                        setVariantInputs(n);
+                      }}
+                      className="h-8 text-sm w-24"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Kho"
+                      value={v.stock ?? ""}
+                      onChange={e => {
+                        const n = [...variantInputs];
+                        n[idx] = { ...n[idx], stock: e.target.value === "" ? undefined : Number(e.target.value) };
+                        setVariantInputs(n);
+                      }}
+                      className="h-8 text-sm w-16"
+                    />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setVariantInputs(prev => prev.filter((_, i) => i !== idx))}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Nhóm tùy chọn (Option Groups)</Label>
+                <Button variant="outline" size="sm" onClick={() => setOptionGroupInputs(prev => [...prev, { name: "", options: "" }])}>
+                  <Plus className="h-3 w-3 mr-1" /> Thêm nhóm
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {optionGroupInputs.map((g, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <Input
+                      placeholder="Tên nhóm"
+                      value={g.name}
+                      onChange={e => {
+                        const n = [...optionGroupInputs];
+                        n[idx] = { ...n[idx], name: e.target.value };
+                        setOptionGroupInputs(n);
+                      }}
+                      className="h-8 text-sm w-32"
+                    />
+                    <Input
+                      placeholder="Tùy chọn (phân cách bằng dấu phẩy)"
+                      value={g.options}
+                      onChange={e => {
+                        const n = [...optionGroupInputs];
+                        n[idx] = { ...n[idx], options: e.target.value };
+                        setOptionGroupInputs(n);
+                      }}
+                      className="h-8 text-sm flex-1"
+                    />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setOptionGroupInputs(prev => prev.filter((_, i) => i !== idx))}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {variantInputs.length > 0 && imageInputs.filter(u => u.trim()).length > 0 && (
+              <div>
+                <Label>Gán ảnh cho phân loại</Label>
+                <div className="space-y-2 mt-2">
+                  {variantInputs.filter(v => v.name.trim()).map((v, idx) => {
+                    const currentMap = form.variant_image_map || {};
+                    const selectedIdx = currentMap[v.name];
+                    const validImages = imageInputs.map((url, i) => ({ url, i })).filter(x => x.url.trim());
+                    
+                    return (
+                      <div key={idx} className="flex gap-3 items-center">
+                        <span className="text-sm min-w-[120px] truncate">{v.name}</span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {validImages.map(({ url, i }) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                setForm(prev => ({
+                                  ...prev,
+                                  variant_image_map: {
+                                    ...(prev.variant_image_map || {}),
+                                    [v.name]: i,
+                                  }
+                                }));
+                              }}
+                              className={`w-10 h-10 rounded border-2 overflow-hidden transition-all ${
+                                selectedIdx === i 
+                                  ? 'border-primary ring-2 ring-primary/30' 
+                                  : 'border-muted hover:border-foreground/30'
+                              }`}
+                            >
+                              <img src={url} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
+                            </button>
+                          ))}
+                          {selectedIdx !== undefined && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newMap = { ...(form.variant_image_map || {}) };
+                                delete newMap[v.name];
+                                setForm(prev => ({ ...prev, variant_image_map: newMap }));
+                              }}
+                              className="w-10 h-10 rounded border border-dashed border-destructive/50 flex items-center justify-center text-destructive hover:bg-destructive/10"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
-              <Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />} Lưu thay đổi</Button>
+              <Button onClick={handleSave} disabled={saving} className="gap-1">
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {editingId ? "Cập nhật" : "Thêm sản phẩm"}
+              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <BulkProductForm open={showBulkForm} onClose={() => { setShowBulkForm(false); fetchDbProducts(); }} currentUser={currentUser} />
+      {/* --- BƯỚC 4: THÊM DIALOG COMPONENT CHÈN KHO HÀNG HÀNG LOẠT --- */}
+      <BulkProductForm
+        open={showBulkForm}
+        onClose={() => {
+          setShowBulkForm(false);
+          fetchDbProducts();
+        }}
+        currentUser={currentUser}
+      />
     </div>
   );
 }
