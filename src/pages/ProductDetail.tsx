@@ -39,18 +39,12 @@ const slugify = (s: string) => {
     .slice(0, 100);
 };
 
-// --- ĐÃ CHỈNH SỬA: SỬA LẠI HOÀN TOÀN THEO ĐÚNG BẢN CŨ VÀ LOGIC CỦA Ý ---
+// --- ĐÃ KHÔI PHỤC VỀ BẢN CŨ VÀ LOGIC BAN ĐẦU CỦA Ý ---
 const getVariantStock = (product: Product, variantName: string): number => {
-  // Quy tắc cấm: Chỉ khi nào điền số 0 rõ ràng (Chuỗi không trống và bằng 0) mới kích hoạt sập kho Domino
-  const hasAnyExplicitZero = product.variants?.some(
-    v => v.stock !== undefined && v.stock !== null && String(v.stock).trim() !== "" && Number(v.stock) === 0
-  );
-  if (hasAnyExplicitZero) return 0;
-
   if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
   const variant = product.variants.find(v => v.name === variantName);
   
-  // ĐÚNG BẢN CŨ: Nếu trống kho phân loại (undefined/null/""), lấy thẳng giá trị kho bán chung của sản phẩm
+  // Nếu trống kho phân loại (undefined/null/""), lấy thẳng giá trị kho bán chung của sản phẩm
   if (!variant || variant.stock === undefined || variant.stock === null || String(variant.stock).trim() === "") {
     return product.stock ?? 0;
   }
@@ -59,11 +53,6 @@ const getVariantStock = (product: Product, variantName: string): number => {
 };
 
 const getTotalVariantsStock = (product: Product): number => {
-  const hasAnyExplicitZero = product.variants?.some(
-    v => v.stock !== undefined && v.stock !== null && String(v.stock).trim() !== "" && Number(v.stock) === 0
-  );
-  if (hasAnyExplicitZero) return 0;
-
   if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
   
   // Nếu có phân loại trống kho, ưu tiên dùng kho chung đại diện hiển thị ra ngoài
@@ -369,10 +358,10 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
 
           <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
             <div className="flex items-baseline gap-2">
-                <p className={`text-2xl md:text-3xl font-extrabold ${(isExpired || availableStock <= 0) ? 'text-muted-foreground line-through' : 'text-primary'}`}>
+                <p className={`text-2xl md:text-3xl font-extrabold ${availableStock <= 0 ? 'text-muted-foreground line-through' : 'text-primary'}`}>
                   {renderPrice()}
                 </p>
-                {(isExpired || availableStock <= 0) && (
+                {availableStock <= 0 && (
                   <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">
                     Hết hàng
                   </span>
@@ -392,7 +381,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
             <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
           </div>
 
-          <div ref={variantRef} className={`space-y-3 ${highlightVariant ? 'ring-2 ring-primary rounded-lg p-2 animate-pulse' : ''}`}>
+          <div className="space-y-3">
             {product.optionGroups?.map((group) => (
               <div key={group.name} className="space-y-1">
                 <Label className="text-xs font-semibold text-muted-foreground">{group.name}</Label>
