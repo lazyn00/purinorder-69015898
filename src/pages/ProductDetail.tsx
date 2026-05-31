@@ -39,12 +39,12 @@ const slugify = (s: string) => {
     .slice(0, 100);
 };
 
-// --- ĐÃ KHÔI PHỤC VỀ BẢN CŨ VÀ LOGIC BAN ĐẦU CỦA Ý ---
+// --- ĐÃ ĐẬP ĐI XÂY LẠI: ĐỒNG BỘ 100% THEO KHO CHUNG (VÍ DỤ: 996) ---
 const getVariantStock = (product: Product, variantName: string): number => {
   if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
   const variant = product.variants.find(v => v.name === variantName);
   
-  // Nếu trống kho phân loại (undefined/null/""), lấy thẳng giá trị kho bán chung của sản phẩm
+  // Nếu phân loại bị trống kho (null/undefined/""), lấy luôn số kho chung của sản phẩm làm chuẩn
   if (!variant || variant.stock === undefined || variant.stock === null || String(variant.stock).trim() === "") {
     return product.stock ?? 0;
   }
@@ -53,26 +53,20 @@ const getVariantStock = (product: Product, variantName: string): number => {
 };
 
 const getTotalVariantsStock = (product: Product): number => {
+  // Ưu tiên tuyệt đối: Nếu có kho tổng (ví dụ: 996), lấy luôn kho tổng hiển thị ra bên ngoài, không cộng dồn sai lệch
+  if (product.stock !== undefined && product.stock !== null && product.stock > 0) {
+    return product.stock;
+  }
   if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
-  
-  // Nếu có phân loại trống kho, ưu tiên dùng kho chung đại diện hiển thị ra ngoài
-  const hasSharedStock = product.variants.some(
-    v => v.stock === undefined || v.stock === null || String(v.stock).trim() === ""
-  );
-  if (hasSharedStock) return product.stock ?? 0;
-
   return product.variants.reduce((total, v) => total + (Number(v.stock) || 0), 0);
 };
 
-// Khai báo interface để nhận overrideId từ cửa sổ Popup trang cha truyền vào
 interface ProductDetailProps {
   overrideId?: string;
 }
 
 export default function ProductDetail({ overrideId }: ProductDetailProps) {
   const { id: urlId } = useParams();
-  
-  // Ưu tiên sử dụng ID từ popup truyền xuống trước, nếu không có mới lấy trên thanh URL
   const id = overrideId || urlId; 
   const navigate = useNavigate();
   const { addToCart, products, isLoading } = useCart();
@@ -106,7 +100,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     setIsExpired(false);
     setHighlightVariant(false);
     
-    // Chỉ cuộn mượt lên đầu trang nếu người dùng click xem link trực tiếp độc lập
     if (!overrideId) {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -181,7 +174,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
         } else {
           setSelectedVariant("");
           setCurrentPrice(product.price);
-          setAvailableStock(0);
+          setAvailableStock(product.stock ?? 0); // Ép hiển thị kho tổng thay vì trả về số 0 khi chưa map xong
         }
     } else {
         setSelectedVariant("");
@@ -295,197 +288,193 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     );
   }
 
-  const detailContent = (
-    <div className="container mx-auto px-3 sm:px-5 py-4 md:py-4 max-w-6xl">
-      {!overrideId && (
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> <span className="text-sm">Quay lại</span>
-        </Button>
-      )}
+  return (
+    <Layout>
+      <div className="container mx-auto px-3 sm:px-5 py-4 md:py-4 max-w-6xl">
+        {!overrideId && (
+          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 gap-1 pl-0 h-auto py-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> <span className="text-sm">Quay lại</span>
+          </Button>
+        )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8 lg:gap-12">
-        {/* CỘT ẢNH */}
-        <div className="space-y-4">
-          <div className="relative group">
-              <Carousel className="w-full" setApi={setCarouselApi}>
-              <CarouselContent>
-                  {product.images.map((image, index) => (
-                    <CarouselItem key={index}>
-                      <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
-                          <img src={image} alt={`${product.name}`} className="w-auto h-auto max-w-full max-h-[320px] md:max-h-[380px] object-contain" />
-                      </div>
-                    </CarouselItem>
-                  ))}
-              </CarouselContent>
-              {product.images.length > 1 && (
-                  <>
-                  <CarouselPrevious className="left-2 opacity-70 h-8 w-8" />
-                  <CarouselNext className="right-2 opacity-70 h-8 w-8" />
-                  </>
-              )}
-              </Carousel>
-              {count > 0 && (
-                  <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
-                      {current}/{count}
-                  </div>
-              )}
-          </div>
-        </div>
-
-        {/* CỘT THÔNG TIN */}
-        <div className="space-y-4 md:space-y-5">
-          <div className="space-y-2">
-            <div className="flex justify-between items-start gap-4">
-               <div className="space-y-1">
-                  {product.status && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 mb-1">{product.status}</Badge>}
-                  <h1 className="text-xl md:text-2xl font-bold leading-tight text-foreground">{product.name}</h1>
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm pt-1">
-                    <div className="flex items-center gap-1"><Eye className="h-4 w-4" /> <span>{viewCount}</span></div>
-                    {product.master && (
-                      <Link to={`/shop/${slugify(product.master)}`} className="inline-flex items-center gap-1 text-primary hover:underline font-medium">
-                        <Store className="h-4 w-4" /> <span>{product.master}</span>
-                      </Link>
-                    )}
-                  </div>
-               </div>
-               <Button variant="ghost" size="icon" onClick={handleShare} className="h-9 w-9 text-muted-foreground flex-shrink-0 border">
-                  <Share2 className="h-4 w-4" />
-               </Button>
-            </div>
-          </div>
-
-          {product.master && <MasterShippingProgress masterName={product.master} />}
-
-          <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
-            <div className="flex items-baseline gap-2">
-                <p className={`text-2xl md:text-3xl font-extrabold ${availableStock <= 0 ? 'text-muted-foreground line-through' : 'text-primary'}`}>
-                  {renderPrice()}
-                </p>
-                {availableStock <= 0 && (
-                  <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">
-                    Hết hàng
-                  </span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8 lg:gap-12">
+          {/* CỘT ẢNH */}
+          <div className="space-y-4">
+            <div className="relative group">
+                <Carousel className="w-full" setApi={setCarouselApi}>
+                <CarouselContent>
+                    {product.images.map((image, index) => (
+                      <CarouselItem key={index}>
+                        <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
+                            <img src={image} alt={`${product.name}`} className="w-auto h-auto max-w-full max-h-[320px] md:max-h-[380px] object-contain" />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                </CarouselContent>
+                {product.images.length > 1 && (
+                    <>
+                    <CarouselPrevious className="left-2 opacity-70 h-8 w-8" />
+                    <CarouselNext className="right-2 opacity-70 h-8 w-8" />
+                    </>
+                )}
+                </Carousel>
+                {count > 0 && (
+                    <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
+                        {current}/{count}
+                    </div>
                 )}
             </div>
-            {product.orderDeadline && availableStock > 0 && (
-              <div className="mt-2">
-                <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />
-              </div>
-            )}
-          </div>
-          
-          <div className="border rounded-lg divide-y divide-border/60">
-            <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Mô tả</span><span className="text-sm text-foreground/90 whitespace-pre-line">{product.description || "—"}</span></div>
-            <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Kích thước</span><span className="text-sm text-foreground/90">{product.size || "—"}</span></div>
-            <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Bao gồm</span><span className="text-sm text-foreground/90">{product.includes || "—"}</span></div>
-            <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
           </div>
 
-          <div className="space-y-3">
-            {product.optionGroups?.map((group) => (
-              <div key={group.name} className="space-y-1">
-                <Label className="text-xs font-semibold text-muted-foreground">{group.name}</Label>
-                <Select value={selectedOptions[group.name]} onValueChange={(value) => handleOptionChange(group.name, value)}>
-                  <SelectTrigger className="w-full h-10"><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
-                  <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
-                    {group.options.map((option) => (
-                      <SelectItem key={option} value={option} className="py-2.5 text-sm whitespace-normal">
-                        <span className="leading-snug block">{option}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-            {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-muted-foreground">Phân loại</Label>
-                <Select value={selectedVariant} onValueChange={handleVariantChange}>
-                  <SelectTrigger className="w-full h-10"><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
-                  <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
-                      {product.variants.map((variant) => {
-                        const vStock = getVariantStock(product, variant.name);
-                        const isOutOfStock = vStock <= 0;
-                        return (
-                          <SelectItem key={variant.name} value={variant.name} disabled={isOutOfStock} className="py-2.5 text-sm whitespace-normal">
-                            <div className="flex items-center gap-3">
-                              {product.variantImageMap?.[variant.name] !== undefined && (
-                                <img src={product.images[product.variantImageMap[variant.name]]} className="w-9 h-9 rounded object-cover shrink-0" />
-                              )}
-                              <span className="leading-snug block flex-1">{variant.name}</span>
-                              {isOutOfStock && (
-                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Hết</span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between border-t pt-4">
-            <Label className="text-sm font-semibold text-muted-foreground">Số lượng mua</Label>
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-medium text-muted-foreground">
-                {availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500 font-bold">Hết hàng</span>}
-              </span>
-              <div className="flex items-center border rounded-md h-9 bg-background">
-                  <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1 || availableStock <= 0} className="h-full"><Minus className="h-3 w-3" /></Button>
-                  <Input type="number" value={availableStock <= 0 ? 0 : quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0 font-bold" />
-                  <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={quantity >= availableStock || availableStock <= 0} className="h-full"><Plus className="h-3 w-3" /></Button>
+          {/* CỘT THÔNG TIN */}
+          <div className="space-y-4 md:space-y-5">
+            <div className="space-y-2">
+              <div className="flex justify-between items-start gap-4">
+                 <div className="space-y-1">
+                    {product.status && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 mb-1">{product.status}</Badge>}
+                    <h1 className="text-xl md:text-2xl font-bold leading-tight text-foreground">{product.name}</h1>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm pt-1">
+                      <div className="flex items-center gap-1"><Eye className="h-4 w-4" /> <span>{viewCount}</span></div>
+                      {product.master && (
+                        <Link to={`/shop/${slugify(product.master)}`} className="inline-flex items-center gap-1 text-primary hover:underline font-medium">
+                          <Store className="h-4 w-4" /> <span>{product.master}</span>
+                        </Link>
+                      )}
+                    </div>
+                 </div>
+                 <Button variant="ghost" size="icon" onClick={handleShare} className="h-9 w-9 text-muted-foreground flex-shrink-0 border">
+                    <Share2 className="h-4 w-4" />
+                 </Button>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-2 pt-1">
-            <Button 
-              onClick={handleAddToCart} 
-              className="w-full shadow-lg h-11 text-sm font-bold text-white uppercase tracking-wide" 
-              size="lg" 
-              disabled={isExpired || availableStock <= 0}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" /> 
-              {isExpired ? "Đã hết hạn order" : availableStock <= 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
-            </Button>
+            {product.master && <MasterShippingProgress masterName={product.master} />}
+
+            <div className="bg-muted/30 p-4 rounded-lg border border-muted/50">
+              <div className="flex items-baseline gap-2">
+                  <p className={`text-2xl md:text-3xl font-extrabold ${availableStock <= 0 ? 'text-muted-foreground line-through' : 'text-primary'}`}>
+                    {renderPrice()}
+                  </p>
+                  {availableStock <= 0 && (
+                    <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded uppercase">
+                      Hết hàng
+                    </span>
+                  )}
+              </div>
+              {product.orderDeadline && availableStock > 0 && (
+                <div className="mt-2">
+                  <OrderCountdown deadline={product.orderDeadline} onExpired={() => setIsExpired(true)} />
+                </div>
+              )}
+            </div>
             
-            {!overrideId && (
-              <Button variant="outline" className="w-full h-11 text-xs font-bold border-dashed border-primary/40 text-primary hover:bg-primary/5 uppercase tracking-wide" onClick={() => navigate("/products")}>
-                Tiếp tục mua hàng
+            <div className="border rounded-lg divide-y divide-border/60">
+              <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Mô tả</span><span className="text-sm text-foreground/90 whitespace-pre-line">{product.description || "—"}</span></div>
+              <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Kích thước</span><span className="text-sm text-foreground/90">{product.size || "—"}</span></div>
+              <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Bao gồm</span><span className="text-sm text-foreground/90">{product.includes || "—"}</span></div>
+              <div className="p-2.5 md:p-3 flex gap-4"><span className="font-medium text-sm text-muted-foreground w-24 shrink-0">Thời gian SX</span><span className="text-sm text-foreground/90">{product.productionTime || "—"}</span></div>
+            </div>
+
+            <div className="space-y-3" ref={variantRef}>
+              {product.optionGroups?.map((group) => (
+                <div key={group.name} className="space-y-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">{group.name}</Label>
+                  <Select value={selectedOptions[group.name]} onValueChange={(value) => handleOptionChange(group.name, value)}>
+                    <SelectTrigger className={`w-full h-10 ${highlightVariant && !selectedOptions[group.name] ? 'border-red-500 animate-pulse bg-red-50/50' : ''}`}><SelectValue placeholder={`Chọn ${group.name}`} /></SelectTrigger>
+                    <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
+                      {group.options.map((option) => (
+                        <SelectItem key={option} value={option} className="py-2.5 text-sm whitespace-normal">
+                          <span className="leading-snug block">{option}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+              {(!product.optionGroups || product.optionGroups.length === 0) && product.variants && product.variants.length > 1 && (
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">Phân loại</Label>
+                  <Select value={selectedVariant} onValueChange={handleVariantChange}>
+                    <SelectTrigger className={`w-full h-10 ${highlightVariant && !selectedVariant ? 'border-red-500 animate-pulse bg-red-50/50' : ''}`}><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
+                    <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
+                        {product.variants.map((variant) => {
+                          const vStock = getVariantStock(product, variant.name);
+                          const isOutOfStock = vStock <= 0;
+                          return (
+                            <SelectItem key={variant.name} value={variant.name} className="py-2.5 text-sm whitespace-normal">
+                              <div className="flex items-center gap-3">
+                                {product.variantImageMap?.[variant.name] !== undefined && (
+                                  <img src={product.images[product.variantImageMap[variant.name]]} className="w-9 h-9 rounded object-cover shrink-0" />
+                                )}
+                                <span className="leading-snug block flex-1">{variant.name}</span>
+                                {isOutOfStock && (
+                                  <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Hết</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between border-t pt-4">
+              <Label className="text-sm font-semibold text-muted-foreground">Số lượng mua</Label>
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {availableStock > 0 ? `Kho: ${availableStock}` : <span className="text-red-500 font-bold">Hết hàng</span>}
+                </span>
+                <div className="flex items-center border rounded-md h-9 bg-background">
+                    <Button variant="ghost" size="icon" onClick={decrementQuantity} disabled={quantity <= 1 || availableStock <= 0} className="h-full"><Minus className="h-3 w-3" /></Button>
+                    <Input type="number" value={availableStock <= 0 ? 0 : quantity} readOnly className="w-12 text-center border-0 h-full focus-visible:ring-0 font-bold" />
+                    <Button variant="ghost" size="icon" onClick={incrementQuantity} disabled={quantity >= availableStock || availableStock <= 0} className="h-full"><Plus className="h-3 w-3" /></Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <Button 
+                onClick={handleAddToCart} 
+                className="w-full shadow-lg h-11 text-sm font-bold text-white uppercase tracking-wide bg-primary hover:bg-primary/90" 
+                size="lg" 
+                disabled={isExpired || availableStock <= 0}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" /> 
+                {isExpired ? "Đã hết hạn order" : availableStock <= 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
               </Button>
-            )}
-            
-            {(isExpired || availableStock <= 0) && <ProductNotificationForm productId={product.id} productName={product.name} />}
+              
+              {!overrideId && (
+                <Button variant="outline" className="w-full h-11 text-xs font-bold border-dashed border-primary/40 text-primary hover:bg-primary/5 uppercase tracking-wide" onClick={() => navigate("/products")}>
+                  Tiếp tục mua hàng
+                </Button>
+              )}
+              
+              {(isExpired || availableStock <= 0) && <ProductNotificationForm productId={product.id} productName={product.name} />}
+            </div>
           </div>
         </div>
-      </div>
 
-      {!overrideId && product.master && (() => {
-        const related = products.filter(p => p.id !== product.id && p.master === product.master && ['Sẵn', 'Đặt hàng', 'Order', 'Pre-order', 'Deal'].includes(p.status || ''));
-        if (related.length === 0) return null;
-        return (
-          <div className="mt-12 pt-6 border-t">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground">Sản phẩm liên quan</h2>
-              <Link to={`/shop/${slugify(product.master)}`} className="text-xs font-bold text-primary hover:underline">Xem tất cả</Link>
-            </div>
-            <div className="relative">
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x scroll-smooth -mx-5 px-5 md:mx-0 md:px-0">
-                {related.map(p => <div key={p.id} className="shrink-0 w-[150px] md:w-[220px] snap-start"><ProductCard product={p} /></div>)}
+        {!overrideId && product.master && (() => {
+          const related = products.filter(p => p.id !== product.id && p.master === product.master && ['Sẵn', 'Đặt hàng', 'Order', 'Pre-order', 'Deal'].includes(p.status || ''));
+          if (related.length === 0) return null;
+          return (
+            <div className="mt-12 pt-6 border-t">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-foreground">Sản phẩm liên quan</h2>
+                <Link to={`/shop/${slugify(product.master)}`} className="text-xs font-bold text-primary hover:underline">Xem tất cả</Link>
               </div>
-              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
+              <div className="relative">
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x scroll-smooth -mx-5 px-5 md:mx-0 md:px-0">
+                  {related.map(p => <div key={p.id} className="shrink-0 w-[150px] md:w-[220px] snap-start"><ProductCard product={p} /></div>)}
+                </div>
+                <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
+              </div>
             </div>
-          </div>
-        );
-      })()}
-    </div>
+          );
+        })()}
+      </div>
+    </Layout>
   );
-
-  if (overrideId) {
-    return detailContent;
-  }
-
-  return <Layout>{detailContent}</Layout>;
 }
