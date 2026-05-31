@@ -39,43 +39,51 @@ const slugify = (s: string) => {
     .slice(0, 100);
 };
 
-// --- HÀM TÍNH TOÁN KHO BIẾN THỂ THEO LOGIC MỚI ---
+// --- ĐÃ CHỈNH SỬA: SỬA LẠI HOÀN TOÀN THEO ĐÚNG BẢN CŨ VÀ LOGIC CỦA Ý ---
 const getVariantStock = (product: Product, variantName: string): number => {
-  // Quy tắc 3: Nếu trong danh sách có BẤT KỲ phân loại nào cố định = 0, ép tất cả các phân loại khác về 0
-  const hasAnyExplicitZero = product.variants?.some(v => v.stock !== undefined && v.stock !== null && Number(v.stock) === 0);
+  // Quy tắc cấm: Chỉ khi nào điền số 0 rõ ràng (Chuỗi không trống và bằng 0) mới kích hoạt sập kho Domino
+  const hasAnyExplicitZero = product.variants?.some(
+    v => v.stock !== undefined && v.stock !== null && String(v.stock).trim() !== "" && Number(v.stock) === 0
+  );
   if (hasAnyExplicitZero) return 0;
 
   if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
   const variant = product.variants.find(v => v.name === variantName);
   
-  // Quy tắc 1: Nếu stock phân loại bỏ trống (null/undefined), tính theo stock chung của sản phẩm
-  if (!variant || variant.stock === undefined || variant.stock === null) {
+  // ĐÚNG BẢN CŨ: Nếu trống kho phân loại (undefined/null/""), lấy thẳng giá trị kho bán chung của sản phẩm
+  if (!variant || variant.stock === undefined || variant.stock === null || String(variant.stock).trim() === "") {
     return product.stock ?? 0;
   }
   
   return Number(variant.stock);
 };
 
-// --- HÀM TÍNH TOÁN TỔNG KHO ĐỂ HIỂN THỊ KHI CHƯA CHỌN PHÂN LOẠI ---
 const getTotalVariantsStock = (product: Product): number => {
-  const hasAnyExplicitZero = product.variants?.some(v => v.stock !== undefined && v.stock !== null && Number(v.stock) === 0);
+  const hasAnyExplicitZero = product.variants?.some(
+    v => v.stock !== undefined && v.stock !== null && String(v.stock).trim() !== "" && Number(v.stock) === 0
+  );
   if (hasAnyExplicitZero) return 0;
 
   if (!product.variants || product.variants.length === 0) return product.stock ?? 0;
   
-  // Nếu có phân loại dùng chung kho (bỏ trống stock), lấy kho chung làm đại diện chính
-  const hasSharedStock = product.variants.some(v => v.stock === undefined || v.stock === null);
+  // Nếu có phân loại trống kho, ưu tiên dùng kho chung đại diện hiển thị ra ngoài
+  const hasSharedStock = product.variants.some(
+    v => v.stock === undefined || v.stock === null || String(v.stock).trim() === ""
+  );
   if (hasSharedStock) return product.stock ?? 0;
 
-  return product.variants.reduce((total, v) => total + (v.stock ?? 0), 0);
+  return product.variants.reduce((total, v) => total + (Number(v.stock) || 0), 0);
 };
 
+// Khai báo interface để nhận overrideId từ cửa sổ Popup trang cha truyền vào
 interface ProductDetailProps {
   overrideId?: string;
 }
 
 export default function ProductDetail({ overrideId }: ProductDetailProps) {
   const { id: urlId } = useParams();
+  
+  // Ưu tiên sử dụng ID từ popup truyền xuống trước, nếu không có mới lấy trên thanh URL
   const id = overrideId || urlId; 
   const navigate = useNavigate();
   const { addToCart, products, isLoading } = useCart();
@@ -109,6 +117,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
     setIsExpired(false);
     setHighlightVariant(false);
     
+    // Chỉ cuộn mượt lên đầu trang nếu người dùng click xem link trực tiếp độc lập
     if (!overrideId) {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -227,7 +236,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
       return;
     }
 
-    // Kiểm tra an toàn chặn mua khi phân loại hiện tại hết hàng hoặc domino sập kho
     const currentStock = selectedVariant ? getVariantStock(product, selectedVariant) : (product.stock ?? 0);
     if (currentStock <= 0) {
       toast({ title: "Hết hàng", description: `Phân loại này đã hết hàng, không thể đặt mua`, variant: "destructive" });
@@ -407,7 +415,6 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
                   <SelectTrigger className="w-full h-10"><SelectValue placeholder="Chọn phân loại" /></SelectTrigger>
                   <SelectContent className="max-h-[250px] pointer-events-auto z-[9999]">
                       {product.variants.map((variant) => {
-                        // Tính toán stock động của từng phân loại để render nhãn "Hết" chính xác
                         const vStock = getVariantStock(product, variant.name);
                         const isOutOfStock = vStock <= 0;
                         return (
@@ -477,7 +484,7 @@ export default function ProductDetail({ overrideId }: ProductDetailProps) {
             </div>
             <div className="relative">
               <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x scroll-smooth -mx-5 px-5 md:mx-0 md:px-0">
-                {related.map(p => <div key={p.id} className="shrink-0 w-[150px] md:w-[200px] snap-start"><ProductCard product={p} /></div>)}
+                {related.map(p => <div key={p.id} className="shrink-0 w-[150px] md:w-[220px] snap-start"><ProductCard product={p} /></div>)}
               </div>
               <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
             </div>
