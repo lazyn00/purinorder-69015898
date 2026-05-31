@@ -47,7 +47,8 @@ interface BulkProductItem {
   order_deadline: string;
   description: string;
   images: string; 
-  variants: BulkVariantItem[]; // Chuyển đổi thành mảng object phân loại chi tiết
+  variants: BulkVariantItem[]; // Mảng object phân loại chi tiết
+  variant_image_map: { [key: string]: number }; // Bản đồ gán ảnh cho phân loại hàng loạt
   size: string;
   includes: string;
   production_time: string;
@@ -77,6 +78,7 @@ const makeEmpty = (): BulkProductItem => ({
   description: "",
   images: "",
   variants: [],
+  variant_image_map: {},
   size: "",
   includes: "",
   production_time: "",
@@ -142,7 +144,13 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
   const duplicateItem = (item: BulkProductItem) => {
     setItems(prev => {
       const idx = prev.findIndex(it => it._id === item._id);
-      const copy = { ...item, _id: Math.random().toString(36).slice(2), name: item.name + " (Copy)", variants: [...item.variants] };
+      const copy = { 
+        ...item, 
+        _id: Math.random().toString(36).slice(2), 
+        name: item.name + " (Copy)", 
+        variants: [...item.variants],
+        variant_image_map: { ...item.variant_image_map }
+      };
       const next = [...prev];
       next.splice(idx + 1, 0, copy);
       return next;
@@ -252,7 +260,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
           images,
           variants,
           option_groups: [],
-          variant_image_map: {},
+          variant_image_map: item.variant_image_map || {},
           size: item.size || null,
           includes: item.includes || null,
           production_time: item.production_time || null,
@@ -384,7 +392,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
 
               {item.expanded && (
                 <div className="px-4 py-4 space-y-4 bg-background">
-                  {/* --- KHỐI BỔ SUNG: HOÀN THIỆN ĐẦY ĐỦ Ô CHI PHÍ TÀI CHÍNH TỰ ĐỘNG --- */}
+                  {/* Cấu trúc quản lý chi phí tài chính */}
                   <div className="bg-muted/30 p-3 rounded-lg border space-y-2">
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">📊 Quản lý cấu trúc chi phí dòng sản phẩm</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
@@ -478,7 +486,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                     </div>
                   </div>
 
-                  {/* --- KHỐI BỔ SUNG: PHÂN LOẠI CHI TIẾT DẠNG ROW DYNAMIC CÓ GIÁ TỆ ẨN --- */}
+                  {/* Danh sách Phân loại biến thể chi tiết */}
                   <div className="border rounded-lg p-3 bg-muted/10 space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-bold text-muted-foreground">🎨 Danh sách Phân loại biến thể chi tiết</Label>
@@ -533,7 +541,6 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                               }}
                               className="h-7 text-xs w-16"
                             />
-                            {/* Ô nhập Giá tệ ghi nhận ẩn cho phân loại theo yêu cầu */}
                             <Input
                               type="number"
                               placeholder="Giá Tệ (Ẩn)"
@@ -544,7 +551,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                                 update(item._id, 'variants', newVariants);
                               }}
                               className="h-7 text-xs w-20 bg-orange-50/50 text-orange-700 border-orange-200 focus-visible:ring-orange-400"
-                              title="Ghi nhận giá tệ riêng biệt cho phân loại (không hiển thị ra ngoài khách)"
+                              title="Ghi nhận giá tệ riêng biệt cho phân loại"
                             />
                             <Button
                               type="button"
@@ -566,15 +573,70 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                     )}
                   </div>
 
+                  {/* --- KHỐI BỔ SUNG: GÁN ẢNH CHO PHÂN LOẠI HÀNG LOẠT --- */}
+                  {item.variants.filter(v => v.name.trim()).length > 0 && parseImages(item.images).length > 0 && (
+                    <div className="border rounded-lg p-3 bg-background space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground">🖼️ Gán ảnh cho phân loại biến thể</Label>
+                      <div className="space-y-2 mt-1">
+                        {item.variants.filter(v => v.name.trim()).map((v, vIdx) => {
+                          const currentMap = item.variant_image_map || {};
+                          const selectedIdx = currentMap[v.name];
+                          const validImages = parseImages(item.images).map((url, i) => ({ url, i }));
+
+                          return (
+                            <div key={vIdx} className="flex gap-3 items-center border-b pb-2 last:border-0 last:pb-0">
+                              <span className="text-xs font-medium min-w-[120px] truncate">{v.name}</span>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {validImages.map(({ url, i }) => (
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => {
+                                      const newMap = { ...currentMap, [v.name]: i };
+                                      update(item._id, 'variant_image_map', newMap);
+                                    }}
+                                    className={`w-9 h-9 rounded border-2 overflow-hidden transition-all ${
+                                      selectedIdx === i 
+                                        ? 'border-primary ring-2 ring-primary/20 scale-95' 
+                                        : 'border-muted hover:border-foreground/30'
+                                    }`}
+                                  >
+                                    <img src={url} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
+                                  </button>
+                                ))}
+                                {selectedIdx !== undefined && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newMap = { ...currentMap };
+                                      delete newMap[v.name];
+                                      update(item._id, 'variant_image_map', newMap);
+                                    }}
+                                    className="w-9 h-9 rounded border border-dashed border-destructive/50 flex items-center justify-center text-destructive hover:bg-destructive/5"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
-                    <Label className="text-xs">Mô tả sản phẩm</Label>
+                    <Label className="text-xs text-muted-foreground">Mô tả sản phẩm</Label>
                     <Textarea value={item.description} onChange={e => update(item._id, 'description', e.target.value)} rows={2} className="text-xs mt-1" />
                   </div>
                   
                   {parseImages(item.images).length > 0 && (
                     <div className="flex gap-1.5 overflow-x-auto pt-1 pb-1">
                       {parseImages(item.images).map((imgUrl, i) => (
-                        <img key={i} src={imgUrl} alt="" className="w-10 h-10 object-cover rounded border bg-muted" onError={e => (e.currentTarget.style.display = 'none')} />
+                        <div key={i} className="relative group shrink-0 border rounded overflow-hidden w-10 h-10 bg-muted">
+                          <img src={imgUrl} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
+                          <span className="absolute bottom-0 right-0 bg-black/60 text-[8px] text-white px-0.5 font-mono">#{i + 1}</span>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -583,11 +645,13 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
             </div>
           ))}
 
+          {/* Add row button */}
           <button onClick={addItem} className="w-full border-2 border-dashed border-muted-foreground/20 rounded-lg py-2.5 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors flex items-center justify-center gap-2 bg-background">
             <Plus className="h-4 w-4" /> Thêm dòng sản phẩm mới
           </button>
         </div>
 
+        {/* Footer */}
         <div className="px-5 py-3 border-t flex-shrink-0 flex items-center justify-between bg-background">
           <span className="text-xs text-muted-foreground">
             {validCount > 0 ? `Sẵn sàng tạo ${validCount} sản phẩm hàng loạt` : "Cần nhập ít nhất tên sản phẩm để lưu."}
