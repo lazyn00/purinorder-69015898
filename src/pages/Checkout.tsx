@@ -18,6 +18,22 @@ import qrMomo from "@/assets/qr-momo.jpg";
 import qrZalopay from "@/assets/qr-zalopay.jpg";
 import qrVpbank from "@/assets/qr-vpbank.jpg";
 import { tenant } from "@/config/tenant";
+import { z } from "zod";
+
+const checkoutSchema = z.object({
+  contactInfo: z.object({
+    fb: z.string().trim().min(1, "Vui lòng nhập link Facebook").max(500, "Link quá dài"),
+    ig: z.string().trim().max(500, "Link quá dài").optional().or(z.literal("")),
+    email: z.string().trim().max(255, "Email quá dài").email("Email không hợp lệ").optional().or(z.literal("")),
+    phone: z.string().trim().regex(/^[0-9+\s-]{9,15}$/, "Số điện thoại không hợp lệ"),
+  }),
+  deliveryInfo: z.object({
+    name: z.string().trim().min(2, "Tên quá ngắn").max(100, "Tên quá dài"),
+    phone: z.string().trim().max(20, "SĐT quá dài").optional().or(z.literal("")),
+    address: z.string().trim().min(5, "Địa chỉ quá ngắn").max(500, "Địa chỉ quá dài"),
+    note: z.string().trim().max(1000, "Ghi chú quá dài").optional().or(z.literal("")),
+  }),
+});
 
 const QR_IMAGES: { [key: string]: string } = {
   "Ngân hàng": qrVpbank,
@@ -200,8 +216,10 @@ export default function Checkout() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!contactInfo.fb || !contactInfo.phone || !deliveryInfo.name || !deliveryInfo.address) {
-      toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ thông tin.", variant: "destructive" });
+    const validation = checkoutSchema.safeParse({ contactInfo, deliveryInfo });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0]?.message || "Vui lòng kiểm tra lại thông tin.";
+      toast({ title: "Lỗi nhập liệu", description: firstError, variant: "destructive" });
       return;
     }
 
@@ -241,8 +259,8 @@ export default function Checkout() {
         // B. ÁP DỤNG QUY TẮC KIỂM TRA TỒN KHO THEO PHÂN CẤP DỰ PHÒNG CHUẨN XÁC
         let finalAvailableStock = 0;
 
-        if (item.selectedVariant && item.selectedVariant !== item.name && realProduct.variants) {
-          const currentVariant = realProduct.variants.find((v: any) => v.name === item.selectedVariant);
+        if (item.selectedVariant && item.selectedVariant !== item.name && Array.isArray(realProduct.variants)) {
+          const currentVariant = (realProduct.variants as any[]).find((v: any) => v.name === item.selectedVariant);
           
           // Kiểm tra xem stock của phân loại biến thể có được thiết lập hợp lệ không
           if (currentVariant && currentVariant.stock !== null && currentVariant.stock !== undefined) {
