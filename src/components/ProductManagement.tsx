@@ -746,10 +746,10 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
             {syncingImages ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
             {syncingImages ? "Đang sync ảnh..." : "Sync ảnh"}
           </Button>
-          <Button size="sm" onClick={() => setShowBulkForm(true)} variant="outline" className="gap-1">
+          <Button size="sm" onClick={() => window.location.assign('/admin/product/bulk')} variant="outline" className="gap-1">
             <Layers className="h-4 w-4" /> Thêm nhiều SP
           </Button>
-          <Button size="sm" onClick={openAddForm} className="gap-1">
+          <Button size="sm" onClick={() => window.location.assign('/admin/product/new')} className="gap-1">
             <Plus className="h-4 w-4" /> Thêm SP
           </Button>
         </div>
