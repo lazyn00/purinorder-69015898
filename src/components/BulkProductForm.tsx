@@ -47,6 +47,7 @@ interface BulkProductItem {
   order_deadline: string;
   description: string;
   images: string; 
+  video_url: string;
   variants: BulkVariantItem[]; 
   variant_image_map: { [key: string]: number }; 
   size: string;
@@ -77,6 +78,7 @@ const makeEmpty = (): BulkProductItem => ({
   order_deadline: "",
   description: "",
   images: "",
+  video_url: "",
   variants: [],
   variant_image_map: {},
   size: "",
@@ -228,23 +230,20 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
       return;
     }
 
-    const maxId = await fetchMaxId();
-
     setSaving(true);
     try {
+      const maxId = await fetchMaxId();
       let nextId = maxId + 1;
-      let successCount = 0;
-      const errors: string[] = [];
 
-      for (const item of valid) {
+      // Build all rows then insert as a single batch — atomic, no id collisions on errors
+      const rows = valid.map((item) => {
         const images = parseImages(item.images);
-        // Loại bỏ trường ID tạm khi lưu xuống DB
         const variants = item.variants
           .filter(v => v.name.trim() !== "")
           .map(({ name, price, stock, te }) => ({ name, price, stock, te }));
 
-        const saveData: any = {
-          id: nextId,
+        const row: any = {
+          id: nextId++,
           name: item.name.trim(),
           te: item.te,
           rate: item.rate,
@@ -261,6 +260,7 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
           order_deadline: item.order_deadline ? new Date(item.order_deadline).toISOString() : null,
           description: item.description || null,
           images,
+          video_url: item.video_url?.trim() || null,
           variants,
           option_groups: [],
           variant_image_map: item.variant_image_map || {},
@@ -273,32 +273,31 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
           master: master.trim() || null,
           owner: currentUser,
         };
+        return row;
+      });
 
-        const { error } = await supabase.from('products').insert(saveData as any);
-        if (error) {
-          errors.push(`"${item.name}": ${error.message}`);
-        } else {
-          successCount++;
-          nextId++;
-        }
-      }
+      const { error, data: inserted } = await supabase
+        .from('products')
+        .insert(rows as any)
+        .select('id');
 
-      if (successCount > 0) {
-        toast({
-          title: `Đã tạo ${successCount}/${valid.length} sản phẩm`,
-          description: errors.length > 0 ? `Lỗi: ${errors[0]}` : "Tất cả sản phẩm đã được lưu",
-        });
-        refetchProducts();
-        if (errors.length === 0) {
-          onClose();
-          setItems([makeEmpty(), makeEmpty()]);
-          setMaster("");
-        }
-      } else {
-        toast({ title: "Lỗi", description: errors[0] || "Không thể lưu", variant: "destructive" });
-      }
+      if (error) throw error;
+
+      const successCount = inserted?.length ?? rows.length;
+      toast({
+        title: `Đã tạo ${successCount} sản phẩm`,
+        description: "Tất cả sản phẩm đã được lưu",
+      });
+      refetchProducts();
+      onClose();
+      setItems([makeEmpty(), makeEmpty()]);
+      setMaster("");
     } catch (err: any) {
-      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+      toast({
+        title: "Lỗi khi lưu",
+        description: err.message || "Không thể lưu sản phẩm",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -520,6 +519,11 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                       <Label className="text-xs">Link gốc / Nguồn hàng</Label>
                       <Input value={item.link_order} onChange={e => update(item._id, 'link_order', e.target.value)} className="h-8 text-sm" />
                     </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Link Video (Google Drive/YouTube — hiển thị trước ảnh ở trang chi tiết)</Label>
+                    <Input value={item.video_url} onChange={e => update(item._id, 'video_url', e.target.value)} placeholder="https://drive.google.com/..." className="h-8 text-sm mt-1" />
                   </div>
 
                   {/* KÉO THẢ THỨ TỰ PHÂN LOẠI BIẾN THỂ */}

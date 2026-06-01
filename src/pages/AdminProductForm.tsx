@@ -36,6 +36,8 @@ export default function AdminProductForm() {
   const [price, setPrice] = useState(0);
   const [stock, setStock] = useState<number | null>(null);
   const [orderDeadline, setOrderDeadline] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [description, setDescription] = useState("");
   
   // Chi phí
   const [te, setTe] = useState<number | null>(null);
@@ -67,6 +69,8 @@ export default function AdminProductForm() {
       setPrice(data.price || 0);
       setStock(data.stock);
       setOrderDeadline(data.order_deadline);
+      setVideoUrl((data as any).video_url || "");
+      setDescription(data.description || "");
       setTe(data.te);
       setRate(data.rate);
       setCanWeight(data.can_weight);
@@ -91,6 +95,8 @@ export default function AdminProductForm() {
         price, category, status, stock, variants, images, master: master.trim() || null,
         price_display: `${price.toLocaleString('vi-VN')}đ`,
         order_deadline: orderDeadline ? new Date(orderDeadline).toISOString() : null,
+        video_url: videoUrl.trim() || null,
+        description: description.trim() || null,
       };
 
       if (isEdit) {
@@ -187,6 +193,16 @@ export default function AdminProductForm() {
               <div><Label>Giá bán VNĐ *</Label><Input type="number" value={price || ""} onChange={e => setPrice(Number(e.target.value) || 0)} /></div>
               <div><Label>Tồn kho chung</Label><Input type="number" value={stock ?? ""} onChange={e => setStock(e.target.value === "" ? null : parseInt(e.target.value))} /></div>
               <div><Label>Hạn order</Label><Input type="datetime-local" value={orderDeadline ? new Date(orderDeadline).toISOString().slice(0, 16) : ""} onChange={e => setOrderDeadline(e.target.value ? new Date(e.target.value).toISOString() : null)} /></div>
+            </div>
+
+            <div>
+              <Label>Link Video (Drive/YouTube) — hiển thị trước ảnh trong trang chi tiết</Label>
+              <Input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/..." className="mt-1" />
+            </div>
+
+            <div>
+              <Label>Mô tả sản phẩm</Label>
+              <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="mt-1" placeholder="Mô tả..." />
             </div>
 
             <div>

@@ -505,6 +505,7 @@ export type Database = {
           variant_attributes: Json | null
           variant_image_map: Json | null
           variants: Json | null
+          video_url: string | null
         }
         Insert: {
           actual_can?: number | null
@@ -546,6 +547,7 @@ export type Database = {
           variant_attributes?: Json | null
           variant_image_map?: Json | null
           variants?: Json | null
+          video_url?: string | null
         }
         Update: {
           actual_can?: number | null
@@ -587,6 +589,7 @@ export type Database = {
           variant_attributes?: Json | null
           variant_image_map?: Json | null
           variants?: Json | null
+          video_url?: string | null
         }
         Relationships: []
       }

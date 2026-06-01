@@ -23,6 +23,7 @@ export interface Product {
   size?: string;
   includes?: string;
   cong?: number;
+  videoUrl?: string;
 }
 
 export interface CartItem extends Product {
@@ -97,6 +98,7 @@ const mapSupabaseProduct = (p: any): Product => {
     size: p.size || '',
     includes: p.includes || '',
     cong: p.cong ?? undefined,
+    videoUrl: p.video_url || undefined,
   };
 };
 
