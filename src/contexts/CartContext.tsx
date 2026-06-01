@@ -23,6 +23,7 @@ export interface Product {
   size?: string;
   includes?: string;
   cong?: number;
+  videoUrl?: string;
 }
 
 export interface CartItem extends Product {

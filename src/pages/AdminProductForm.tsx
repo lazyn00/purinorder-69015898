@@ -196,6 +196,16 @@ export default function AdminProductForm() {
             </div>
 
             <div>
+              <Label>Link Video (Drive/YouTube) — hiển thị trước ảnh trong trang chi tiết</Label>
+              <Input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/..." className="mt-1" />
+            </div>
+
+            <div>
+              <Label>Mô tả sản phẩm</Label>
+              <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="mt-1" placeholder="Mô tả..." />
+            </div>
+
+            <div>
               <div className="flex items-center justify-between mb-2">
                 <Label className="font-medium">Phân loại chi tiết sản phẩm (Variants)</Label>
                 <Button variant="outline" size="sm" onClick={() => setVariantInputs(prev => [...prev, { name: "", price: price || 0, stock: undefined, te: undefined }])}><Plus className="h-3 w-3 mr-1" /> Thêm phân loại</Button>
