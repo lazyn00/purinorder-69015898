@@ -16,6 +16,8 @@ import OrderSuccess from "./pages/OrderSuccess";
 import TrackOrder from "./pages/TrackOrder";
 import Admin from "./pages/Admin";
 import AdminOrderDetail from "./pages/AdminOrderDetail";
+import AdminProductForm from "./pages/AdminProductForm";
+import AdminBulkAdd from "./pages/AdminBulkAdd";
 import CustomerOrderDetail from "./pages/CustomerOrderDetail";
 import Shops from "./pages/Shops";
 import ShopDetail from "./pages/ShopDetail";
@@ -61,6 +63,8 @@ const App = () => (
             <Route path="/order/:orderId" element={<CustomerOrderDetail />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/order/:orderId" element={<AdminOrderDetail />} />
+            <Route path="/admin/product/new" element={<AdminProductForm />} />
+            <Route path="/admin/product/bulk" element={<AdminBulkAdd />} />
             <Route path="/shops" element={<Shops />} />
             <Route path="/shop/:slug" element={<ShopDetail />} />
             <Route path="*" element={<NotFound />} />
