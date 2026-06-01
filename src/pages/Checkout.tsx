@@ -259,8 +259,8 @@ export default function Checkout() {
         // B. ÁP DỤNG QUY TẮC KIỂM TRA TỒN KHO THEO PHÂN CẤP DỰ PHÒNG CHUẨN XÁC
         let finalAvailableStock = 0;
 
-        if (item.selectedVariant && item.selectedVariant !== item.name && realProduct.variants) {
-          const currentVariant = realProduct.variants.find((v: any) => v.name === item.selectedVariant);
+        if (item.selectedVariant && item.selectedVariant !== item.name && Array.isArray(realProduct.variants)) {
+          const currentVariant = (realProduct.variants as any[]).find((v: any) => v.name === item.selectedVariant);
           
           // Kiểm tra xem stock của phân loại biến thể có được thiết lập hợp lệ không
           if (currentVariant && currentVariant.stock !== null && currentVariant.stock !== undefined) {

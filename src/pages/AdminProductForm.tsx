@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,8 +72,8 @@ export default function AdminProductForm() {
       setCanWeight(data.can_weight);
       setPack(data.pack);
       setCong(data.cong);
-      setImageInputs(Array.isArray(data.images) && data.images.length > 0 ? data.images : [""]);
-      setVariantInputs(Array.isArray(data.variants) ? data.variants : []);
+      setImageInputs(Array.isArray(data.images) && data.images.length > 0 ? (data.images as any[]).map(String) : [""]);
+      setVariantInputs(Array.isArray(data.variants) ? (data.variants as any[]) : []);
       setLoading(false);
     };
     fetchProductData();
