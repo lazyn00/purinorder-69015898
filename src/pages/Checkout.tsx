@@ -216,8 +216,10 @@ export default function Checkout() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!contactInfo.fb || !contactInfo.phone || !deliveryInfo.name || !deliveryInfo.address) {
-      toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ thông tin.", variant: "destructive" });
+    const validation = checkoutSchema.safeParse({ contactInfo, deliveryInfo });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0]?.message || "Vui lòng kiểm tra lại thông tin.";
+      toast({ title: "Lỗi nhập liệu", description: firstError, variant: "destructive" });
       return;
     }
 
