@@ -285,6 +285,26 @@ export default function ProductDetail({ overrideId, onProductClick }: ProductDet
           <div className="relative group">
               <Carousel className="w-full" setApi={setCarouselApi}>
               <CarouselContent>
+                  {product.videoUrl && (
+                    <CarouselItem key="video">
+                      <div className="relative overflow-hidden rounded-lg border bg-black flex items-center justify-center w-full aspect-square max-h-[380px]">
+                        {(() => {
+                          const url = product.videoUrl;
+                          // Google Drive preview
+                          const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+                          if (driveMatch) {
+                            return <iframe src={`https://drive.google.com/file/d/${driveMatch[1]}/preview`} allow="autoplay" className="w-full h-full" allowFullScreen />;
+                          }
+                          // YouTube
+                          const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+                          if (ytMatch) {
+                            return <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} className="w-full h-full" allowFullScreen />;
+                          }
+                          return <video src={url} controls className="w-full h-full object-contain" />;
+                        })()}
+                      </div>
+                    </CarouselItem>
+                  )}
                   {product.images.map((image, index) => (
                     <CarouselItem key={index}>
                       <div className="relative overflow-hidden rounded-lg border flex items-center justify-center bg-muted/20 w-full">
@@ -293,7 +313,7 @@ export default function ProductDetail({ overrideId, onProductClick }: ProductDet
                     </CarouselItem>
                   ))}
               </CarouselContent>
-              {product.images.length > 1 && (
+              {(product.images.length > 1 || product.videoUrl) && (
                   <>
                   <CarouselPrevious className="left-2 opacity-70 h-8 w-8" />
                   <CarouselNext className="right-2 opacity-70 h-8 w-8" />
@@ -435,18 +455,24 @@ export default function ProductDetail({ overrideId, onProductClick }: ProductDet
         </div>
       </div>
 
-      {!overrideId && product.master && (() => {
+      {product.master && (() => {
         const related = products.filter(p => p.id !== product.id && p.master === product.master && ['Sẵn', 'Đặt hàng', 'Order', 'Pre-order', 'Deal'].includes(p.status || ''));
         if (related.length === 0) return null;
         return (
           <div className="mt-12 pt-6 border-t">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-foreground">Sản phẩm liên quan</h2>
-              <Link to={`/shop/${slugify(product.master)}`} className="text-xs font-bold text-primary hover:underline">Xem tất cả</Link>
+              {!overrideId && (
+                <Link to={`/shop/${slugify(product.master)}`} className="text-xs font-bold text-primary hover:underline">Xem tất cả</Link>
+              )}
             </div>
             <div className="relative">
               <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x scroll-smooth -mx-5 px-5 md:mx-0 md:px-0">
-                {related.map(p => <div key={p.id} className="shrink-0 w-[150px] md:w-[220px] snap-start"><ProductCard product={p} /></div>)}
+                {related.map(p => (
+                  <div key={p.id} className="shrink-0 w-[150px] md:w-[220px] snap-start">
+                    <ProductCard product={p} onProductClick={onProductClick} />
+                  </div>
+                ))}
               </div>
             </div>
           </div>

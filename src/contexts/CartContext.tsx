@@ -98,6 +98,7 @@ const mapSupabaseProduct = (p: any): Product => {
     size: p.size || '',
     includes: p.includes || '',
     cong: p.cong ?? undefined,
+    videoUrl: p.video_url || undefined,
   };
 };
 
