@@ -18,6 +18,22 @@ import qrMomo from "@/assets/qr-momo.jpg";
 import qrZalopay from "@/assets/qr-zalopay.jpg";
 import qrVpbank from "@/assets/qr-vpbank.jpg";
 import { tenant } from "@/config/tenant";
+import { z } from "zod";
+
+const checkoutSchema = z.object({
+  contactInfo: z.object({
+    fb: z.string().trim().min(1, "Vui lòng nhập link Facebook").max(500, "Link quá dài"),
+    ig: z.string().trim().max(500, "Link quá dài").optional().or(z.literal("")),
+    email: z.string().trim().max(255, "Email quá dài").email("Email không hợp lệ").optional().or(z.literal("")),
+    phone: z.string().trim().regex(/^[0-9+\s-]{9,15}$/, "Số điện thoại không hợp lệ"),
+  }),
+  deliveryInfo: z.object({
+    name: z.string().trim().min(2, "Tên quá ngắn").max(100, "Tên quá dài"),
+    phone: z.string().trim().max(20, "SĐT quá dài").optional().or(z.literal("")),
+    address: z.string().trim().min(5, "Địa chỉ quá ngắn").max(500, "Địa chỉ quá dài"),
+    note: z.string().trim().max(1000, "Ghi chú quá dài").optional().or(z.literal("")),
+  }),
+});
 
 const QR_IMAGES: { [key: string]: string } = {
   "Ngân hàng": qrVpbank,
