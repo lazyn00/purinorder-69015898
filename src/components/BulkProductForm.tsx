@@ -521,6 +521,11 @@ export default function BulkProductForm({ open, onClose, currentUser, defaultMas
                     </div>
                   </div>
 
+                  <div>
+                    <Label className="text-xs">Link Video (Google Drive/YouTube — hiển thị trước ảnh ở trang chi tiết)</Label>
+                    <Input value={item.video_url} onChange={e => update(item._id, 'video_url', e.target.value)} placeholder="https://drive.google.com/..." className="h-8 text-sm mt-1" />
+                  </div>
+
                   {/* KÉO THẢ THỨ TỰ PHÂN LOẠI BIẾN THỂ */}
                   <div className="border rounded-lg p-3 bg-muted/10 space-y-2">
                     <div className="flex items-center justify-between">
