@@ -36,6 +36,8 @@ export default function AdminProductForm() {
   const [price, setPrice] = useState(0);
   const [stock, setStock] = useState<number | null>(null);
   const [orderDeadline, setOrderDeadline] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [description, setDescription] = useState("");
   
   // Chi phí
   const [te, setTe] = useState<number | null>(null);
@@ -67,6 +69,8 @@ export default function AdminProductForm() {
       setPrice(data.price || 0);
       setStock(data.stock);
       setOrderDeadline(data.order_deadline);
+      setVideoUrl((data as any).video_url || "");
+      setDescription(data.description || "");
       setTe(data.te);
       setRate(data.rate);
       setCanWeight(data.can_weight);
@@ -91,6 +95,8 @@ export default function AdminProductForm() {
         price, category, status, stock, variants, images, master: master.trim() || null,
         price_display: `${price.toLocaleString('vi-VN')}đ`,
         order_deadline: orderDeadline ? new Date(orderDeadline).toISOString() : null,
+        video_url: videoUrl.trim() || null,
+        description: description.trim() || null,
       };
 
       if (isEdit) {
