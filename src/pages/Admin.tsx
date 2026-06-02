@@ -542,10 +542,19 @@ export default function Admin() {
           });
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => { fetchOrders(); }
+      )
       .subscribe();
+
+    const onFocus = () => { fetchOrders(); };
+    window.addEventListener('focus', onFocus);
 
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('focus', onFocus);
     };
   }, [isLoggedIn, toast]);
 
