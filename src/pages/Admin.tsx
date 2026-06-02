@@ -272,17 +272,27 @@ export default function Admin() {
   }, [orders, searchTerm, paymentStatusFilter, orderProgressFilter, progressMulti]);
 
   const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
+  const needsPaymentAttention = (o: any) =>
+    o.payment_status === 'Chưa thanh toán' ||
+    o.payment_status === 'Đang xác nhận thanh toán' ||
+    o.payment_status === 'Đang xác nhận cọc';
+
   const paginatedOrders = useMemo(() => {
     const sortedOrders = [...filteredOrders].sort((a, b) => {
       const aCompleted = a.order_progress === 'Đã hoàn thành' || a.order_progress === 'Đã huỷ';
       const bCompleted = b.order_progress === 'Đã hoàn thành' || b.order_progress === 'Đã huỷ';
-      
       if (aCompleted && !bCompleted) return 1;
       if (!aCompleted && bCompleted) return -1;
-      
+
+      // Đơn cần xác nhận thanh toán / cọc lên đầu
+      const aAttn = !aCompleted && needsPaymentAttention(a);
+      const bAttn = !bCompleted && needsPaymentAttention(b);
+      if (aAttn && !bAttn) return -1;
+      if (!aAttn && bAttn) return 1;
+
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-    
+
     const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
     return sortedOrders.slice(startIndex, startIndex + ORDERS_PER_PAGE);
   }, [filteredOrders, currentPage]);
