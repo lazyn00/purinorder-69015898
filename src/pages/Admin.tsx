@@ -272,17 +272,27 @@ export default function Admin() {
   }, [orders, searchTerm, paymentStatusFilter, orderProgressFilter, progressMulti]);
 
   const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
+  const needsPaymentAttention = (o: any) =>
+    o.payment_status === 'Chưa thanh toán' ||
+    o.payment_status === 'Đang xác nhận thanh toán' ||
+    o.payment_status === 'Đang xác nhận cọc';
+
   const paginatedOrders = useMemo(() => {
     const sortedOrders = [...filteredOrders].sort((a, b) => {
       const aCompleted = a.order_progress === 'Đã hoàn thành' || a.order_progress === 'Đã huỷ';
       const bCompleted = b.order_progress === 'Đã hoàn thành' || b.order_progress === 'Đã huỷ';
-      
       if (aCompleted && !bCompleted) return 1;
       if (!aCompleted && bCompleted) return -1;
-      
+
+      // Đơn cần xác nhận thanh toán / cọc lên đầu
+      const aAttn = !aCompleted && needsPaymentAttention(a);
+      const bAttn = !bCompleted && needsPaymentAttention(b);
+      if (aAttn && !bAttn) return -1;
+      if (!aAttn && bAttn) return 1;
+
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-    
+
     const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
     return sortedOrders.slice(startIndex, startIndex + ORDERS_PER_PAGE);
   }, [filteredOrders, currentPage]);
@@ -1396,16 +1406,19 @@ ${generateEmailContent(order)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="sticky left-0 bg-background">
+                    {paginatedOrders.map((order) => {
+                      const attn = needsPaymentAttention(order) && order.order_progress !== 'Đã hoàn thành' && order.order_progress !== 'Đã huỷ';
+                      const rowBg = attn ? 'bg-amber-50' : 'bg-background';
+                      return (
+                      <TableRow key={order.id} className={attn ? 'bg-amber-50 hover:bg-amber-100/70 border-l-4 border-amber-400' : ''}>
+                        <TableCell className={`sticky left-0 ${rowBg}`}>
                           <Checkbox
                             checked={selectedOrderIds.has(order.id)}
                             onCheckedChange={() => toggleSelectOrder(order.id)}
                           />
                         </TableCell>
                         
-                        <TableCell className="font-medium sticky left-[50px] bg-background">
+                        <TableCell className={`font-medium sticky left-[50px] ${rowBg}`}>
                           <div className="space-y-1">
                             <a 
                               href={`/admin/order/${order.id}`}
@@ -1416,11 +1429,17 @@ ${generateEmailContent(order)}
                               #{order.order_number || order.id.slice(0, 8)}
                               <Eye className="h-3 w-3" />
                             </a>
+                            {attn && (
+                              <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
+                                ⚠ Cần xác nhận TT
+                              </span>
+                            )}
                             <div className="text-xs text-muted-foreground">
                               {new Date(order.created_at).toLocaleDateString('vi-VN')}
                             </div>
                           </div>
                         </TableCell>
+                        
                         
                         <TableCell>
                           <div className="space-y-1">
@@ -1714,7 +1733,8 @@ ${generateEmailContent(order)}
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -1784,7 +1804,7 @@ ${generateEmailContent(order)}
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="h-5 w-5" />Theo dõi tiến độ sản phẩm
                   </CardTitle>
-                  <CardDescription>Tổng hợp sản phẩm đã đặt từ tất cả đơn hàng (trừ đơn huỷ)</CardDescription>
+                  <CardDescription>Tổng hợp sản phẩm đã đặt (loại đơn chưa thanh toán, đang chờ xác nhận, đã hoàn tiền, đã huỷ)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {(() => {
@@ -1799,8 +1819,10 @@ ${generateEmailContent(order)}
                       orderRefs: { orderId: string; orderNumber: string; qty: number; progress: string; deliveryName: string; }[];
                     }>();
                     
+                    const EXCLUDED_PAYMENT = new Set(['Chưa thanh toán', 'Đang xác nhận thanh toán', 'Đang xác nhận cọc', 'Đã hoàn tiền']);
                     orders.forEach(order => {
                       if (order.order_progress === 'Đã huỷ') return;
+                      if (EXCLUDED_PAYMENT.has(order.payment_status)) return;
                       const items = order.items as any[];
                       items.forEach((item: any) => {
                         if (!ownedProductIds.has(Number(item.id))) return;
