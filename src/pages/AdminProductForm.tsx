@@ -221,6 +221,12 @@ export default function AdminProductForm() {
               <div><Label>Hạn order</Label><Input type="datetime-local" value={orderDeadline ? new Date(orderDeadline).toISOString().slice(0, 16) : ""} onChange={e => setOrderDeadline(e.target.value ? new Date(e.target.value).toISOString() : null)} /></div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div><Label>Kích thước</Label><Input value={size} onChange={e => setSize(e.target.value)} placeholder="VD: 10x15cm" /></div>
+              <div><Label>Bao gồm</Label><Input value={includes} onChange={e => setIncludes(e.target.value)} placeholder="VD: 1 hộp + 1 thẻ" /></div>
+              <div><Label>Thời gian sản xuất</Label><Input value={productionTime} onChange={e => setProductionTime(e.target.value)} placeholder="VD: 30-45 ngày" /></div>
+            </div>
+
             <div>
               <Label>Link Video (Drive/YouTube) — hiển thị trước ảnh trong trang chi tiết</Label>
               <Input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/..." className="mt-1" />
