@@ -1819,8 +1819,10 @@ ${generateEmailContent(order)}
                       orderRefs: { orderId: string; orderNumber: string; qty: number; progress: string; deliveryName: string; }[];
                     }>();
                     
+                    const EXCLUDED_PAYMENT = new Set(['Chưa thanh toán', 'Đang xác nhận thanh toán', 'Đang xác nhận cọc', 'Đã hoàn tiền']);
                     orders.forEach(order => {
                       if (order.order_progress === 'Đã huỷ') return;
+                      if (EXCLUDED_PAYMENT.has(order.payment_status)) return;
                       const items = order.items as any[];
                       items.forEach((item: any) => {
                         if (!ownedProductIds.has(Number(item.id))) return;
