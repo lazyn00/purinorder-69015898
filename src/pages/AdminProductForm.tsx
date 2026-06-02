@@ -105,12 +105,29 @@ export default function AdminProductForm() {
         order_deadline: orderDeadline ? new Date(orderDeadline).toISOString() : null,
         video_url: videoUrl.trim() || null,
         description: description.trim() || null,
+        size: size.trim() || null,
+        includes: includes.trim() || null,
+        production_time: productionTime.trim() || null,
       };
 
       if (isEdit) {
-        const { error } = await supabase.from('products').update(saveData).eq('id', Number(routeId));
-        if (error) throw error;
-        toast({ title: "Thành công", description: "Đã cập nhật sản phẩm" });
+        const originalId = Number(routeId);
+        const newId = editId ?? originalId;
+        if (newId !== originalId) {
+          // Đổi ID: kiểm tra ID mới chưa tồn tại
+          const { data: existsData } = await supabase.from('products').select('id').eq('id', newId).maybeSingle();
+          if (existsData) throw new Error(`ID #${newId} đã tồn tại, vui lòng chọn ID khác`);
+
+          const { error: insErr } = await supabase.from('products').insert({ ...saveData, id: newId, owner: currentUser });
+          if (insErr) throw insErr;
+          const { error: delErr } = await supabase.from('products').delete().eq('id', originalId);
+          if (delErr) throw delErr;
+          toast({ title: "Thành công", description: `Đã đổi ID #${originalId} → #${newId}` });
+        } else {
+          const { error } = await supabase.from('products').update(saveData).eq('id', originalId);
+          if (error) throw error;
+          toast({ title: "Thành công", description: "Đã cập nhật sản phẩm" });
+        }
       } else {
         const { data: maxData } = await supabase.from('products').select('id').order('id', { ascending: false }).limit(1);
         const nextId = ((maxData?.[0] as any)?.id || 0) + 1;
@@ -118,6 +135,7 @@ export default function AdminProductForm() {
         if (error) throw error;
         toast({ title: "Thành công", description: "Đã thêm sản phẩm mới" });
       }
+
 
       refetchProducts();
       navigate('/admin'); // Lưu xong nhảy về trang quản lý chính
