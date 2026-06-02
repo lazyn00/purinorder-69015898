@@ -1804,7 +1804,7 @@ ${generateEmailContent(order)}
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="h-5 w-5" />Theo dõi tiến độ sản phẩm
                   </CardTitle>
-                  <CardDescription>Tổng hợp sản phẩm đã đặt từ tất cả đơn hàng (trừ đơn huỷ)</CardDescription>
+                  <CardDescription>Tổng hợp sản phẩm đã đặt (loại đơn chưa thanh toán, đang chờ xác nhận, đã hoàn tiền, đã huỷ)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {(() => {
