@@ -1733,7 +1733,8 @@ ${generateEmailContent(order)}
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
