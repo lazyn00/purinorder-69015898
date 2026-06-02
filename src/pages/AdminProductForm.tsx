@@ -38,6 +38,10 @@ export default function AdminProductForm() {
   const [orderDeadline, setOrderDeadline] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [size, setSize] = useState("");
+  const [includes, setIncludes] = useState("");
+  const [productionTime, setProductionTime] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
   
   // Chi phí
   const [te, setTe] = useState<number | null>(null);
@@ -71,6 +75,10 @@ export default function AdminProductForm() {
       setOrderDeadline(data.order_deadline);
       setVideoUrl((data as any).video_url || "");
       setDescription(data.description || "");
+      setSize(data.size || "");
+      setIncludes(data.includes || "");
+      setProductionTime(data.production_time || "");
+      setEditId(data.id);
       setTe(data.te);
       setRate(data.rate);
       setCanWeight(data.can_weight);
@@ -97,12 +105,29 @@ export default function AdminProductForm() {
         order_deadline: orderDeadline ? new Date(orderDeadline).toISOString() : null,
         video_url: videoUrl.trim() || null,
         description: description.trim() || null,
+        size: size.trim() || null,
+        includes: includes.trim() || null,
+        production_time: productionTime.trim() || null,
       };
 
       if (isEdit) {
-        const { error } = await supabase.from('products').update(saveData).eq('id', Number(routeId));
-        if (error) throw error;
-        toast({ title: "Thành công", description: "Đã cập nhật sản phẩm" });
+        const originalId = Number(routeId);
+        const newId = editId ?? originalId;
+        if (newId !== originalId) {
+          // Đổi ID: kiểm tra ID mới chưa tồn tại
+          const { data: existsData } = await supabase.from('products').select('id').eq('id', newId).maybeSingle();
+          if (existsData) throw new Error(`ID #${newId} đã tồn tại, vui lòng chọn ID khác`);
+
+          const { error: insErr } = await supabase.from('products').insert({ ...saveData, id: newId, owner: currentUser });
+          if (insErr) throw insErr;
+          const { error: delErr } = await supabase.from('products').delete().eq('id', originalId);
+          if (delErr) throw delErr;
+          toast({ title: "Thành công", description: `Đã đổi ID #${originalId} → #${newId}` });
+        } else {
+          const { error } = await supabase.from('products').update(saveData).eq('id', originalId);
+          if (error) throw error;
+          toast({ title: "Thành công", description: "Đã cập nhật sản phẩm" });
+        }
       } else {
         const { data: maxData } = await supabase.from('products').select('id').order('id', { ascending: false }).limit(1);
         const nextId = ((maxData?.[0] as any)?.id || 0) + 1;
@@ -110,6 +135,7 @@ export default function AdminProductForm() {
         if (error) throw error;
         toast({ title: "Thành công", description: "Đã thêm sản phẩm mới" });
       }
+
 
       refetchProducts();
       navigate('/admin'); // Lưu xong nhảy về trang quản lý chính
@@ -193,6 +219,12 @@ export default function AdminProductForm() {
               <div><Label>Giá bán VNĐ *</Label><Input type="number" value={price || ""} onChange={e => setPrice(Number(e.target.value) || 0)} /></div>
               <div><Label>Tồn kho chung</Label><Input type="number" value={stock ?? ""} onChange={e => setStock(e.target.value === "" ? null : parseInt(e.target.value))} /></div>
               <div><Label>Hạn order</Label><Input type="datetime-local" value={orderDeadline ? new Date(orderDeadline).toISOString().slice(0, 16) : ""} onChange={e => setOrderDeadline(e.target.value ? new Date(e.target.value).toISOString() : null)} /></div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div><Label>Kích thước</Label><Input value={size} onChange={e => setSize(e.target.value)} placeholder="VD: 10x15cm" /></div>
+              <div><Label>Bao gồm</Label><Input value={includes} onChange={e => setIncludes(e.target.value)} placeholder="VD: 1 hộp + 1 thẻ" /></div>
+              <div><Label>Thời gian sản xuất</Label><Input value={productionTime} onChange={e => setProductionTime(e.target.value)} placeholder="VD: 30-45 ngày" /></div>
             </div>
 
             <div>
