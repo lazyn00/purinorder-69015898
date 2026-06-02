@@ -38,6 +38,10 @@ export default function AdminProductForm() {
   const [orderDeadline, setOrderDeadline] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [size, setSize] = useState("");
+  const [includes, setIncludes] = useState("");
+  const [productionTime, setProductionTime] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
   
   // Chi phí
   const [te, setTe] = useState<number | null>(null);
