@@ -1406,16 +1406,19 @@ ${generateEmailContent(order)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="sticky left-0 bg-background">
+                    {paginatedOrders.map((order) => {
+                      const attn = needsPaymentAttention(order) && order.order_progress !== 'Đã hoàn thành' && order.order_progress !== 'Đã huỷ';
+                      const rowBg = attn ? 'bg-amber-50' : 'bg-background';
+                      return (
+                      <TableRow key={order.id} className={attn ? 'bg-amber-50 hover:bg-amber-100/70 border-l-4 border-amber-400' : ''}>
+                        <TableCell className={`sticky left-0 ${rowBg}`}>
                           <Checkbox
                             checked={selectedOrderIds.has(order.id)}
                             onCheckedChange={() => toggleSelectOrder(order.id)}
                           />
                         </TableCell>
                         
-                        <TableCell className="font-medium sticky left-[50px] bg-background">
+                        <TableCell className={`font-medium sticky left-[50px] ${rowBg}`}>
                           <div className="space-y-1">
                             <a 
                               href={`/admin/order/${order.id}`}
@@ -1426,11 +1429,17 @@ ${generateEmailContent(order)}
                               #{order.order_number || order.id.slice(0, 8)}
                               <Eye className="h-3 w-3" />
                             </a>
+                            {attn && (
+                              <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
+                                ⚠ Cần xác nhận TT
+                              </span>
+                            )}
                             <div className="text-xs text-muted-foreground">
                               {new Date(order.created_at).toLocaleDateString('vi-VN')}
                             </div>
                           </div>
                         </TableCell>
+                        
                         
                         <TableCell>
                           <div className="space-y-1">
