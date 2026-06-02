@@ -469,6 +469,16 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         const isChangingId = editingId !== originalId;
         
         if (isChangingId) {
+          // Kiểm tra ID mới đã tồn tại chưa
+          const { data: existsData } = await supabase
+            .from('products')
+            .select('id')
+            .eq('id', editingId as number)
+            .maybeSingle();
+          if (existsData) {
+            throw new Error(`ID #${editingId} đã tồn tại, vui lòng chọn ID khác`);
+          }
+
           const { error: insertError } = await supabase
             .from('products')
             .insert({ ...saveData, id: editingId, owner: currentUser || 'Admin' } as any);
@@ -477,7 +487,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           const { error: deleteError } = await supabase
             .from('products')
             .delete()
-            .eq('id', originalId);
+            .eq('id', originalId as number);
           if (deleteError) throw deleteError;
 
           toast({ title: "Đã cập nhật", description: `Đã đổi ID sản phẩm công khai: #${originalId} → #${editingId}` });
