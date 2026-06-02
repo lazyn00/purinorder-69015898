@@ -75,6 +75,10 @@ export default function AdminProductForm() {
       setOrderDeadline(data.order_deadline);
       setVideoUrl((data as any).video_url || "");
       setDescription(data.description || "");
+      setSize(data.size || "");
+      setIncludes(data.includes || "");
+      setProductionTime(data.production_time || "");
+      setEditId(data.id);
       setTe(data.te);
       setRate(data.rate);
       setCanWeight(data.can_weight);
