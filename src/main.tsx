@@ -10,19 +10,33 @@ import "./index.css";
 
 // Hiệu ứng âm thanh click nhỏ nhẹ (toggle qua localStorage 'sfx' = 'off' để tắt)
 let audioCtx: AudioContext | null = null;
+// Thay thế hàm playClickSound cũ bằng đoạn này:
+
 const playClickSound = () => {
   if (localStorage.getItem('sfx') === 'off') return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const ctx = audioCtx;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.08);
-    gain.gain.setValueAtTime(0.06, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + 0.1);
+    
+    // Tạo 2 lớp sóng để tiếng nghe "dày" và dễ thương hơn
+    const createTone = (freq: number, time: number, type: OscillatorType) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(freq / 2, ctx.currentTime + time);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + time);
+    };
+
+    // Tiếng búng cao (độ cao 1200Hz)
+    createTone(1200, 0.05, 'sine');
+    // Tiếng trầm nhẹ tạo độ ấm (độ cao 600Hz)
+    createTone(600, 0.08, 'triangle');
   } catch {}
 };
 document.addEventListener('click', (e) => {
