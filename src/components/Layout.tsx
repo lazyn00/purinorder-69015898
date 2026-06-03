@@ -78,7 +78,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden w-full max-w-[100vw]">
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw]" style={{ overflowX: 'clip' }}>
       <InAppBrowserBanner />
       <div className="sticky top-0 z-50">
         <header className="border-b bg-card">

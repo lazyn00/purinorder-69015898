@@ -394,7 +394,7 @@ export default function CategoryPage() {
         open={popupProductId !== null} 
         onOpenChange={(isOpen) => {!isOpen && setPopupProductId(null)}}
       >
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-3 sm:p-6 rounded-xl z-[9999]">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-6 rounded-xl z-[9999]">
           <button 
             onClick={() => setPopupProductId(null)}
             className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 z-50"
