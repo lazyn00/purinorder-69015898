@@ -75,6 +75,13 @@ export default function AdminProductForm() {
       }
       setName(data.name);
       setCategory(data.category || "Merch");
+      setSubcategory(data.subcategory || "");
+      const dbArtist = data.artist || "";
+      if (dbArtist && !ARTISTS.includes(dbArtist)) { setArtist("Khác"); setArtistCustom(dbArtist); }
+      else { setArtist(dbArtist); }
+      setPriceDisplay(data.price_display || "");
+      setDepositAllowed(data.deposit_allowed ?? true);
+      setFeesIncluded(data.fees_included ?? true);
       setMaster(data.master || "");
       setStatus(data.status || "Order");
       setPrice(data.price || 0);
