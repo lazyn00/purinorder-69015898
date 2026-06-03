@@ -32,6 +32,12 @@ export default function AdminProductForm() {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Merch");
+  const [subcategory, setSubcategory] = useState("");
+  const [artist, setArtist] = useState("");
+  const [artistCustom, setArtistCustom] = useState("");
+  const [priceDisplay, setPriceDisplay] = useState("");
+  const [depositAllowed, setDepositAllowed] = useState(true);
+  const [feesIncluded, setFeesIncluded] = useState(true);
   const [master, setMaster] = useState("");
   const [status, setStatus] = useState("Order");
   const [price, setPrice] = useState(0);
