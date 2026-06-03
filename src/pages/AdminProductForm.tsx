@@ -16,6 +16,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
 const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
+const ARTISTS = ["BTS", "BLACKPINK", "NewJeans", "Stray Kids", "SEVENTEEN", "TWICE", "aespa", "IVE", "LE SSERAFIM", "NCT", "EXO", "Red Velvet", "TXT", "ENHYPEN", "(G)I-DLE", "ITZY", "Kep1er", "NMIXX", "RIIZE", "ZEROBASEONE", "Khác"];
 
 export default function AdminProductForm() {
   const { id: routeId } = useParams(); // Lấy ID từ URL nếu là sửa
