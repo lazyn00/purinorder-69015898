@@ -112,10 +112,15 @@ export default function AdminProductForm() {
       const images = imageInputs.filter(u => u.trim());
       const variants = variantInputs.filter(v => v.name.trim());
 
+      const finalArtist = artist === "Khác" ? artistCustom.trim() : artist;
       const saveData: any = {
         name, te, rate, r_v: rv || null, can_weight: canWeight, pack, cong, total: totalCost || null,
         price, category, status, stock, variants, images, master: master.trim() || null,
-        price_display: `${price.toLocaleString('vi-VN')}đ`,
+        subcategory: subcategory.trim() || null,
+        artist: finalArtist || null,
+        deposit_allowed: depositAllowed,
+        fees_included: feesIncluded,
+        price_display: priceDisplay.trim() || `${price.toLocaleString('vi-VN')}đ`,
         order_deadline: orderDeadline ? new Date(orderDeadline).toISOString() : null,
         video_url: videoUrl.trim() || null,
         description: description.trim() || null,
