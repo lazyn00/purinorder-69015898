@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Facebook } from "lucide-react";
+import { CheckCircle2, Facebook, Search, Info } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { tenant } from "@/config/tenant";
 
@@ -88,6 +88,33 @@ export default function OrderSuccess() {
   }
   {config.contactLabel} {orderNumber ? `#${orderNumber}` : ""}
 </Button>
+
+            {/* Tra cứu đơn hàng nổi bật */}
+            {orderNumber && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
+                <Search className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm">Tra cứu đơn hàng</h3>
+                  <p className="text-xs text-muted-foreground mb-2">Lưu mã <span className="font-mono font-bold text-foreground">#{orderNumber}</span> để theo dõi trạng thái đơn hàng bất cứ lúc nào.</p>
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/order/${orderNumber}`)} className="h-7 text-xs">
+                    Xem chi tiết đơn của tôi
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Hướng dẫn hoàn cọc */}
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 text-sm space-y-1">
+                <h3 className="font-semibold text-amber-900 dark:text-amber-200">Hướng dẫn hoàn cọc</h3>
+                <ul className="text-xs text-amber-900/80 dark:text-amber-200/80 space-y-1 list-disc list-inside">
+                  <li>Nếu shop báo hết hàng / huỷ đơn, bạn được hoàn 100% tiền cọc.</li>
+                  <li>Nếu bạn tự huỷ đơn order/pre-order sau khi shop đã chốt với xưởng, cọc sẽ không được hoàn.</li>
+                  <li>Vui lòng nhắn tin shop kèm mã đơn <span className="font-mono font-semibold">#{orderNumber || "..."}</span> và STK nhận hoàn để được xử lý trong 1-3 ngày.</li>
+                </ul>
+              </div>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button

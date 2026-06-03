@@ -16,6 +16,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
 const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
+const ARTISTS = ["BTS", "BLACKPINK", "NewJeans", "Stray Kids", "SEVENTEEN", "TWICE", "aespa", "IVE", "LE SSERAFIM", "NCT", "EXO", "Red Velvet", "TXT", "ENHYPEN", "(G)I-DLE", "ITZY", "Kep1er", "NMIXX", "RIIZE", "ZEROBASEONE", "Khác"];
 
 export default function AdminProductForm() {
   const { id: routeId } = useParams(); // Lấy ID từ URL nếu là sửa
@@ -31,6 +32,12 @@ export default function AdminProductForm() {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Merch");
+  const [subcategory, setSubcategory] = useState("");
+  const [artist, setArtist] = useState("");
+  const [artistCustom, setArtistCustom] = useState("");
+  const [priceDisplay, setPriceDisplay] = useState("");
+  const [depositAllowed, setDepositAllowed] = useState(true);
+  const [feesIncluded, setFeesIncluded] = useState(true);
   const [master, setMaster] = useState("");
   const [status, setStatus] = useState("Order");
   const [price, setPrice] = useState(0);
@@ -68,6 +75,13 @@ export default function AdminProductForm() {
       }
       setName(data.name);
       setCategory(data.category || "Merch");
+      setSubcategory(data.subcategory || "");
+      const dbArtist = data.artist || "";
+      if (dbArtist && !ARTISTS.includes(dbArtist)) { setArtist("Khác"); setArtistCustom(dbArtist); }
+      else { setArtist(dbArtist); }
+      setPriceDisplay(data.price_display || "");
+      setDepositAllowed(data.deposit_allowed ?? true);
+      setFeesIncluded(data.fees_included ?? true);
       setMaster(data.master || "");
       setStatus(data.status || "Order");
       setPrice(data.price || 0);
@@ -98,10 +112,15 @@ export default function AdminProductForm() {
       const images = imageInputs.filter(u => u.trim());
       const variants = variantInputs.filter(v => v.name.trim());
 
+      const finalArtist = artist === "Khác" ? artistCustom.trim() : artist;
       const saveData: any = {
         name, te, rate, r_v: rv || null, can_weight: canWeight, pack, cong, total: totalCost || null,
         price, category, status, stock, variants, images, master: master.trim() || null,
-        price_display: `${price.toLocaleString('vi-VN')}đ`,
+        subcategory: subcategory.trim() || null,
+        artist: finalArtist || null,
+        deposit_allowed: depositAllowed,
+        fees_included: feesIncluded,
+        price_display: priceDisplay.trim() || `${price.toLocaleString('vi-VN')}đ`,
         order_deadline: orderDeadline ? new Date(orderDeadline).toISOString() : null,
         video_url: videoUrl.trim() || null,
         description: description.trim() || null,
@@ -197,8 +216,29 @@ export default function AdminProductForm() {
                 </Select>
               </div>
               <div>
+                <Label>Danh mục phụ</Label>
+                <Input value={subcategory} onChange={e => setSubcategory(e.target.value)} placeholder="VD: Album, Photocard..." />
+              </div>
+              <div>
+                <Label>Artist</Label>
+                <Select value={artist} onValueChange={setArtist}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Chọn artist..." /></SelectTrigger>
+                  <SelectContent>{ARTISTS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+                </Select>
+                {artist === "Khác" && (
+                  <Input value={artistCustom} onChange={e => setArtistCustom(e.target.value)} placeholder="Nhập artist..." className="mt-1" />
+                )}
+              </div>
+              <div>
                 <Label>Master</Label>
                 <Input value={master} onChange={e => setMaster(e.target.value)} placeholder="Tên Master..." />
+              </div>
+              <div>
+                <Label>Trạng thái</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -215,10 +255,22 @@ export default function AdminProductForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div><Label>Giá bán VNĐ *</Label><Input type="number" value={price || ""} onChange={e => setPrice(Number(e.target.value) || 0)} /></div>
+              <div><Label>Hiển thị giá</Label><Input value={priceDisplay} onChange={e => setPriceDisplay(e.target.value)} placeholder="VD: 150.000đ" /></div>
               <div><Label>Tồn kho chung</Label><Input type="number" value={stock ?? ""} onChange={e => setStock(e.target.value === "" ? null : parseInt(e.target.value))} /></div>
               <div><Label>Hạn order</Label><Input type="datetime-local" value={orderDeadline ? new Date(orderDeadline).toISOString().slice(0, 16) : ""} onChange={e => setOrderDeadline(e.target.value ? new Date(e.target.value).toISOString() : null)} /></div>
+            </div>
+
+            <div className="flex flex-wrap gap-6 items-center bg-muted/30 p-3 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <Switch checked={depositAllowed} onCheckedChange={setDepositAllowed} />
+                <Label className="text-sm">Cho đặt cọc</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={feesIncluded} onCheckedChange={setFeesIncluded} />
+                <Label className="text-sm">Đã bao gồm phí</Label>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
