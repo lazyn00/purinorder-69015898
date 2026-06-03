@@ -216,8 +216,29 @@ export default function AdminProductForm() {
                 </Select>
               </div>
               <div>
+                <Label>Danh mục phụ</Label>
+                <Input value={subcategory} onChange={e => setSubcategory(e.target.value)} placeholder="VD: Album, Photocard..." />
+              </div>
+              <div>
+                <Label>Artist</Label>
+                <Select value={artist} onValueChange={setArtist}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Chọn artist..." /></SelectTrigger>
+                  <SelectContent>{ARTISTS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+                </Select>
+                {artist === "Khác" && (
+                  <Input value={artistCustom} onChange={e => setArtistCustom(e.target.value)} placeholder="Nhập artist..." className="mt-1" />
+                )}
+              </div>
+              <div>
                 <Label>Master</Label>
                 <Input value={master} onChange={e => setMaster(e.target.value)} placeholder="Tên Master..." />
+              </div>
+              <div>
+                <Label>Trạng thái</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -234,10 +255,22 @@ export default function AdminProductForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div><Label>Giá bán VNĐ *</Label><Input type="number" value={price || ""} onChange={e => setPrice(Number(e.target.value) || 0)} /></div>
+              <div><Label>Hiển thị giá</Label><Input value={priceDisplay} onChange={e => setPriceDisplay(e.target.value)} placeholder="VD: 150.000đ" /></div>
               <div><Label>Tồn kho chung</Label><Input type="number" value={stock ?? ""} onChange={e => setStock(e.target.value === "" ? null : parseInt(e.target.value))} /></div>
               <div><Label>Hạn order</Label><Input type="datetime-local" value={orderDeadline ? new Date(orderDeadline).toISOString().slice(0, 16) : ""} onChange={e => setOrderDeadline(e.target.value ? new Date(e.target.value).toISOString() : null)} /></div>
+            </div>
+
+            <div className="flex flex-wrap gap-6 items-center bg-muted/30 p-3 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <Switch checked={depositAllowed} onCheckedChange={setDepositAllowed} />
+                <Label className="text-sm">Cho đặt cọc</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={feesIncluded} onCheckedChange={setFeesIncluded} />
+                <Label className="text-sm">Đã bao gồm phí</Label>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
