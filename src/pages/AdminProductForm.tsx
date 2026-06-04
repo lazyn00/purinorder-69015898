@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
-import { Loader2, Plus, X, ArrowLeft, Save, Upload } from "lucide-react";
+import { Loader2, Plus, X, ArrowLeft, Save, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
