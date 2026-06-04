@@ -255,11 +255,10 @@ export default function AdminProductForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div><Label>Giá bán VNĐ *</Label><Input type="number" value={price || ""} onChange={e => setPrice(Number(e.target.value) || 0)} /></div>
               <div><Label>Hiển thị giá</Label><Input value={priceDisplay} onChange={e => setPriceDisplay(e.target.value)} placeholder="VD: 150.000đ" /></div>
               <div><Label>Tồn kho chung</Label><Input type="number" value={stock ?? ""} onChange={e => setStock(e.target.value === "" ? null : parseInt(e.target.value))} /></div>
-              <div><Label>Hạn order</Label><Input type="datetime-local" value={orderDeadline ? new Date(orderDeadline).toISOString().slice(0, 16) : ""} onChange={e => setOrderDeadline(e.target.value ? new Date(e.target.value).toISOString() : null)} /></div>
             </div>
 
             <div className="flex flex-wrap gap-6 items-center bg-muted/30 p-3 rounded-lg border">
