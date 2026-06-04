@@ -279,6 +279,23 @@ export default function AdminProductForm() {
             </div>
 
             <div>
+              <Label>Hạn order <span className="text-xs text-muted-foreground font-normal">(để trống nếu không có hạn)</span></Label>
+              <div className="flex gap-2 items-center mt-1">
+                <Input
+                  type="datetime-local"
+                  value={orderDeadline ? new Date(orderDeadline).toISOString().slice(0, 16) : ""}
+                  onChange={e => setOrderDeadline(e.target.value || null)}
+                  className="flex-1"
+                />
+                {orderDeadline && (
+                  <Button variant="outline" size="icon" onClick={() => setOrderDeadline(null)} title="Xoá hạn order">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div>
               <Label>Link Video (Drive/YouTube) — hiển thị trước ảnh trong trang chi tiết</Label>
               <Input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/..." className="mt-1" />
             </div>
