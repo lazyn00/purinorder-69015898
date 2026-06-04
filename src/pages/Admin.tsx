@@ -277,6 +277,20 @@ export default function Admin() {
     o.payment_status === 'Đang xác nhận thanh toán' ||
     o.payment_status === 'Đang xác nhận cọc';
 
+  // Trạng thái hạn hoàn cọc (1 tháng từ ngày đặt) — chỉ áp dụng đơn đã cọc & chưa hoàn thành
+  const depositRefundStatus = (o: any): 'overdue' | 'upcoming' | null => {
+    const isCompleted = o.order_progress === 'Đã hoàn thành' || o.order_progress === 'Đã huỷ';
+    if (isCompleted) return null;
+    const ps = (o.payment_status || '') as string;
+    const isDeposit = ps === 'Đã cọc' || ps === 'Cọc 50%' || ps.toLowerCase().includes('cọc');
+    if (!isDeposit) return null;
+    const created = new Date(o.created_at).getTime();
+    const days = (Date.now() - created) / (1000 * 60 * 60 * 24);
+    if (days >= 30) return 'overdue';
+    if (days >= 23) return 'upcoming';
+    return null;
+  };
+
   const paginatedOrders = useMemo(() => {
     const sortedOrders = [...filteredOrders].sort((a, b) => {
       const aCompleted = a.order_progress === 'Đã hoàn thành' || a.order_progress === 'Đã huỷ';
@@ -284,11 +298,16 @@ export default function Admin() {
       if (aCompleted && !bCompleted) return 1;
       if (!aCompleted && bCompleted) return -1;
 
-      // Đơn cần xác nhận thanh toán / cọc lên đầu
-      const aAttn = !aCompleted && needsPaymentAttention(a);
-      const bAttn = !bCompleted && needsPaymentAttention(b);
-      if (aAttn && !bAttn) return -1;
-      if (!aAttn && bAttn) return 1;
+      // Ưu tiên: quá hạn hoàn cọc > sắp tới hạn > cần xác nhận TT
+      const rank = (o: any) => {
+        const d = depositRefundStatus(o);
+        if (d === 'overdue') return 0;
+        if (d === 'upcoming') return 1;
+        if (needsPaymentAttention(o)) return 2;
+        return 3;
+      };
+      const ra = rank(a), rb = rank(b);
+      if (ra !== rb) return ra - rb;
 
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
