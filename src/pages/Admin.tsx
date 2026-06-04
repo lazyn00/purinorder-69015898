@@ -1407,17 +1407,34 @@ ${generateEmailContent(order)}
                   <TableBody>
                     {paginatedOrders.map((order) => {
                       const attn = needsPaymentAttention(order) && order.order_progress !== 'Đã hoàn thành' && order.order_progress !== 'Đã huỷ';
-                      const rowBg = attn ? 'bg-amber-50' : 'bg-background';
+                      const depStatus = depositRefundStatus(order);
+                      // Highlight nhẹ giữ nguyên màu nền (đồng bộ light/dark), chỉ thêm viền trái màu
+                      const rowAccent =
+                        depStatus === 'overdue'
+                          ? 'bg-red-500/5 hover:bg-red-500/10 border-l-4 border-red-500'
+                          : depStatus === 'upcoming'
+                          ? 'bg-blue-500/5 hover:bg-blue-500/10 border-l-4 border-blue-500'
+                          : attn
+                          ? 'bg-amber-500/5 hover:bg-amber-500/10 border-l-4 border-amber-500'
+                          : '';
+                      const stickyBg =
+                        depStatus === 'overdue'
+                          ? 'bg-red-500/5'
+                          : depStatus === 'upcoming'
+                          ? 'bg-blue-500/5'
+                          : attn
+                          ? 'bg-amber-500/5'
+                          : 'bg-background';
                       return (
-                      <TableRow key={order.id} className={attn ? 'bg-amber-50 hover:bg-amber-100/70 border-l-4 border-amber-400' : ''}>
-                        <TableCell className={`sticky left-0 ${rowBg}`}>
+                      <TableRow key={order.id} className={rowAccent}>
+                        <TableCell className={`sticky left-0 ${stickyBg}`}>
                           <Checkbox
                             checked={selectedOrderIds.has(order.id)}
                             onCheckedChange={() => toggleSelectOrder(order.id)}
                           />
                         </TableCell>
                         
-                        <TableCell className={`font-medium sticky left-[50px] ${rowBg}`}>
+                        <TableCell className={`font-medium sticky left-[50px] ${stickyBg}`}>
                           <div className="space-y-1">
                             <a 
                               href={`/admin/order/${order.id}`}
@@ -1428,8 +1445,18 @@ ${generateEmailContent(order)}
                               #{order.order_number || order.id.slice(0, 8)}
                               <Eye className="h-3 w-3" />
                             </a>
+                            {depStatus === 'overdue' && (
+                              <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30">
+                                ⛔ Quá hạn hoàn cọc
+                              </span>
+                            )}
+                            {depStatus === 'upcoming' && (
+                              <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                                ⏰ Sắp tới hạn cọc
+                              </span>
+                            )}
                             {attn && (
-                              <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
+                              <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
                                 ⚠ Cần xác nhận TT
                               </span>
                             )}
