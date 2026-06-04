@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
-import { Loader2, Plus, X, ArrowLeft, Save, Upload } from "lucide-react";
+import { Loader2, Plus, X, ArrowLeft, Save, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
@@ -255,11 +255,10 @@ export default function AdminProductForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div><Label>Giá bán VNĐ *</Label><Input type="number" value={price || ""} onChange={e => setPrice(Number(e.target.value) || 0)} /></div>
               <div><Label>Hiển thị giá</Label><Input value={priceDisplay} onChange={e => setPriceDisplay(e.target.value)} placeholder="VD: 150.000đ" /></div>
               <div><Label>Tồn kho chung</Label><Input type="number" value={stock ?? ""} onChange={e => setStock(e.target.value === "" ? null : parseInt(e.target.value))} /></div>
-              <div><Label>Hạn order</Label><Input type="datetime-local" value={orderDeadline ? new Date(orderDeadline).toISOString().slice(0, 16) : ""} onChange={e => setOrderDeadline(e.target.value ? new Date(e.target.value).toISOString() : null)} /></div>
             </div>
 
             <div className="flex flex-wrap gap-6 items-center bg-muted/30 p-3 rounded-lg border">
@@ -294,34 +293,68 @@ export default function AdminProductForm() {
                 <Label className="font-medium">Phân loại chi tiết sản phẩm (Variants)</Label>
                 <Button variant="outline" size="sm" onClick={() => setVariantInputs(prev => [...prev, { name: "", price: price || 0, stock: undefined, te: undefined }])}><Plus className="h-3 w-3 mr-1" /> Thêm phân loại</Button>
               </div>
-              <div className="space-y-2 border p-2 rounded-lg bg-slate-50/30 max-h-60 overflow-y-auto">
-                {variantInputs.map((v, idx) => (
-                  <div key={idx} className="flex gap-2 items-center bg-white p-1.5 border rounded shadow-sm">
+              <div className="space-y-2 border p-2 rounded-lg bg-muted/30 max-h-72 overflow-y-auto">
+                {variantInputs.map((v, idx) => {
+                  const move = (dir: -1 | 1) => {
+                    const j = idx + dir;
+                    if (j < 0 || j >= variantInputs.length) return;
+                    const n = [...variantInputs];
+                    [n[idx], n[j]] = [n[j], n[idx]];
+                    setVariantInputs(n);
+                  };
+                  return (
+                  <div key={idx} className="flex gap-1 items-center bg-background p-1.5 border rounded shadow-sm">
+                    <div className="flex flex-col">
+                      <Button variant="ghost" size="icon" className="h-4 w-5" disabled={idx === 0} onClick={() => move(-1)}><ArrowUp className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-4 w-5" disabled={idx === variantInputs.length - 1} onClick={() => move(1)}><ArrowDown className="h-3 w-3" /></Button>
+                    </div>
                     <Input placeholder="Tên phân loại" value={v.name} onChange={e => { const n = [...variantInputs]; n[idx].name = e.target.value; setVariantInputs(n); }} className="h-8 text-xs flex-1" />
-                    <Input type="number" placeholder="Giá bán VNĐ" value={v.price || ""} onChange={e => { const n = [...variantInputs]; n[idx].price = Number(e.target.value) || 0; setVariantInputs(n); }} className="h-8 text-xs w-24" />
+                    <Input type="number" placeholder="Giá VNĐ" value={v.price || ""} onChange={e => { const n = [...variantInputs]; n[idx].price = Number(e.target.value) || 0; setVariantInputs(n); }} className="h-8 text-xs w-24" />
                     <Input type="number" placeholder="Kho" value={v.stock ?? ""} onChange={e => { const n = [...variantInputs]; n[idx].stock = e.target.value === "" ? undefined : Number(e.target.value); setVariantInputs(n); }} className="h-8 text-xs w-16" />
-                    <Input type="number" placeholder="Giá Tệ (Ẩn)" value={v.te ?? ""} onChange={e => { const n = [...variantInputs]; n[idx].te = e.target.value === "" ? undefined : parseFloat(e.target.value); setVariantInputs(n); }} className="h-8 text-xs w-16 bg-orange-50 text-orange-800" />
+                    <Input type="number" placeholder="Tệ" value={v.te ?? ""} onChange={e => { const n = [...variantInputs]; n[idx].te = e.target.value === "" ? undefined : parseFloat(e.target.value); setVariantInputs(n); }} className="h-8 text-xs w-16 bg-orange-500/10 text-orange-700 dark:text-orange-300" />
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setVariantInputs(prev => prev.filter((_, i) => i !== idx))}><X className="h-3 w-3" /></Button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <Label>Hình ảnh sản phẩm</Label>
+                <Label>Hình ảnh sản phẩm <span className="text-xs text-muted-foreground font-normal">(ảnh đầu tiên = ảnh đại diện)</span></Label>
                 <label className="cursor-pointer">
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
                   <span className="inline-flex items-center gap-1 text-xs text-primary font-bold bg-primary/5 px-2 py-1 rounded hover:underline"><Upload className="h-3.5 w-3.5" /> Tải lên R2</span>
                 </label>
               </div>
               <div className="space-y-2 mt-2">
-                {imageInputs.map((url, idx) => (
+                {imageInputs.map((url, idx) => {
+                  const move = (dir: -1 | 1) => {
+                    const j = idx + dir;
+                    if (j < 0 || j >= imageInputs.length) return;
+                    const n = [...imageInputs];
+                    [n[idx], n[j]] = [n[j], n[idx]];
+                    setImageInputs(n);
+                  };
+                  return (
                   <div key={idx} className="flex gap-2 items-center">
+                    <div className="flex flex-col">
+                      <Button variant="ghost" size="icon" className="h-4 w-5" disabled={idx === 0} onClick={() => move(-1)}><ArrowUp className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-4 w-5" disabled={idx === imageInputs.length - 1} onClick={() => move(1)}><ArrowDown className="h-3 w-3" /></Button>
+                    </div>
+                    <div className="h-10 w-10 rounded border bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                      {url.trim() ? (
+                        <img src={url} alt="" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      ) : (
+                        <span className="text-[9px] text-muted-foreground">No img</span>
+                      )}
+                    </div>
                     <Input value={url} onChange={e => { const n = [...imageInputs]; n[idx] = e.target.value; setImageInputs(n); }} placeholder="https://..." className="h-8 text-sm" />
+                    {idx === 0 && url.trim() && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/15 text-primary">Đại diện</span>}
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setImageInputs(prev => prev.filter((_, i) => i !== idx))}><X className="h-3 w-3" /></Button>
                   </div>
-                ))}
+                  );
+                })}
                 <Button variant="link" size="sm" onClick={() => setImageInputs(prev => [...prev, ""])} className="p-0 h-6 text-xs text-primary">+ Thêm ô nhập link ảnh</Button>
               </div>
             </div>
