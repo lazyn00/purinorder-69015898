@@ -561,6 +561,37 @@ const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
         {/* Upload additional bill */}
         <Card className="mb-4">
           <CardContent className="pt-4 pb-4">
+            {(() => {
+              const bills = [
+                order.payment_proof_url,
+                order.second_payment_proof_url,
+                ...((order.additional_bills as string[] | null) || []),
+              ].filter(Boolean) as string[];
+              if (bills.length === 0) return null;
+              return (
+                <div className="mb-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
+                  <div className="text-sm font-medium text-emerald-800 dark:text-emerald-200 mb-2">
+                    ✅ Bạn đã gửi {bills.length} bill cho đơn này
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {bills.map((url, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setLightboxImg(url)}
+                        className="relative"
+                      >
+                        <img src={url} alt={`Bill ${i + 1}`} className="h-16 w-16 object-cover rounded border" />
+                        <span className="absolute bottom-0 right-0 bg-emerald-600 text-white text-[9px] px-1 rounded-tl">#{i + 1}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-2">
+                    Đừng up trùng bill nhé! Nếu cần đổi, chỉ up bill mới.
+                  </p>
+                </div>
+              );
+            })()}
             <div className="flex items-center justify-between mb-2">
               <Label className="font-medium text-sm">
                 {order.payment_type === "deposit" && order.payment_status === "Đã cọc" ? "💳 Thanh toán 50% còn lại" : "📎 Đăng bill bổ sung"}

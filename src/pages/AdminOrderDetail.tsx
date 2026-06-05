@@ -13,6 +13,7 @@
 import { Loader2, ArrowLeft, ExternalLink, Copy, Save, Package, Phone, Mail, MapPin, Clock, History, FileText, CreditCard, Truck, User, Plus, Trash2, Edit3, Facebook, Instagram } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { BillLightbox } from "@/components/BillLightbox";
  import { SHIPPING_PROVIDERS, findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
  import { Textarea } from "@/components/ui/textarea";
  
@@ -109,6 +110,7 @@ export default function AdminOrderDetail() {
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [billLightbox, setBillLightbox] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
   
   // Editable fields
   const [paymentStatus, setPaymentStatus] = useState("");
@@ -611,21 +613,24 @@ if (adminSession !== 'true') {
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-4 flex-wrap">
-                      {order.payment_proof_url && (
-                        <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                          <img src={order.payment_proof_url} alt="Bill 1" className="w-40 h-auto rounded border hover:opacity-80 transition" />
-                        </a>
-                      )}
-                      {order.second_payment_proof_url && (
-                        <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer">
-                          <img src={order.second_payment_proof_url} alt="Bill 2" className="w-40 h-auto rounded border hover:opacity-80 transition" />
-                        </a>
-                      )}
-                      {((order as any).additional_bills as string[] | null)?.map((url: string, i: number) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                          <img src={url} alt={`Bill ${i + 3}`} className="w-40 h-auto rounded border hover:opacity-80 transition" />
-                        </a>
-                      ))}
+                      {(() => {
+                        const bills = [
+                          order.payment_proof_url,
+                          order.second_payment_proof_url,
+                          ...(((order as any).additional_bills as string[] | null) || []),
+                        ].filter(Boolean) as string[];
+                        return bills.map((url, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setBillLightbox({ open: true, index: i })}
+                            className="block"
+                          >
+                            <img src={url} alt={`Bill ${i + 1}`} className="w-40 h-auto rounded border hover:opacity-80 transition" />
+                            <div className="text-xs text-center text-muted-foreground mt-1">Bill {i + 1}</div>
+                          </button>
+                        ));
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
@@ -830,6 +835,16 @@ if (adminSession !== 'true') {
            </div>
          </div>
        </div>
+       <BillLightbox
+         open={billLightbox.open}
+         images={[
+           order?.payment_proof_url,
+           order?.second_payment_proof_url,
+           ...(((order as any)?.additional_bills as string[] | null) || []),
+         ].filter(Boolean) as string[]}
+         startIndex={billLightbox.index}
+         onClose={() => setBillLightbox(s => ({ ...s, open: false }))}
+       />
      </Layout>
    );
  }

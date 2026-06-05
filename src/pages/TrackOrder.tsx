@@ -361,6 +361,27 @@ export default function TrackOrder() {
                             <p className="text-sm text-muted-foreground truncate">
                               {order.items?.[0]?.name}{itemCount > 1 ? ` (+${itemCount - 1})` : ''}
                             </p>
+                            {(() => {
+                              const billCount =
+                                (order.payment_proof_url ? 1 : 0) +
+                                (order.second_payment_proof_url ? 1 : 0) +
+                                ((order.additional_bills as string[] | null)?.length || 0);
+                              if (billCount > 0) {
+                                return (
+                                  <span className="inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                    🧾 Đã gửi {billCount} bill
+                                  </span>
+                                );
+                              }
+                              if (order.payment_status === "Chưa thanh toán") {
+                                return (
+                                  <span className="inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                    ⚠️ Chưa gửi bill
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <Badge variant="outline" className={`${getStatusColor(order.payment_status)} border text-[10px] px-1.5 py-0`}>

@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import { Loader2, Plus, X, ArrowLeft, Save, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { logProductChanges } from "@/lib/productHistory";
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
 const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
@@ -132,8 +133,8 @@ export default function AdminProductForm() {
       if (isEdit) {
         const originalId = Number(routeId);
         const newId = editId ?? originalId;
+        const { data: oldRow } = await supabase.from('products').select('*').eq('id', originalId).maybeSingle();
         if (newId !== originalId) {
-          // Đổi ID: kiểm tra ID mới chưa tồn tại
           const { data: existsData } = await supabase.from('products').select('id').eq('id', newId).maybeSingle();
           if (existsData) throw new Error(`ID #${newId} đã tồn tại, vui lòng chọn ID khác`);
 
@@ -141,10 +142,16 @@ export default function AdminProductForm() {
           if (insErr) throw insErr;
           const { error: delErr } = await supabase.from('products').delete().eq('id', originalId);
           if (delErr) throw delErr;
+          await logProductChanges(newId, oldRow, saveData, currentUser);
+          await (supabase as any).from('product_change_history').insert([{
+            product_id: newId, field_changed: 'ID sản phẩm',
+            old_value: String(originalId), new_value: String(newId), changed_by: currentUser,
+          }]);
           toast({ title: "Thành công", description: `Đã đổi ID #${originalId} → #${newId}` });
         } else {
           const { error } = await supabase.from('products').update(saveData).eq('id', originalId);
           if (error) throw error;
+          await logProductChanges(originalId, oldRow, saveData, currentUser);
           toast({ title: "Thành công", description: "Đã cập nhật sản phẩm" });
         }
       } else {
