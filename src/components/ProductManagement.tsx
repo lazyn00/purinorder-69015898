@@ -469,34 +469,32 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         const isChangingId = editingId !== originalId;
         
         if (isChangingId) {
-          // Kiểm tra ID mới đã tồn tại chưa
           const { data: existsData } = await supabase
-            .from('products')
-            .select('id')
-            .eq('id', editingId as number)
-            .maybeSingle();
-          if (existsData) {
-            throw new Error(`ID #${editingId} đã tồn tại, vui lòng chọn ID khác`);
-          }
+            .from('products').select('id').eq('id', editingId as number).maybeSingle();
+          if (existsData) throw new Error(`ID #${editingId} đã tồn tại, vui lòng chọn ID khác`);
+
+          const { data: oldRow } = await supabase.from('products').select('*').eq('id', originalId as number).maybeSingle();
 
           const { error: insertError } = await supabase
-            .from('products')
-            .insert({ ...saveData, id: editingId, owner: currentUser || 'Admin' } as any);
+            .from('products').insert({ ...saveData, id: editingId, owner: currentUser || 'Admin' } as any);
           if (insertError) throw insertError;
 
           const { error: deleteError } = await supabase
-            .from('products')
-            .delete()
-            .eq('id', originalId as number);
+            .from('products').delete().eq('id', originalId as number);
           if (deleteError) throw deleteError;
 
+          await logProductChanges(editingId as number, oldRow, saveData, currentUser || 'Admin');
+          await (supabase as any).from('product_change_history').insert([{
+            product_id: editingId, field_changed: 'ID sản phẩm',
+            old_value: String(originalId), new_value: String(editingId),
+            changed_by: currentUser || 'Admin',
+          }]);
           toast({ title: "Đã cập nhật", description: `Đã đổi ID sản phẩm công khai: #${originalId} → #${editingId}` });
         } else {
-          const { error } = await supabase
-            .from('products')
-            .update(saveData)
-            .eq('id', editingId);
+          const { data: oldRow } = await supabase.from('products').select('*').eq('id', editingId as number).maybeSingle();
+          const { error } = await supabase.from('products').update(saveData).eq('id', editingId);
           if (error) throw error;
+          await logProductChanges(editingId as number, oldRow, saveData, currentUser || 'Admin');
           toast({ title: "Đã cập nhật", description: `Sản phẩm #${editingId} đã được lưu thành công` });
         }
       } else {
