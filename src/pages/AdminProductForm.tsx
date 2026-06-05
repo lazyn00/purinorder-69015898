@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import { Loader2, Plus, X, ArrowLeft, Save, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { logProductChanges } from "@/lib/productHistory";
 
 const CATEGORIES = ["Tiệm in Purin", "Outfit & Doll", "Merch", "Linh tinh xinh xinh", "Đồ gói", "Thời trang", "Khác"];
 const STATUSES = ["Sẵn", "Order", "Pre-order", "Ẩn", "Tranh slot"];
