@@ -835,6 +835,17 @@ if (adminSession !== 'true') {
            </div>
          </div>
        </div>
+       <BillLightbox
+         open={billLightbox.open}
+         index={billLightbox.index}
+         images={[
+           order?.payment_proof_url,
+           order?.second_payment_proof_url,
+           ...(((order as any)?.additional_bills as string[] | null) || []),
+         ].filter(Boolean) as string[]}
+         startIndex={billLightbox.index}
+         onClose={() => setBillLightbox(s => ({ ...s, open: false }))}
+       />
      </Layout>
    );
  }
