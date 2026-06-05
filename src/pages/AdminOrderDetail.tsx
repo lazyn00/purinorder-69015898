@@ -13,6 +13,7 @@
 import { Loader2, ArrowLeft, ExternalLink, Copy, Save, Package, Phone, Mail, MapPin, Clock, History, FileText, CreditCard, Truck, User, Plus, Trash2, Edit3, Facebook, Instagram } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { BillLightbox } from "@/components/BillLightbox";
  import { SHIPPING_PROVIDERS, findProviderByName, getTrackingUrlFromProvider } from "@/data/shippingProviders";
  import { Textarea } from "@/components/ui/textarea";
  
