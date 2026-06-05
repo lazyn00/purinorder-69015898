@@ -110,6 +110,7 @@ export default function AdminOrderDetail() {
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [billLightbox, setBillLightbox] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
   
   // Editable fields
   const [paymentStatus, setPaymentStatus] = useState("");
