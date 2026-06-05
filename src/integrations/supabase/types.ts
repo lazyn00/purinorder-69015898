@@ -413,6 +413,36 @@ export type Database = {
         }
         Relationships: []
       }
+      product_change_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          field_changed: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          product_id: number
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          field_changed: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          product_id: number
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          field_changed?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          product_id?: number
+        }
+        Relationships: []
+      }
       product_notifications: {
         Row: {
           created_at: string | null

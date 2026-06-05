@@ -1,72 +1,72 @@
-## Mục tiêu
+# Kế hoạch 4 cải tiến
 
-Thêm tính năng "Shop theo Master" — mỗi master có một trang riêng giống một shop, có ảnh đại diện, tên, link shop. Trang shop hiển thị sản phẩm còn order được; những sản phẩm hết hạn/hết hàng bị ẩn dưới một mục có thể mở rộng.
+## 1. Admin – Xem bill bằng popup (lightbox), không nhảy trang
 
-## Phần Database
+**File:** `src/pages/Admin.tsx` (dòng ~1576-1594), `src/pages/AdminOrderDetail.tsx` (dòng ~613-628)
 
-Thêm bảng `master_shops` để quản lý thông tin từng master (ảnh đại diện, tên hiển thị, link shop, slug, mô tả ngắn).
+- Thay các thẻ `<a target="_blank">` đang bọc link Bill 1/2/3+ bằng nút (`<button>`).
+- Thêm state `lightboxImages: string[]` + `lightboxIndex: number` ở Admin.tsx (và AdminOrderDetail.tsx).
+- Tạo component dùng chung `BillLightbox.tsx`:
+  - Dùng `Dialog` của shadcn, hiển thị ảnh full-size ở giữa.
+  - Nút ‹ › chuyển ảnh nếu có nhiều bill, hiển thị "i/n".
+  - Click ra ngoài hoặc ✕ để đóng. Phím Esc / ← → cũng hoạt động.
+  - Có nút "Mở tab mới" cho ai muốn tải về.
+- Khi bấm "Bill 1/2/i" → mở lightbox với mảng `[bill1, bill2, ...additional_bills]` và index tương ứng.
 
-```text
-master_shops
-- id (uuid, pk)
-- master_name (text, unique) — khớp với products.master
-- display_name (text) — tên hiển thị trên web
-- slug (text, unique) — dùng cho URL /shop/:slug
-- avatar_url (text, nullable)
-- shop_link (text, nullable)
-- description (text, nullable)
-- is_visible (boolean, default true)
-- sort_order (int, default 0)
-- created_at, updated_at
+## 2. Trang tra đơn – Hiển thị các bill khách đã up
+
+**File:** `src/pages/TrackOrder.tsx` (card đơn hàng, dòng ~320-373)
+
+- Trong card mỗi đơn, thêm 1 dòng nhỏ ngay dưới tên sản phẩm:
+  - Đếm tổng số bill = `(payment_proof_url?1:0) + (second_payment_proof_url?1:0) + (additional_bills?.length||0)`.
+  - Nếu >0: hiển thị badge xanh `🧾 Đã gửi N bill` (kèm thumbnail mini của bill cuối nếu mobile cho phép).
+  - Nếu =0 và đơn cần thanh toán: hiển thị badge xám `⚠️ Chưa gửi bill`.
+- Trong `CustomerOrderDetail.tsx` ở phần "Đăng bill bổ sung" (~561), thêm khối tóm tắt phía trên nút upload:
+  - "✅ Bạn đã gửi N bill cho đơn này" + grid thumbnail các bill đã up (click mở lightbox dùng chung BillLightbox).
+  - Mục đích: tránh khách up trùng 4-5 lần.
+
+## 3. Lịch sử admin chỉnh sản phẩm
+
+**Migration mới:**
+
+```
+CREATE TABLE public.product_change_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id INTEGER NOT NULL,
+  field_changed TEXT NOT NULL,
+  old_value TEXT,
+  new_value TEXT,
+  changed_by TEXT,
+  changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- GRANT đầy đủ cho authenticated/anon/service_role + enable RLS + policy cho phép select/insert public (admin page không có auth user).
+CREATE INDEX ON public.product_change_history(product_id, changed_at DESC);
 ```
 
-RLS: public SELECT cho tất cả; INSERT/UPDATE/DELETE cho public (giống các bảng khác trong project, vì admin dùng password client-side).
+**Code:**
+- File: `src/components/ProductManagement.tsx` (hàm save sản phẩm), `src/pages/AdminProductForm.tsx` (hàm `handleSave`):
+  - Trước khi `update`, fetch sản phẩm cũ; sau khi update, so sánh các field quan trọng (`name, price, stock, status, category, subcategory, artist, master, order_deadline, te, rate, can_weight, pack, cong, description, images.length, variants(serialized), images(serialized), price_display, deposit_allowed, fees_included`).
+  - Mỗi field khác nhau → insert 1 dòng vào `product_change_history` với `changed_by = currentUser`.
+  - Bulk insert 1 lần để không chậm.
+- Trong form sửa sản phẩm (popup ProductManagement), thêm tab/section "Lịch sử thay đổi" ở dưới cùng:
+  - Load `product_change_history` theo `product_id`, hiển thị danh sách dạng timeline (tương tự `order_status_history` trong AdminOrderDetail).
+  - Hiển thị: thời gian (Asia/Ho_Chi_Minh), người sửa, field, "cũ → mới" (truncate nếu dài).
 
-Master nào chưa có row trong `master_shops` thì auto-fallback dùng `master_name` làm tên + slug, không có avatar.
+## 4. Giữ nguyên giao diện form thêm/sửa sản phẩm
 
-## Trang khách hàng
+- Không đụng vào layout/UI của `ProductManagement.tsx` (popup Dialog – chính là giao diện trong ảnh chụp).
+- Chỉ thêm phần "Lịch sử thay đổi" ở cuối form sửa như mục 3, không đổi cấu trúc các field hiện có.
+- Không sửa `AdminProductForm.tsx` UI (chỉ thêm logic log history).
 
-**Trang danh sách shop** `/shops`:
-- Grid các master shop có `is_visible = true`, sắp xếp theo `sort_order`.
-- Mỗi card: avatar tròn, tên shop, số sản phẩm còn order được.
-- Thêm vào navigation và trang `Products` thêm 1 section "Shop theo Master" hiển thị carousel các shop.
+## Không động đến
+- Style/màu sắc, design system, các trang khác.
+- Schema `orders`, `products` hiện có.
+- Auth, RLS các bảng khác.
+- File checkout, cart, navigation.
 
-**Trang chi tiết shop** `/shop/:slug`:
-- Header: avatar, tên shop, link shop (nếu có) mở tab mới, mô tả.
-- Section "Đang order": grid sản phẩm thuộc master này, lọc còn hàng + chưa hết hạn + status != "Ẩn" (dùng cùng `isProductAvailable` như `Products.tsx`).
-- Section "Đã hết / Hết hạn" (collapsible, mặc định đóng, có nút mở rộng): các sản phẩm còn lại của master.
-- Dùng `ProductCard` đã có để giữ design nhất quán.
-- Dùng `master_updates` đã tồn tại để hiển thị các cập nhật tiến độ của master (tuỳ chọn — sẽ thêm 1 section nhỏ phía trên danh sách sản phẩm).
+## Chi tiết kỹ thuật
 
-## Trang Admin
-
-Mở rộng `MasterManagement.tsx`:
-- Thêm panel "Thông tin Shop" cho mỗi master được chọn:
-  - Upload avatar (vào bucket `product-images`, prefix `master-avatars/`).
-  - Input tên hiển thị, slug (auto-generate từ tên, có thể sửa), link shop, mô tả, toggle hiển thị, sort order.
-  - Nút Lưu — upsert vào `master_shops` theo `master_name`.
-- Giữ nguyên phần `master_updates` đã có.
-
-## Routing
-
-Thêm route trong `src/App.tsx`:
-- `/shops` → trang danh sách shop.
-- `/shop/:slug` → trang chi tiết shop.
-
-## Files cần thay đổi / tạo mới
-
-- **migration**: tạo bảng `master_shops` + RLS policies.
-- **mới**: `src/pages/Shops.tsx` — danh sách shop.
-- **mới**: `src/pages/ShopDetail.tsx` — chi tiết shop với section collapsible.
-- **sửa**: `src/components/MasterManagement.tsx` — thêm form quản lý shop info.
-- **sửa**: `src/App.tsx` — thêm 2 route.
-- **sửa**: `src/components/Layout.tsx` (hoặc nav tương ứng) — thêm link "Shops".
-
-## Câu hỏi nhỏ trước khi code
-
-Bạn muốn link "Shops" xuất hiện ở đâu?
-- Chỉ trong navigation chính.
-- Chỉ là 1 section trên trang Products (carousel shop).
-- Cả hai.
-
-Nếu không trả lời, mình sẽ làm **cả hai** (navigation + section trên Products).
+- `BillLightbox` component đặt tại `src/components/BillLightbox.tsx`, props: `{ images: string[], startIndex: number, open: boolean, onClose: () => void }`.
+- `product_change_history` không có FK đến `products(id)` để tránh mất history khi xoá/đổi ID sản phẩm.
+- So sánh field dùng JSON.stringify cho `variants`/`images`/`option_groups` để bắt thay đổi cấu trúc.
+- TrackOrder badge dùng class `bg-emerald-100 text-emerald-700` (đã có pattern trong file).
