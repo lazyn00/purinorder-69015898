@@ -837,7 +837,6 @@ if (adminSession !== 'true') {
        </div>
        <BillLightbox
          open={billLightbox.open}
-         index={billLightbox.index}
          images={[
            order?.payment_proof_url,
            order?.second_payment_proof_url,
