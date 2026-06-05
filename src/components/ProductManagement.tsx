@@ -1310,6 +1310,10 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
               </div>
             )}
 
+            {editingId && originalId && (
+              <ProductChangeHistory productId={originalId as number} />
+            )}
+
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
               <Button onClick={handleSave} disabled={saving} className="gap-1">
