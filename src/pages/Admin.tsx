@@ -1903,6 +1903,12 @@ ${generateEmailContent(order)}
           </Tabs>
         )}
       </div>
+      <BillLightbox
+        open={billLightbox.open}
+        images={billLightbox.images}
+        startIndex={billLightbox.index}
+        onClose={() => setBillLightbox(s => ({ ...s, open: false }))}
+      />
     </Layout>
   );
 }
