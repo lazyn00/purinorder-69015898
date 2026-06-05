@@ -12,6 +12,7 @@ import { Loader2, LogOut, Trash2, TrendingUp, ShoppingCart, DollarSign, External
 import ProductManagement from "@/components/ProductManagement";
 import { DiscountCodeManagement } from "@/components/DiscountCodeManagement";
 import { OrderMerging } from "@/components/OrderMerging";
+import { BillLightbox } from "@/components/BillLightbox";
 
 import AdminSettings from "@/components/AdminSettings";
 import ProductTrackingFiltered from "@/components/ProductTrackingFiltered";
@@ -233,6 +234,15 @@ export default function Admin() {
   const [notifications, setNotifications] = useState<ProductNotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [surchargeInputs, setSurchargeInputs] = useState<{[key: string]: string}>({});
+  const [billLightbox, setBillLightbox] = useState<{ open: boolean; images: string[]; index: number }>({ open: false, images: [], index: 0 });
+  const openBills = (order: any, index: number) => {
+    const imgs = [
+      order.payment_proof_url,
+      order.second_payment_proof_url,
+      ...((order.additional_bills as string[] | null) || []),
+    ].filter(Boolean) as string[];
+    setBillLightbox({ open: true, images: imgs, index });
+  };
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [bulkProgress, setBulkProgress] = useState<string>("");
   const [ownedProductIds, setOwnedProductIds] = useState<Set<number>>(new Set());
