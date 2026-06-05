@@ -16,6 +16,8 @@ import { useCart } from "@/contexts/CartContext";
 import { RefreshCw, Plus, Pencil, Search, Loader2, Trash2, X, Copy, Download, EyeOff, Eye, Upload, ImageIcon, GripVertical, Link, Layers } from "lucide-react";
 import { ProductExportButtons } from "./ProductExportButtons";
 import { InAppUploadNotice } from "./InAppBrowserBanner";
+import { logProductChanges } from "@/lib/productHistory";
+import { ProductChangeHistory } from "./ProductChangeHistory";
 
 // --- BƯỚC 1: IMPORT FORM THÊM SẢN PHẨM HÀNG LOẠT ---
 import BulkProductForm from "./BulkProductForm";
