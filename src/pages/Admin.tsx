@@ -1583,23 +1583,21 @@ ${generateEmailContent(order)}
                         <TableCell className="text-right">
                           <div className="space-y-1">
                             <div className="font-bold text-primary">{order.total_price.toLocaleString('vi-VN')}đ</div>
-                            {order.payment_proof_url && (
-                              <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
-                                Bill 1 <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
-                            {order.second_payment_proof_url && (
-                              <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
-                                Bill 2 <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
                             {(() => {
-                              const additionalBills = (order as any).additional_bills as string[] | null;
-                              if (!additionalBills || additionalBills.length === 0) return null;
-                              return additionalBills.map((url: string, i: number) => (
-                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center justify-end gap-1">
-                                  Bill {i + 3} <ExternalLink className="h-3 w-3" />
-                                </a>
+                              const bills = [
+                                order.payment_proof_url,
+                                order.second_payment_proof_url,
+                                ...(((order as any).additional_bills as string[] | null) || []),
+                              ].filter(Boolean) as string[];
+                              return bills.map((_url, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => openBills(order, i)}
+                                  className="text-xs text-primary hover:underline flex items-center justify-end gap-1 ml-auto"
+                                >
+                                  Bill {i + 1} <ExternalLink className="h-3 w-3" />
+                                </button>
                               ));
                             })()}
                           </div>
