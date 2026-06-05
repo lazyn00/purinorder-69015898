@@ -613,21 +613,24 @@ if (adminSession !== 'true') {
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-4 flex-wrap">
-                      {order.payment_proof_url && (
-                        <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                          <img src={order.payment_proof_url} alt="Bill 1" className="w-40 h-auto rounded border hover:opacity-80 transition" />
-                        </a>
-                      )}
-                      {order.second_payment_proof_url && (
-                        <a href={order.second_payment_proof_url} target="_blank" rel="noopener noreferrer">
-                          <img src={order.second_payment_proof_url} alt="Bill 2" className="w-40 h-auto rounded border hover:opacity-80 transition" />
-                        </a>
-                      )}
-                      {((order as any).additional_bills as string[] | null)?.map((url: string, i: number) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                          <img src={url} alt={`Bill ${i + 3}`} className="w-40 h-auto rounded border hover:opacity-80 transition" />
-                        </a>
-                      ))}
+                      {(() => {
+                        const bills = [
+                          order.payment_proof_url,
+                          order.second_payment_proof_url,
+                          ...(((order as any).additional_bills as string[] | null) || []),
+                        ].filter(Boolean) as string[];
+                        return bills.map((url, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setBillLightbox({ open: true, index: i })}
+                            className="block"
+                          >
+                            <img src={url} alt={`Bill ${i + 1}`} className="w-40 h-auto rounded border hover:opacity-80 transition" />
+                            <div className="text-xs text-center text-muted-foreground mt-1">Bill {i + 1}</div>
+                          </button>
+                        ));
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
