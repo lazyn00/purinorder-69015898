@@ -759,7 +759,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
           <Button size="sm" onClick={() => window.open('/admin/product/bulk', '_blank', 'noopener')} variant="outline" className="gap-1">
             <Layers className="h-4 w-4" /> Thêm nhiều SP
           </Button>
-          <Button size="sm" onClick={() => window.open('/admin/product/new', '_blank', 'noopener')} className="gap-1">
+          <Button size="sm" onClick={openAddForm} className="gap-1">
             <Plus className="h-4 w-4" /> Thêm SP
           </Button>
         </div>
