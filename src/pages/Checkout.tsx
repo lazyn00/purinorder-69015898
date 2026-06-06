@@ -83,6 +83,7 @@ export default function Checkout() {
   useEffect(() => { window.scrollTo({ top: 0 }); }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState<{ current: number; total: number } | null>(null);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("syncing");
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);
   const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0]?.value || "");
@@ -331,8 +332,10 @@ export default function Checkout() {
 
       const masterKeys = Object.keys(masterGroups);
       const orderNumbers: string[] = [];
+      setSubmitProgress({ current: 0, total: masterKeys.length });
 
-      for (const master of masterKeys) {
+      for (let idx = 0; idx < masterKeys.length; idx++) {
+        const master = masterKeys[idx];
         const groupItems = masterGroups[master];
         const groupTotal = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const orderNumber = `PO${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
@@ -368,6 +371,8 @@ export default function Checkout() {
           }
           await supabase.rpc('decrement_product_stock', { p_product_id: item.id, p_quantity: item.quantity });
         }
+
+        setSubmitProgress({ current: idx + 1, total: masterKeys.length });
       }
 
       clearCart();
@@ -379,6 +384,7 @@ export default function Checkout() {
       toast({ title: "Lỗi", description: error.message || "Đã có lỗi xảy ra. Vui lòng thử lại.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
+      setSubmitProgress(null);
     }
   };
 
@@ -577,7 +583,14 @@ export default function Checkout() {
               </label>
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !agreedPolicy}>
-              {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Đặt hàng ngay"}
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  {submitProgress
+                    ? `Đã tạo ${submitProgress.current}/${submitProgress.total} đơn...`
+                    : "Đang xử lý..."}
+                </span>
+              ) : "Đặt hàng ngay"}
             </Button>
           </div>
         </form>
