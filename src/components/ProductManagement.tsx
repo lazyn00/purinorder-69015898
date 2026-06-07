@@ -154,6 +154,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
   const [variantInputs, setVariantInputs] = useState<{ name: string; price: number; stock?: number }[]>([]);
   const [optionGroupInputs, setOptionGroupInputs] = useState<{ name: string; options: string }[]>([]);
   const [imageInputs, setImageInputs] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string>(""); // Thêm state này
   
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -322,6 +323,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
     setOptionGroupInputs([]);
     setImageInputs([""]);
     setShowForm(true);
+    setVideoUrl("");
   };
 
   const openEditForm = (product: SupabaseProduct) => {
@@ -360,7 +362,9 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       actual_can: product.actual_can,
       actual_pack: product.actual_pack,
       chenh: product.chenh,
-    });
+    }); // <--- Đã thêm dấu đóng ngoặc ở đây
+
+    setVideoUrl(product.video_url || ""); // Gọi tách rời ra
     
     const imgs = Array.isArray(product.images) ? product.images as string[] : [];
     setImageInputs(imgs.length > 0 ? imgs : [""]);
@@ -418,6 +422,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         stock: form.stock,
         link_order: form.link_order || null,
         proof: form.proof || null,
+        video_url: videoUrl.trim() !== "" ? videoUrl : null, // Lưu trường này
         actual_rate: form.actual_rate,
         actual_can: form.actual_can,
         actual_pack: form.actual_pack,
@@ -940,6 +945,15 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
                 <Input value={form.proof || ""} onChange={e => setForm(prev => ({ ...prev, proof: e.target.value }))} className="h-8 text-sm" />
               </div>
             </div>
+            <div className="mt-4">
+  <Label className="text-xs">Link Video (Google Drive/Khác)</Label>
+  <Input 
+    value={videoUrl} 
+    onChange={e => setVideoUrl(e.target.value)} 
+    placeholder="https://drive.google.com/..." 
+    className="h-8 text-sm" 
+  />
+</div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
