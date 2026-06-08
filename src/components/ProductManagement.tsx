@@ -62,6 +62,7 @@ interface SupabaseProduct {
   chenh: number | null;
   created_at: string | null;
   updated_at: string | null;
+  video_url: string | null; // Đã thêm
 }
 
 type ProductFormData = Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at'>;
@@ -103,6 +104,7 @@ const emptyForm: ProductFormData = {
   actual_can: null,
   actual_pack: null,
   chenh: null,
+  video_url: null, // Đã thêm
 };
 
 const getDeadlineStatus = (product: SupabaseProduct) => {
@@ -461,6 +463,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
         stock: form.stock,
         link_order: form.link_order || null,
         proof: form.proof || null,
+        video_url: form.video_url || null, // Đã thêm
         actual_rate: form.actual_rate,
         actual_can: form.actual_can,
         actual_pack: form.actual_pack,
@@ -580,6 +583,7 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
       actual_can: product.actual_can,
       actual_pack: product.actual_pack,
       chenh: product.chenh,
+      video_url: product.video_url, // Đã thêm
     });
     const imgs = Array.isArray(product.images) ? product.images as string[] : [];
     setImageInputs(imgs.length > 0 ? imgs : [""]);
@@ -1046,15 +1050,26 @@ export default function ProductManagement({ currentUser = "Admin" }: ProductMana
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs">Link order</Label>
-                <Input value={form.link_order || ""} onChange={e => setForm(prev => ({ ...prev, link_order: e.target.value }))} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs">Proof</Label>
-                <Input value={form.proof || ""} onChange={e => setForm(prev => ({ ...prev, proof: e.target.value }))} className="h-8 text-sm" />
-              </div>
-            </div>
+  <div>
+    <Label className="text-xs">Link order</Label>
+    <Input value={form.link_order || ""} onChange={e => setForm(prev => ({ ...prev, link_order: e.target.value }))} className="h-8 text-sm" />
+  </div>
+  <div>
+    <Label className="text-xs">Proof</Label>
+    <Input value={form.proof || ""} onChange={e => setForm(prev => ({ ...prev, proof: e.target.value }))} className="h-8 text-sm" />
+  </div>
+  
+  {/* Đảm bảo block này nằm TRONG cùng một thẻ div grid với 2 input trên */}
+  <div className="md:col-span-2">
+    <Label className="text-xs">Video URL (YouTube, TikTok, hoặc link mp4 trực tiếp)</Label>
+    <Input 
+      value={form.video_url || ""} 
+      onChange={e => setForm(prev => ({ ...prev, video_url: e.target.value }))} 
+      placeholder="https://youtube.com/... hoặc https://..." 
+      className="h-8 text-sm" 
+    />
+  </div>
+</div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
