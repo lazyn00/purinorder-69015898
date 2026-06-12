@@ -78,10 +78,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden w-full max-w-[100vw]">
+    <div className="min-h-screen flex flex-col w-full">
       <InAppBrowserBanner />
-      <div className="sticky top-0 z-50">
-        <header className="border-b bg-card">
+      
+      {/* Menu & Banner cố định */}
+      <div className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b">
+        <header>
           <nav className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <Link to="/" className="flex items-center gap-2 text-2xl font-bold text-primary">
@@ -139,7 +141,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           </nav>
         </header>
 
-        {/* Banner */}
+        {/* Banner chạy chữ */}
         <div className="bg-primary text-primary-foreground overflow-hidden whitespace-nowrap">
           <div className="animate-marquee inline-block py-2 text-sm font-medium">
             <span className="mx-8">{tenant.emoji} Hàng pre-order thời gian sản xuất lâu, cân nhắc kỹ trước khi đặt hàng {tenant.emoji}</span>
@@ -150,7 +152,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </div>
 
-      <main className="flex-1">{children}</main>
+      {/* Nội dung chính - Đặt overflow-x-hidden ở đây để không phá sticky */}
+      <main className="flex-1 overflow-x-hidden">{children}</main>
 
       <footer className="border-t bg-card mt-auto">
         <div className="container mx-auto px-4 py-8">
