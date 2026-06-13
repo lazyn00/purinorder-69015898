@@ -47,161 +47,78 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Map Supabase product to frontend Product interface
 const mapSupabaseProduct = (p: any): Product => {
   let variantImageMap = p.variant_image_map || {};
-  if (typeof variantImageMap === 'string') {
-    try { variantImageMap = JSON.parse(variantImageMap); } catch { variantImageMap = {}; }
-  }
+  if (typeof variantImageMap === 'string') { try { variantImageMap = JSON.parse(variantImageMap); } catch { variantImageMap = {}; } }
   let optionGroups = p.option_groups || [];
-  if (typeof optionGroups === 'string') {
-    try { optionGroups = JSON.parse(optionGroups); } catch { optionGroups = []; }
-  }
+  if (typeof optionGroups === 'string') { try { optionGroups = JSON.parse(optionGroups); } catch { optionGroups = []; } }
   let variants = p.variants || [];
-  if (typeof variants === 'string') {
-    try { variants = JSON.parse(variants); } catch { variants = []; }
-  }
+  if (typeof variants === 'string') { try { variants = JSON.parse(variants); } catch { variants = []; } }
   let images = p.images || [];
-  if (typeof images === 'string') {
-    try { images = JSON.parse(images); } catch { images = []; }
-  }
+  if (typeof images === 'string') { try { images = JSON.parse(images); } catch { images = []; } }
 
-  // --- CHUẨN HÓA LOGIC LẤY STOCK PHÂN LOẠI: Trống thì lấy kho chung, nhập 0 lấy 0 ---
   const normalizedVariants = (Array.isArray(variants) ? variants : []).map((v: any) => {
     const isStockEmpty = v.stock === null || v.stock === undefined || String(v.stock).trim() === "";
-    return {
-      name: v.name,
-      price: Number(v.price) || 0,
-      stock: isStockEmpty ? (p.stock ?? 0) : Number(v.stock)
-    };
+    return { name: v.name, price: Number(v.price) || 0, stock: isStockEmpty ? (p.stock ?? 0) : Number(v.stock) };
   });
 
   return {
-    id: p.id,
-    name: p.name,
-    price: p.price,
-    description: p.description || '',
-    images: images,
-    category: p.category || '',
-    subcategory: p.subcategory || '',
-    artist: p.artist || '',
-    variants: normalizedVariants, // ✅ Đã cập nhật nạp mảng đã lọc chuẩn hóa
-    optionGroups: optionGroups,
-    variantImageMap: variantImageMap,
-    feesIncluded: p.fees_included ?? true,
-    master: p.master || '',
-    status: p.status || '',
-    orderDeadline: p.order_deadline || null,
-    stock: p.stock ?? undefined,
+    id: p.id, name: p.name, price: p.price, description: p.description || '', images: images,
+    category: p.category || '', subcategory: p.subcategory || '', artist: p.artist || '',
+    variants: normalizedVariants, optionGroups: optionGroups, variantImageMap: variantImageMap,
+    feesIncluded: p.fees_included ?? true, master: p.master || '', status: p.status || '',
+    orderDeadline: p.order_deadline || null, stock: p.stock ?? undefined,
     priceDisplay: p.price_display || `${(p.price || 0).toLocaleString('vi-VN')}đ`,
-    productionTime: p.production_time || '',
-    size: p.size || '',
-    includes: p.includes || '',
-    cong: p.cong ?? undefined,
-    videoUrl: p.video_url || undefined,
+    productionTime: p.production_time || '', size: p.size || '', includes: p.includes || '',
+    cong: p.cong ?? undefined, videoUrl: p.video_url || undefined,
   };
 };
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const CART_STORAGE_KEY = 'pu_cart_items_v1';
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    try {
-      const raw = localStorage.getItem(CART_STORAGE_KEY);
-      if (raw) return JSON.parse(raw) as CartItem[];
-    } catch (e) {
-      console.warn('Cart restore failed', e);
-    }
+    try { const raw = localStorage.getItem(CART_STORAGE_KEY); if (raw) return JSON.parse(raw) as CartItem[]; } catch (e) { console.warn('Cart restore failed', e); }
     return [];
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-    } catch (e) {
-      console.warn('Cart persist failed', e);
-    }
+    try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems)); } catch (e) { console.warn('Cart persist failed', e); }
   }, [cartItems]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('id', { ascending: false });
-      if (!error && data) {
-        setProducts(data.map(mapSupabaseProduct));
-      }
-    } catch (error) {
-      console.error("Không thể tải sản phẩm từ database:", error);
-    }
+      const { data, error } = await supabase.from('products').select('*').order('id', { ascending: false });
+      if (!error && data) setProducts(data.map(mapSupabaseProduct));
+    } catch (error) { console.error("Không thể tải sản phẩm:", error); }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchProducts();
-
-    // Subscribe to realtime changes on products table for live stock updates
-    const channel = supabase
-      .channel('products-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        (payload) => {
-          if (payload.eventType === 'UPDATE') {
-            const updated = mapSupabaseProduct(payload.new);
-            setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
-          } else if (payload.eventType === 'INSERT') {
-            const newProduct = mapSupabaseProduct(payload.new);
-            setProducts(prev => [newProduct, ...prev]);
-          } else if (payload.eventType === 'DELETE') {
-            setProducts(prev => prev.filter(p => p.id !== (payload.old as any).id));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const channel = supabase.channel('products-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+      if (payload.eventType === 'UPDATE') { const updated = mapSupabaseProduct(payload.new); setProducts(prev => prev.map(p => p.id === updated.id ? updated : p)); }
+      else if (payload.eventType === 'INSERT') { const newProduct = mapSupabaseProduct(payload.new); setProducts(prev => [newProduct, ...prev]); }
+      else if (payload.eventType === 'DELETE') { setProducts(prev => prev.filter(p => p.id !== (payload.old as any).id)); }
+    }).subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const addToCart = (product: Product, quantity: number, variant: string) => {
     setCartItems(prev => {
-      const existingItem = prev.find(item => 
-        item.id === product.id && item.selectedVariant === variant
-      );
-      if (existingItem) {
-        return prev.map(item =>
-          item.id === product.id && item.selectedVariant === variant
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      }
+      const existingItem = prev.find(item => item.id === product.id && item.selectedVariant === variant);
+      if (existingItem) return prev.map(item => item.id === product.id && item.selectedVariant === variant ? { ...item, quantity: item.quantity + quantity } : item);
       return [...prev, { ...product, quantity, selectedVariant: variant }];
     });
   };
 
-  const removeFromCart = (productId: number, variant: string) => {
-    setCartItems(prev => prev.filter(item => 
-      !(item.id === productId && item.selectedVariant === variant)
-    ));
-  };
+  const removeFromCart = (productId: number, variant: string) => setCartItems(prev => prev.filter(item => !(item.id === productId && item.selectedVariant === variant)));
 
   const updateQuantity = (productId: number, variant: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(productId, variant);
-      return;
-    }
-    setCartItems(prev =>
-      prev.map(item => 
-        (item.id === productId && item.selectedVariant === variant) 
-          ? { ...item, quantity } 
-          : item
-      )
-    );
+    if (quantity <= 0) { removeFromCart(productId, variant); return; }
+    setCartItems(prev => prev.map(item => (item.id === productId && item.selectedVariant === variant) ? { ...item, quantity } : item));
   };
 
   const clearCart = () => setCartItems([]);
@@ -212,43 +129,43 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (cartItems.length === 0) return { updated, removed };
     try {
       const ids = Array.from(new Set(cartItems.map(i => i.id)));
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .in('id', ids);
+      const { data, error } = await supabase.from('products').select('*').in('id', ids);
       if (error || !data) return { updated, removed };
-      const fresh = data.map(mapSupabaseProduct);
-      const freshById = new Map(fresh.map(p => [p.id, p]));
+      const freshProducts = data.map(mapSupabaseProduct);
+      const freshById = new Map(freshProducts.map(p => [p.id, p]));
+
       setCartItems(prev => {
         const next: CartItem[] = [];
         for (const item of prev) {
           const p = freshById.get(item.id);
-          if (!p) {
+          const isDeleted = !p;
+          const isExpired = p?.orderDeadline && new Date(p.orderDeadline) < new Date();
+          const isHidden = p?.status === 'Ẩn';
+          
+          let stock = p?.stock ?? 0;
+          if (item.selectedVariant && Array.isArray(p?.variants)) {
+            const v = p!.variants.find((v: any) => v.name === item.selectedVariant);
+            if (v && v.stock !== null && v.stock !== undefined) stock = v.stock;
+          }
+          const isOutOfStock = stock <= 0;
+
+          if (isDeleted || isExpired || isHidden || isOutOfStock) {
             removed.push(item.name);
             continue;
           }
-          let newPrice = p.price;
-          if (item.selectedVariant && p.variants && p.variants.length > 0) {
-            const v = p.variants.find(v => v.name === item.selectedVariant);
+
+          let newPrice = p!.price;
+          if (item.selectedVariant && p!.variants && p!.variants.length > 0) {
+            const v = p!.variants.find(v => v.name === item.selectedVariant);
             if (v && typeof v.price === 'number') newPrice = v.price;
           }
-          if (newPrice !== item.price || JSON.stringify(p.images) !== JSON.stringify(item.images)) {
-            updated.push(item.name);
-          }
-          next.push({
-            ...item,
-            price: newPrice,
-            images: p.images,
-            variantImageMap: p.variantImageMap,
-            priceDisplay: p.priceDisplay,
-            name: p.name,
-          });
+
+          if (newPrice !== item.price || JSON.stringify(p!.images) !== JSON.stringify(item.images)) updated.push(item.name);
+          next.push({ ...item, ...p!, price: newPrice, quantity: item.quantity, selectedVariant: item.selectedVariant });
         }
         return next;
       });
-    } catch (e) {
-      console.warn('syncCartWithServer failed', e);
-    }
+    } catch (e) { console.warn('syncCartWithServer failed', e); }
     return { updated, removed };
   };
 
@@ -256,19 +173,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
-    <CartContext.Provider value={{
-      cartItems,
-      addToCart,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-      totalItems,
-      totalPrice,
-      products, 
-      isLoading,
-      refetchProducts: fetchProducts,
-      syncCartWithServer,
-    }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice, products, isLoading, refetchProducts: fetchProducts, syncCartWithServer }}>
       {children}
     </CartContext.Provider>
   );
@@ -276,8 +181,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within CartProvider');
-  }
+  if (!context) throw new Error('useCart must be used within CartProvider');
   return context;
 }
