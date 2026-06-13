@@ -565,18 +565,6 @@ export default function Admin() {
     if (isLoggedIn) fetchProducts();
   }, [isLoggedIn, currentUser]);
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-
-    const channel = supabase
-      .channel('admin-notifications-realtime')
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isLoggedIn, toast]);
-
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const matched = ADMIN_CREDENTIALS.find(c => c.username === username && c.password === password);
